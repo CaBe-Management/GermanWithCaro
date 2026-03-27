@@ -1,26 +1,32 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* === GermanWithCaro Golden Colour Palette === */
+/* These custom colours are used throughout the app via Tailwind classes like bg-gold, text-text2, etc. */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: #fffdf7;
+  --color-white: #ffffff;
+  --color-surface: #fdf6e8;
+  --color-border: #eddfc0;
+  --color-border2: #ddc99a;
+  --color-gold: #b07d10;
+  --color-gold-light: #c99418;
+  --color-gold-bg: #fffbeb;
+  --color-gold-mid: #f0d080;
+  --color-gold-dark: #7a5600;
+  --color-text: #1c1500;
+  --color-text2: #5c4a1e;
+  --color-text3: #b09a6a;
+  --color-success: #059669;
+  --color-error: #dc2626;
+  --color-error-bg: #fef2f2;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Set the default page background and text colour */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: Arial, Helvetica, sans-serif;
 }
