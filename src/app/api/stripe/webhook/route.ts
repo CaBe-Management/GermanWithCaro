@@ -2,7 +2,7 @@
 // Stripe sends events here when a subscription changes (created, updated, cancelled)
 // We use these events to update the user's subscription_status in the profiles table
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   // Verify the webhook signature to make sure it really came from Stripe
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
