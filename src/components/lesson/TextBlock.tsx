@@ -1,5 +1,5 @@
 // TextBlock — renders a text content block inside a lesson
-// Supports [grammar] syntax which gets turned into styled GrammarChip pills
+// Supports headings (content.heading), [grammar] chips, and paragraph spacing
 import GrammarChip from '@/components/lesson/GrammarChip'
 import type { LessonBlock } from '@/types'
 
@@ -20,22 +20,42 @@ function parseContent(text: string) {
 }
 
 export default function TextBlock({ block }: { block: LessonBlock }) {
-  // The content field is a JSONB object — we expect { text: "..." } format
-  const content = block.content as { text?: string } | null
+  // The content field is a JSONB object — { heading?: "...", text: "..." }
+  const content = block.content as { heading?: string; text?: string } | null
+  const heading = content?.heading
   const text = content?.text ?? ''
 
-  if (!text) return null
+  if (!text && !heading) return null
 
-  // Split by newlines so each paragraph gets its own <p> tag
-  const paragraphs = text.split('\n').filter((p) => p.trim())
+  // Split on double newlines for proper paragraph separation
+  const paragraphs = text.split(/\n\n/).map((p) => p.trim()).filter(Boolean)
 
   return (
-    <div className="space-y-3">
-      {paragraphs.map((paragraph, i) => (
-        <p key={i} className="text-sm leading-relaxed text-text2">
-          {parseContent(paragraph)}
-        </p>
-      ))}
+    <div>
+      {/* Section heading */}
+      {heading && (
+        <h2 className="mt-8 mb-4 font-display text-[22px] font-semibold text-text">
+          {heading}
+        </h2>
+      )}
+
+      {/* Text content — each double-newline-separated block is a paragraph */}
+      <div className="space-y-3">
+        {paragraphs.map((paragraph, i) => {
+          // Handle single-newline breaks within a paragraph as line breaks
+          const lines = paragraph.split('\n')
+          return (
+            <p key={i} className="text-[15px] leading-relaxed text-text2">
+              {lines.map((line, j) => (
+                <span key={j}>
+                  {j > 0 && <br />}
+                  {parseContent(line)}
+                </span>
+              ))}
+            </p>
+          )
+        })}
+      </div>
     </div>
   )
 }

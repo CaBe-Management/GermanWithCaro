@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import TextBlock from '@/components/lesson/TextBlock'
 import ExampleSentenceCard from '@/components/lesson/ExampleSentenceCard'
+import ConversationBlock from '@/components/lesson/ConversationBlock'
 import LessonComplete from '@/components/lesson/LessonComplete'
 import type { LessonBlock } from '@/types'
 
@@ -67,7 +68,7 @@ export default async function LessonPage({
         </div>
 
         {/* Lesson content blocks — rendered in order */}
-        <div className="space-y-6">
+        <div className="space-y-10">
           {(blocks as LessonBlock[] | null)?.map((block) => {
             // Text blocks: explanations, grammar notes, etc.
             if (block.type === 'text') {
@@ -85,12 +86,27 @@ export default async function LessonPage({
               )
             }
 
+            // Conversation blocks (mini-dialogues)
+            if (block.type === 'conversation') {
+              const conversationContent = block.content as {
+                title: string
+                context: string
+                lines: { speaker: string; german: string; english: string; audio_url: string | null; word_breakdown: { de: string; en: string; role: string }[] }[]
+              } | null
+              if (!conversationContent) return null
+              return (
+                <div key={block.id} className="mt-10 border-t border-border pt-10">
+                  <ConversationBlock content={conversationContent} />
+                </div>
+              )
+            }
+
             return null
           })}
         </div>
 
         {/* Mark as complete button (at the bottom of the lesson) */}
-        <div className="mt-12 mb-8">
+        <div className="mt-12 mb-20">
           <LessonComplete lessonId={lesson.id} isCompleted={isCompleted} />
         </div>
       </div>

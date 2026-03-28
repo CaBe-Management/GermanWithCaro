@@ -1,5 +1,5 @@
 // ExampleSentenceCard — displays a German example sentence with translation,
-// word breakdown, register label, and audio player.
+// word breakdown, register label, grammar note, and audio player.
 // For "bad examples", wraps in a red-tinted card with an X icon.
 import { XCircle } from 'lucide-react'
 import AudioPlayer from '@/components/lesson/AudioPlayer'
@@ -18,16 +18,16 @@ export default function ExampleSentenceCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-lg border',
+        'relative overflow-hidden rounded-xl border transition-shadow hover:shadow-md',
         isBadExample
-          ? 'border-error/30 bg-error-bg'      // red tint for bad examples
-          : 'border-border bg-white'            // normal white card
+          ? 'border-error/30 bg-error-bg'
+          : 'border-border bg-white'
       )}
     >
-      {/* Left accent border */}
+      {/* Left accent border — 5px blush */}
       <div
         className={cn(
-          'absolute left-0 top-0 bottom-0 w-1',
+          'absolute left-0 top-0 bottom-0 w-[5px]',
           isBadExample ? 'bg-error' : 'bg-primary'
         )}
       />
@@ -47,8 +47,8 @@ export default function ExampleSentenceCard({
           </div>
         )}
 
-        {/* Main content area */}
-        <div className={cn('flex-1 p-4', block.register ? 'pl-0' : 'pl-5')}>
+        {/* Main content area — increased padding */}
+        <div className={cn('flex-1 p-6', block.register ? 'pl-1' : 'pl-7')}>
           {/* Bad example icon */}
           {isBadExample && (
             <div className="mb-2 flex items-center gap-1.5 text-error">
@@ -57,9 +57,9 @@ export default function ExampleSentenceCard({
             </div>
           )}
 
-          {/* German sentence (the main content) */}
+          {/* German sentence — Newsreader serif */}
           <p className={cn(
-            'font-display text-xl font-medium',
+            'font-display text-xl font-medium leading-snug',
             isBadExample ? 'text-error/80 line-through' : 'text-text'
           )}>
             {block.german_sentence}
@@ -67,33 +67,32 @@ export default function ExampleSentenceCard({
 
           {/* English translation */}
           {block.translation && (
-            <p className="mt-1 text-sm text-text3">{block.translation}</p>
+            <p className="mt-1.5 text-[15px] italic text-text3">{block.translation}</p>
           )}
 
-          {/* Word breakdown chips */}
+          {/* Word breakdown chips — with subtle shadow and hover */}
           {words.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {words.map((word, i) => (
                 <div
                   key={i}
-                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5"
+                  className="rounded-lg border border-border bg-white px-3 py-2 shadow-xs transition hover:border-primary"
                 >
-                  {/* German word */}
-                  <p className="text-xs font-semibold text-text">{word.de}</p>
-                  {/* English meaning */}
-                  <p className="text-[10px] text-text3">{word.en}</p>
-                  {/* Grammatical role */}
+                  <p className="text-[13px] font-semibold text-text">{word.de}</p>
+                  <p className="text-[11px] text-text3">{word.en}</p>
                   <p className="mt-0.5 text-[10px] font-medium text-primary">{word.role}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Grammar note — pulled from the content JSON field */}
+          {/* Grammar note — sage green box with left border */}
           {block.content && (block.content as { grammar_note?: string }).grammar_note && (
-            <div className="mt-3 rounded-lg border-l-[3px] border-sage bg-sage-bg px-3 py-2">
-              <p className="text-xs leading-relaxed text-sage-dark">
-                <span className="font-semibold">Grammar: </span>
+            <div className="mt-4 rounded-lg border-l-[3px] border-sage bg-sage-bg p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-sage-dark">
+                Grammar Note
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-text2">
                 {(block.content as { grammar_note?: string }).grammar_note}
               </p>
             </div>
@@ -101,7 +100,7 @@ export default function ExampleSentenceCard({
 
           {/* Audio player */}
           {block.audio_url && (
-            <div className="mt-3">
+            <div className="mt-4">
               <AudioPlayer src={block.audio_url} />
             </div>
           )}
