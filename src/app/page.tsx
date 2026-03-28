@@ -151,7 +151,7 @@ export default function Home() {
           <div className="mt-8 rounded-xl border-2 border-primary bg-white p-8 shadow-sm">
             <p className="text-sm font-semibold text-primary">GermanWithCaro Premium</p>
             <div className="mt-3">
-              <span className="text-4xl font-bold text-text">&euro;9</span>
+              <span className="text-4xl font-bold text-text">&euro;4.99</span>
               <span className="text-text3">/month</span>
             </div>
 

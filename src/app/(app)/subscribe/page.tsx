@@ -57,7 +57,7 @@ function SubscribeContent() {
 
         {/* Price */}
         <div className="mt-6 text-center">
-          <span className="text-4xl font-bold text-text">€9</span>
+          <span className="text-4xl font-bold text-text">€4.99</span>
           <span className="text-text3">/month</span>
         </div>
 
