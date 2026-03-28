@@ -34,7 +34,7 @@ export type LessonBlock = {
   id: string
   lesson_id: string
   order_index: number
-  type: 'text' | 'example_sentence' | 'bad_example'
+  type: 'text' | 'example_sentence' | 'bad_example' | 'conversation'
   content: Record<string, unknown> | null    // rich text content (for type = 'text')
   german_sentence: string | null             // the German sentence (for example/bad_example)
   translation: string | null                 // English translation

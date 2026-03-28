@@ -44,7 +44,7 @@ export default function ActionGrid({
     <div className="mt-4 grid grid-cols-2 gap-3">
       {/* === Reviews card === */}
       {hasReviews ? (
-        // Has reviews due — gold card with link to review page
+        // Has reviews due — blush card with link to review page
         <Link
           href="/review"
           className="flex flex-col items-center rounded-xl border-2 border-primary bg-primary-bg p-5 transition hover:shadow-md"
