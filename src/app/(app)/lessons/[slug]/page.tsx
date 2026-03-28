@@ -53,9 +53,9 @@ export default async function LessonPage({
           <p className="text-xs font-medium uppercase tracking-wide text-text3">
             {lesson.unit_name}
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-text">{lesson.title}</h1>
+          <h1 className="mt-1 font-display text-2xl font-bold text-text">{lesson.title}</h1>
           <div className="mt-2 flex items-center gap-2">
-            <span className="rounded-full bg-gold-bg px-2.5 py-0.5 text-xs font-medium text-gold-dark">
+            <span className="rounded-full bg-primary-bg px-2.5 py-0.5 text-xs font-medium text-primary-dark">
               {lesson.level}
             </span>
             {isCompleted && (

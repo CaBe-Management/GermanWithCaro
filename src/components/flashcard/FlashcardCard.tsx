@@ -45,7 +45,7 @@ export default function FlashcardCard({
         )}
 
         {/* German sentence — large and centered */}
-        <p className="text-center text-xl font-semibold text-text">
+        <p className="text-center font-display text-2xl font-medium text-text">
           {block.german_sentence}
         </p>
 
@@ -67,7 +67,7 @@ export default function FlashcardCard({
         {!revealed && (
           <button
             onClick={() => setRevealed(true)}
-            className="mt-6 w-full rounded-lg border-2 border-gold bg-gold-bg py-3 text-sm font-semibold text-gold transition hover:bg-gold hover:text-white"
+            className="mt-6 w-full rounded-lg border-2 border-primary bg-primary-bg py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
           >
             Reveal
           </button>
@@ -92,7 +92,7 @@ export default function FlashcardCard({
                 >
                   <p className="text-sm font-semibold text-text">{word.de}</p>
                   <p className="text-xs text-text3">{word.en}</p>
-                  <p className="mt-0.5 text-[10px] font-medium text-gold">{word.role}</p>
+                  <p className="mt-0.5 text-[10px] font-medium text-primary">{word.role}</p>
                 </div>
               ))}
             </div>
@@ -100,8 +100,8 @@ export default function FlashcardCard({
 
           {/* Grammar note */}
           {block.content?.grammar_note && (
-            <div className="mt-4 rounded-lg bg-gold-bg px-3 py-2">
-              <p className="text-xs leading-relaxed text-gold-dark">
+            <div className="mt-4 rounded-lg border-l-[3px] border-sage bg-sage-bg px-3 py-2">
+              <p className="text-xs leading-relaxed text-sage-dark">
                 <span className="font-semibold">Grammar: </span>
                 {block.content.grammar_note}
               </p>
@@ -127,10 +127,10 @@ export default function FlashcardCard({
             {/* Knew it */}
             <button
               onClick={() => onRate(1)}
-              className="flex flex-col items-center gap-1 rounded-lg border border-border py-4 transition hover:border-success hover:bg-success/5"
+              className="flex flex-col items-center gap-1 rounded-lg bg-sage py-4 text-white transition hover:bg-sage-dark"
             >
               <span className="text-2xl">😊</span>
-              <span className="text-xs font-medium text-text2">Knew it!</span>
+              <span className="text-xs font-medium">Knew it!</span>
             </button>
           </div>
         </div>

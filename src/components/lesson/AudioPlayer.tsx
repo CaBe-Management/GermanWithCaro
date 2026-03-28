@@ -76,7 +76,7 @@ export default function AudioPlayer({ src }: { src: string }) {
       {/* Play/pause button */}
       <button
         onClick={togglePlay}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold text-white transition hover:bg-gold-light"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-light"
       >
         {isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
       </button>
@@ -89,7 +89,7 @@ export default function AudioPlayer({ src }: { src: string }) {
         step={0.1}
         value={currentTime}
         onChange={handleSeek}
-        className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-border accent-gold"
+        className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-border accent-primary"
       />
 
       {/* Time display */}

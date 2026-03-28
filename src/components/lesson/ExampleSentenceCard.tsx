@@ -28,7 +28,7 @@ export default function ExampleSentenceCard({
       <div
         className={cn(
           'absolute left-0 top-0 bottom-0 w-1',
-          isBadExample ? 'bg-error' : 'bg-gold'
+          isBadExample ? 'bg-error' : 'bg-primary'
         )}
       />
 
@@ -59,7 +59,7 @@ export default function ExampleSentenceCard({
 
           {/* German sentence (the main content) */}
           <p className={cn(
-            'text-lg font-medium',
+            'font-display text-xl font-medium',
             isBadExample ? 'text-error/80 line-through' : 'text-text'
           )}>
             {block.german_sentence}
@@ -83,7 +83,7 @@ export default function ExampleSentenceCard({
                   {/* English meaning */}
                   <p className="text-[10px] text-text3">{word.en}</p>
                   {/* Grammatical role */}
-                  <p className="mt-0.5 text-[10px] font-medium text-gold">{word.role}</p>
+                  <p className="mt-0.5 text-[10px] font-medium text-primary">{word.role}</p>
                 </div>
               ))}
             </div>
@@ -91,8 +91,8 @@ export default function ExampleSentenceCard({
 
           {/* Grammar note — pulled from the content JSON field */}
           {block.content && (block.content as { grammar_note?: string }).grammar_note && (
-            <div className="mt-3 rounded-lg bg-gold-bg px-3 py-2">
-              <p className="text-xs leading-relaxed text-gold-dark">
+            <div className="mt-3 rounded-lg border-l-[3px] border-sage bg-sage-bg px-3 py-2">
+              <p className="text-xs leading-relaxed text-sage-dark">
                 <span className="font-semibold">Grammar: </span>
                 {(block.content as { grammar_note?: string }).grammar_note}
               </p>

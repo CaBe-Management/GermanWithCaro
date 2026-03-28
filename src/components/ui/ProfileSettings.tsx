@@ -112,7 +112,7 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
         <button
           onClick={handleToggle}
           className={`relative h-6 w-11 rounded-full transition ${
-            value ? 'bg-gold' : 'bg-border2'
+            value ? 'bg-primary' : 'bg-border2'
           }`}
         >
           <span
@@ -128,7 +128,7 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
   // Subscription status badge colour
   const statusColor = {
     active: 'bg-success/10 text-success',
-    trialing: 'bg-gold-bg text-gold-dark',
+    trialing: 'bg-primary-bg text-primary-dark',
     inactive: 'bg-error-bg text-error',
   }[profile.subscription_status] ?? 'bg-error-bg text-error'
 

@@ -43,7 +43,7 @@ export default function LoginPage() {
       {/* Login card */}
       <div className="w-full max-w-sm rounded-xl border border-border bg-white p-8 shadow-sm">
         {/* Logo */}
-        <h1 className="mb-1 text-center text-2xl font-bold text-gold">
+        <h1 className="mb-1 text-center text-2xl font-bold text-primary">
           GermanWithCaro
         </h1>
         <p className="mb-6 text-center text-sm text-text3">
@@ -70,7 +70,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-gold focus:ring-2 focus:ring-gold-bg"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
             />
           </div>
 
@@ -85,14 +85,14 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Your password"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-gold focus:ring-2 focus:ring-gold-bg"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-gold py-2.5 text-sm font-semibold text-white transition hover:bg-gold-light disabled:opacity-50"
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-light disabled:opacity-50"
           >
             {loading ? 'Logging in...' : 'Log in'}
           </button>
@@ -101,7 +101,7 @@ export default function LoginPage() {
         {/* Link to sign up */}
         <p className="mt-6 text-center text-sm text-text3">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="font-medium text-gold hover:underline">
+          <Link href="/signup" className="font-medium text-primary hover:underline">
             Sign up
           </Link>
         </p>

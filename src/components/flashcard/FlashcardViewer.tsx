@@ -116,7 +116,7 @@ export default function FlashcardViewer({ autoplayAudio }: { autoplayAudio: bool
           </div>
           <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-border">
             <div
-              className="h-full rounded-full bg-gold transition-all duration-300"
+              className="h-full rounded-full bg-sage transition-all duration-300"
               style={{ width: `${(currentIndex / totalCards) * 100}%` }}
             />
           </div>

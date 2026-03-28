@@ -57,7 +57,7 @@ export default function LessonComplete({
     <button
       onClick={handleComplete}
       disabled={loading}
-      className="w-full rounded-lg bg-gold py-3 text-sm font-semibold text-white transition hover:bg-gold-light disabled:opacity-50"
+      className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary-light disabled:opacity-50"
     >
       {loading ? 'Completing...' : 'Mark as Complete'}
     </button>

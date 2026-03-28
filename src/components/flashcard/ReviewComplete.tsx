@@ -7,8 +7,8 @@ export default function ReviewComplete({ reviewed }: { reviewed: number }) {
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm text-center">
         {/* Success icon */}
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
-          <Check size={32} className="text-success" />
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sage-light">
+          <Check size={32} className="text-sage" />
         </div>
 
         {/* Message */}
@@ -24,7 +24,7 @@ export default function ReviewComplete({ reviewed }: { reviewed: number }) {
         {/* Link back to dashboard */}
         <Link
           href="/dashboard"
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-gold px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-gold-light"
+          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-light"
         >
           Back to Dashboard
           <ArrowRight size={14} />

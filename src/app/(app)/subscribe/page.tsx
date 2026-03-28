@@ -41,14 +41,14 @@ function SubscribeContent() {
     <div className="w-full max-w-sm">
       {/* Show a message if user cancelled checkout */}
       {cancelled && (
-        <div className="mb-4 rounded-lg bg-gold-bg p-3 text-center text-sm text-gold-dark">
+        <div className="mb-4 rounded-lg bg-primary-bg p-3 text-center text-sm text-primary-dark">
           No worries — you can subscribe whenever you&apos;re ready!
         </div>
       )}
 
       {/* Pricing card */}
       <div className="rounded-xl border border-border bg-white p-8 shadow-sm">
-        <h1 className="text-center text-2xl font-bold text-gold">
+        <h1 className="text-center text-2xl font-bold text-primary">
           GermanWithCaro
         </h1>
         <p className="mt-1 text-center text-sm text-text3">
@@ -75,7 +75,7 @@ function SubscribeContent() {
         <button
           onClick={handleSubscribe}
           disabled={loading}
-          className="mt-8 w-full rounded-lg bg-gold py-3 text-sm font-semibold text-white transition hover:bg-gold-light disabled:opacity-50"
+          className="mt-8 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary-light disabled:opacity-50"
         >
           {loading ? 'Redirecting to checkout...' : 'Subscribe now'}
         </button>

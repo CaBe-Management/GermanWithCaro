@@ -47,13 +47,13 @@ export default function ActionGrid({
         // Has reviews due — gold card with link to review page
         <Link
           href="/review"
-          className="flex flex-col items-center rounded-xl border-2 border-gold bg-gold-bg p-5 transition hover:shadow-md"
+          className="flex flex-col items-center rounded-xl border-2 border-primary bg-primary-bg p-5 transition hover:shadow-md"
         >
-          <span className="text-3xl font-bold text-gold">{dueReviews}</span>
-          <span className="mt-1 text-xs font-medium text-gold-dark">
+          <span className="text-3xl font-bold text-primary">{dueReviews}</span>
+          <span className="mt-1 text-xs font-medium text-primary-dark">
             review{dueReviews === 1 ? '' : 's'} due
           </span>
-          <span className="mt-3 flex items-center gap-1 text-xs font-semibold text-gold">
+          <span className="mt-3 flex items-center gap-1 text-xs font-semibold text-primary">
             Start <ArrowRight size={12} />
           </span>
         </Link>

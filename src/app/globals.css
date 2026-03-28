@@ -1,32 +1,40 @@
 @import "tailwindcss";
 
-/* === GermanWithCaro Golden Colour Palette === */
-/* These custom colours are used throughout the app via Tailwind classes like bg-gold, text-text2, etc. */
+/* === GermanWithCaro Blush + Sage Colour Palette === */
+/* Primary: blush/terracotta for actions, Secondary: sage green for grammar/progress */
 
 @theme inline {
-  --color-bg: #fffdf7;
+  --color-bg: #fdfaf9;
   --color-white: #ffffff;
-  --color-surface: #fdf6e8;
-  --color-border: #eddfc0;
-  --color-border2: #ddc99a;
-  --color-gold: #b07d10;
-  --color-gold-light: #c99418;
-  --color-gold-bg: #fffbeb;
-  --color-gold-mid: #f0d080;
-  --color-gold-dark: #7a5600;
-  --color-text: #1c1500;
-  --color-text2: #5c4a1e;
-  --color-text3: #b09a6a;
+  --color-surface: #faf5f3;
+  --color-border: #ece6e2;
+  --color-border2: #ddd4ce;
+  /* Primary — Blush/Terracotta (buttons, CTAs, accents) */
+  --color-primary: #c4856c;
+  --color-primary-light: #faf0ec;
+  --color-primary-dark: #a06a52;
+  --color-primary-bg: #fdf8f6;
+  /* Secondary — Sage Green (grammar notes, progress, success states) */
+  --color-sage: #7c9a82;
+  --color-sage-light: #e8f0ea;
+  --color-sage-dark: #5a7a60;
+  --color-sage-bg: #f0f5f1;
+  /* Text hierarchy */
+  --color-text: #2d2a28;
+  --color-text2: #7a706a;
+  --color-text3: #a89e98;
+  /* Semantic */
   --color-success: #059669;
   --color-error: #dc2626;
   --color-error-bg: #fef2f2;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Fonts — Inter for UI, Newsreader for German sentences and headings */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-newsreader);
 }
 
 /* Set the default page background and text colour */
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

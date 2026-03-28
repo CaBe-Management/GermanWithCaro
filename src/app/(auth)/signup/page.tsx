@@ -45,7 +45,7 @@ export default function SignupPage() {
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-white p-8 shadow-sm">
         {/* Logo */}
-        <h1 className="mb-1 text-center text-2xl font-bold text-gold">
+        <h1 className="mb-1 text-center text-2xl font-bold text-primary">
           GermanWithCaro
         </h1>
         <p className="mb-6 text-center text-sm text-text3">
@@ -54,8 +54,8 @@ export default function SignupPage() {
 
         {/* Success message — shown after signup */}
         {success ? (
-          <div className="rounded-lg bg-gold-bg p-4 text-center">
-            <p className="text-sm font-medium text-gold-dark">
+          <div className="rounded-lg bg-primary-bg p-4 text-center">
+            <p className="text-sm font-medium text-primary-dark">
               Check your email!
             </p>
             <p className="mt-1 text-sm text-text2">
@@ -63,7 +63,7 @@ export default function SignupPage() {
             </p>
             <Link
               href="/login"
-              className="mt-4 inline-block text-sm font-medium text-gold hover:underline"
+              className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
             >
               Go to login
             </Link>
@@ -90,7 +90,7 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-gold focus:ring-2 focus:ring-gold-bg"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
                 />
               </div>
 
@@ -106,14 +106,14 @@ export default function SignupPage() {
                   required
                   minLength={6}
                   placeholder="At least 6 characters"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-gold focus:ring-2 focus:ring-gold-bg"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-gold py-2.5 text-sm font-semibold text-white transition hover:bg-gold-light disabled:opacity-50"
+                className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-light disabled:opacity-50"
               >
                 {loading ? 'Creating account...' : 'Sign up'}
               </button>
@@ -122,7 +122,7 @@ export default function SignupPage() {
             {/* Link to login */}
             <p className="mt-6 text-center text-sm text-text3">
               Already have an account?{' '}
-              <Link href="/login" className="font-medium text-gold hover:underline">
+              <Link href="/login" className="font-medium text-primary hover:underline">
                 Log in
               </Link>
             </p>

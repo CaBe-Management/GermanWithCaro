@@ -22,7 +22,7 @@ export default async function AppLayout({
       <header className="sticky top-0 z-50 border-b border-border bg-bg/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           {/* Logo — links back to dashboard */}
-          <Link href="/dashboard" className="text-lg font-bold text-gold">
+          <Link href="/dashboard" className="text-lg font-bold text-primary">
             GermanWithCaro
           </Link>
 
