@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
 
     // Only allow updating these specific fields (not things like is_admin!)
-    const allowedFields = ['daily_review_limit', 'weekly_lesson_limit', 'streak_reminder', 'audio_autoplay']
+    const allowedFields = ['full_name', 'daily_review_limit', 'weekly_lesson_limit', 'streak_reminder', 'audio_autoplay']
     const updates: Record<string, unknown> = {}
 
     for (const field of allowedFields) {

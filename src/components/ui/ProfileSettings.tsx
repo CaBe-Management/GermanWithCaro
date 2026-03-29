@@ -8,6 +8,7 @@ import type { Profile } from '@/types'
 
 export default function ProfileSettings({ profile }: { profile: Profile }) {
   // Local state for each setting (initialised from the database)
+  const [fullName, setFullName] = useState(profile.full_name ?? '')
   const [weeklyLimit, setWeeklyLimit] = useState(profile.weekly_lesson_limit)
   const [dailyLimit, setDailyLimit] = useState(profile.daily_review_limit)
   const [streakReminder, setStreakReminder] = useState(profile.streak_reminder)
@@ -139,14 +140,25 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
         <h1 className="text-2xl font-bold text-text">Profile</h1>
         <p className="mt-1 text-sm text-text3">Manage your learning preferences</p>
 
-        {/* Account info (read-only) */}
+        {/* Account info */}
         <div className="mt-6 rounded-lg border border-border bg-white p-4">
-          <p className="text-sm font-medium text-text">
-            {profile.full_name || profile.email}
-          </p>
-          {profile.full_name && (
-            <p className="text-xs text-text3">{profile.email}</p>
-          )}
+          {/* Editable name field */}
+          <label htmlFor="fullName" className="mb-1 block text-xs font-medium text-text3">
+            Name
+          </label>
+          <input
+            id="fullName"
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            onBlur={() => updateSetting('full_name', fullName)}
+            onKeyDown={(e) => { if (e.key === 'Enter') updateSetting('full_name', fullName) }}
+            placeholder="Your name"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
+          />
+          {/* Email (read-only) */}
+          <p className="mt-2 text-xs text-text3">{profile.email}</p>
+          {/* Subscription badge */}
           <div className="mt-2 flex items-center gap-2">
             <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor}`}>
               {profile.subscription_status.charAt(0).toUpperCase() + profile.subscription_status.slice(1)}
