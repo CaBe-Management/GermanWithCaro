@@ -1,8 +1,8 @@
 'use client'
 
 // LibraryView — main client component for the library page
-// Groups lessons by unit, manages expand/collapse state
-import { useMemo } from 'react'
+// Manages three levels of state: unit expand, lesson expand, active audio
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { BookOpen } from 'lucide-react'
 import UnitSection from '@/components/library/UnitSection'
@@ -21,14 +21,22 @@ type CompletedLesson = {
   completed_at: string | null
 }
 
+type WordBreakdownItem = {
+  de: string
+  en: string
+  role: string
+}
+
 type FlashcardBlock = {
   id: string
   lesson_id: string
   order_index: number
   german_sentence: string | null
   translation: string | null
+  register: string | null
   audio_url: string | null
   content: Record<string, unknown> | null
+  word_breakdown: WordBreakdownItem[] | null
 }
 
 export default function LibraryView({
@@ -40,9 +48,9 @@ export default function LibraryView({
   completedLessons: CompletedLesson[]
   flashcardBlocks: FlashcardBlock[]
 }) {
-  // Build a set of completed lesson IDs for quick lookup
+  // Build a map of completed lesson IDs → completed_at date
   const completedMap = useMemo(() => {
-    const map = new Map<string, string>() // lesson_id -> completed_at
+    const map = new Map<string, string>()
     completedLessons.forEach((cl) => {
       if (cl.completed_at) map.set(cl.lesson_id, cl.completed_at)
     })
@@ -74,18 +82,50 @@ export default function LibraryView({
     }))
   }, [lessons])
 
-  // Find the first incomplete unit (for default expand)
-  const firstIncompleteUnitIndex = units.findIndex((unit) =>
-    unit.lessons.some((l) => !completedMap.has(l.id))
-  )
+  // Find the first incomplete unit for default expand
+  const firstIncompleteUnitName = useMemo(() => {
+    const unit = units.find((u) =>
+      u.lessons.some((l) => !completedMap.has(l.id))
+    )
+    return unit?.unitName ?? null
+  }, [units, completedMap])
+
+  // State: which units are expanded (Set of unit names)
+  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(() => {
+    const initial = new Set<string>()
+    if (firstIncompleteUnitName) initial.add(firstIncompleteUnitName)
+    return initial
+  })
+
+  // State: which lessons have flashcards expanded (Set of lesson IDs)
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
+
+  // State: currently playing audio block ID (only one at a time)
+  const [activeAudioId, setActiveAudioId] = useState<string | null>(null)
+
+  function toggleUnit(unitName: string) {
+    setExpandedUnits((prev) => {
+      const next = new Set(prev)
+      if (next.has(unitName)) next.delete(unitName)
+      else next.add(unitName)
+      return next
+    })
+  }
+
+  function toggleLesson(lessonId: string) {
+    setExpandedLessons((prev) => {
+      const next = new Set(prev)
+      if (next.has(lessonId)) next.delete(lessonId)
+      else next.add(lessonId)
+      return next
+    })
+  }
 
   const totalCompleted = completedMap.size
   const totalLessons = lessons.length
 
-  // Empty state: no lessons completed
   if (totalLessons === 0) return null
 
-  // Find first lesson slug for empty CTA
   const firstLessonSlug = lessons[0]?.slug
 
   return (
@@ -136,14 +176,19 @@ export default function LibraryView({
 
         {/* Unit sections */}
         <div className="mt-8 space-y-4">
-          {units.map((unit, i) => (
+          {units.map((unit) => (
             <UnitSection
               key={unit.unitName}
               unitName={unit.unitName}
               lessons={unit.lessons}
               completedMap={completedMap}
               flashcardsByLesson={flashcardsByLesson}
-              defaultExpanded={i === firstIncompleteUnitIndex}
+              isExpanded={expandedUnits.has(unit.unitName)}
+              onToggleUnit={() => toggleUnit(unit.unitName)}
+              expandedLessons={expandedLessons}
+              onToggleLesson={toggleLesson}
+              activeAudioId={activeAudioId}
+              onSetActiveAudio={setActiveAudioId}
             />
           ))}
         </div>

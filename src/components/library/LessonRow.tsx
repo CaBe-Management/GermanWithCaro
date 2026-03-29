@@ -1,13 +1,29 @@
 'use client'
 
 // LessonRow — a single lesson inside a unit section
-// Completed: expandable to show flashcard preview
-// Not completed: links to the lesson page
-import { useState } from 'react'
+// Completed: click to expand flashcard details, "View full lesson" link
+// Not completed: "Start lesson" link, greyed out
 import Link from 'next/link'
 import { Check, Circle, ChevronDown, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import FlashcardList from '@/components/library/FlashcardList'
+
+type WordBreakdownItem = {
+  de: string
+  en: string
+  role: string
+}
+
+type FlashcardBlock = {
+  id: string
+  lesson_id: string
+  order_index: number
+  german_sentence: string | null
+  translation: string | null
+  register: string | null
+  audio_url: string | null
+  content: Record<string, unknown> | null
+  word_breakdown: WordBreakdownItem[] | null
+}
 
 type Lesson = {
   id: string
@@ -18,26 +34,23 @@ type Lesson = {
   level: string
 }
 
-type FlashcardBlock = {
-  id: string
-  lesson_id: string
-  order_index: number
-  german_sentence: string | null
-  translation: string | null
-  audio_url: string | null
-  content: Record<string, unknown> | null
-}
-
 export default function LessonRow({
   lesson,
   completedAt,
   flashcards,
+  isExpanded,
+  onToggleExpand,
+  activeAudioId,
+  onSetActiveAudio,
 }: {
   lesson: Lesson
   completedAt: string | null
   flashcards: FlashcardBlock[]
+  isExpanded: boolean
+  onToggleExpand: () => void
+  activeAudioId: string | null
+  onSetActiveAudio: (id: string) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
   const isCompleted = !!completedAt
 
   // Format the completion date
@@ -49,13 +62,10 @@ export default function LessonRow({
       })
     : null
 
-  // Not completed — link to lesson page
+  // Not completed — show "Start lesson" link
   if (!isCompleted) {
     return (
-      <Link
-        href={`/lessons/${lesson.slug}`}
-        className="group flex items-center gap-3 rounded-lg px-3 py-3 opacity-50 transition hover:bg-surface hover:opacity-70"
-      >
+      <div className="flex items-center gap-3 rounded-lg px-3 py-3 opacity-50">
         {/* Grey circle outline */}
         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-border2">
           <Circle size={8} className="text-border2" />
@@ -65,23 +75,30 @@ export default function LessonRow({
         <div className="flex-1">
           <p className="text-[14px] font-medium text-text3">{lesson.title}</p>
           <p className="mt-0.5 text-[11px] text-text3">
-            Start this lesson to unlock the cards
+            Complete this lesson to see the cards
           </p>
         </div>
 
-        {/* Flashcard count */}
-        <span className="shrink-0 text-xs text-text3">
-          {flashcards.length} cards
-        </span>
-      </Link>
+        {/* Right side */}
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-xs text-text3">{flashcards.length} cards</span>
+          <Link
+            href={`/lessons/${lesson.slug}`}
+            className="text-sm font-medium text-primary transition hover:text-primary-dark"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Start lesson
+          </Link>
+        </div>
+      </div>
     )
   }
 
-  // Completed — expandable to show flashcards
+  // Completed — expandable to show flashcard details
   return (
     <div>
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggleExpand}
         className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-surface"
       >
         {/* Sage green checkmark */}
@@ -99,10 +116,17 @@ export default function LessonRow({
           )}
         </div>
 
-        {/* Flashcard count + chevron */}
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Right side: view lesson link + card count + chevron */}
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            href={`/lessons/${lesson.slug}`}
+            className="text-sm font-medium text-primary transition hover:text-primary-dark"
+            onClick={(e) => e.stopPropagation()}
+          >
+            View full lesson
+          </Link>
           <span className="text-xs text-text3">{flashcards.length} cards</span>
-          {expanded ? (
+          {isExpanded ? (
             <ChevronDown size={14} className="text-text3" />
           ) : (
             <ChevronRight size={14} className="text-text3" />
@@ -110,10 +134,14 @@ export default function LessonRow({
         </div>
       </button>
 
-      {/* Flashcard preview (expanded) */}
-      {expanded && flashcards.length > 0 && (
+      {/* Flashcard detail list (expanded) */}
+      {isExpanded && flashcards.length > 0 && (
         <div className="ml-8 mr-3 mb-2">
-          <FlashcardList flashcards={flashcards} lessonSlug={lesson.slug} />
+          <FlashcardList
+            flashcards={flashcards}
+            activeAudioId={activeAudioId}
+            onSetActiveAudio={onSetActiveAudio}
+          />
         </div>
       )}
     </div>

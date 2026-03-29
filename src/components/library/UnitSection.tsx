@@ -1,9 +1,14 @@
 'use client'
 
 // UnitSection — a collapsible unit header with progress bar and lesson rows
-import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import LessonRow from '@/components/library/LessonRow'
+
+type WordBreakdownItem = {
+  de: string
+  en: string
+  role: string
+}
 
 type Lesson = {
   id: string
@@ -20,8 +25,10 @@ type FlashcardBlock = {
   order_index: number
   german_sentence: string | null
   translation: string | null
+  register: string | null
   audio_url: string | null
   content: Record<string, unknown> | null
+  word_breakdown: WordBreakdownItem[] | null
 }
 
 export default function UnitSection({
@@ -29,16 +36,24 @@ export default function UnitSection({
   lessons,
   completedMap,
   flashcardsByLesson,
-  defaultExpanded,
+  isExpanded,
+  onToggleUnit,
+  expandedLessons,
+  onToggleLesson,
+  activeAudioId,
+  onSetActiveAudio,
 }: {
   unitName: string
   lessons: Lesson[]
   completedMap: Map<string, string>
   flashcardsByLesson: Map<string, FlashcardBlock[]>
-  defaultExpanded: boolean
+  isExpanded: boolean
+  onToggleUnit: () => void
+  expandedLessons: Set<string>
+  onToggleLesson: (id: string) => void
+  activeAudioId: string | null
+  onSetActiveAudio: (id: string) => void
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded)
-
   // Count completed lessons in this unit
   const completedCount = lessons.filter((l) => completedMap.has(l.id)).length
   const totalCount = lessons.length
@@ -48,12 +63,12 @@ export default function UnitSection({
     <div className="rounded-xl border border-border bg-white shadow-sm">
       {/* Unit header — click to expand/collapse */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggleUnit}
         className="flex w-full items-center justify-between px-5 py-4 text-left"
       >
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            {expanded ? (
+            {isExpanded ? (
               <ChevronDown size={16} className="text-text3" />
             ) : (
               <ChevronRight size={16} className="text-text3" />
@@ -74,7 +89,7 @@ export default function UnitSection({
       </button>
 
       {/* Lesson rows — shown when expanded */}
-      {expanded && (
+      {isExpanded && (
         <div className="border-t border-border px-3 pb-3 pt-1">
           {lessons.map((lesson) => (
             <LessonRow
@@ -82,6 +97,10 @@ export default function UnitSection({
               lesson={lesson}
               completedAt={completedMap.get(lesson.id) ?? null}
               flashcards={flashcardsByLesson.get(lesson.id) ?? []}
+              isExpanded={expandedLessons.has(lesson.id)}
+              onToggleExpand={() => onToggleLesson(lesson.id)}
+              activeAudioId={activeAudioId}
+              onSetActiveAudio={onSetActiveAudio}
             />
           ))}
         </div>

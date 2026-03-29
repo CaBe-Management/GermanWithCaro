@@ -27,7 +27,7 @@ export default async function LibraryPage() {
   // Fetch all flashcard blocks (is_flashcard = true) — we group them client-side
   const { data: flashcardBlocks } = await supabase
     .from('lesson_blocks')
-    .select('id, lesson_id, order_index, german_sentence, translation, audio_url, content')
+    .select('id, lesson_id, order_index, german_sentence, translation, register, audio_url, content, word_breakdown')
     .eq('is_flashcard', true)
     .order('order_index', { ascending: true })
 
