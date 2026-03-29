@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, BookOpen, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Library, BookOpen, User, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function AppNav() {
@@ -16,6 +16,7 @@ export default function AppNav() {
   // Navigation links
   const links = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/library', label: 'Meine Lektionen', icon: Library },
     { href: '/review', label: 'Review', icon: BookOpen },
     { href: '/profile', label: 'Profile', icon: User },
   ]
