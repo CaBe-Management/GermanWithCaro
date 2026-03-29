@@ -69,7 +69,7 @@ export default function UnitSection({
           </div>
         </div>
         <span className="shrink-0 text-xs text-text2">
-          {completedCount}/{totalCount} Lektionen
+          {completedCount}/{totalCount} lessons
         </span>
       </button>
 

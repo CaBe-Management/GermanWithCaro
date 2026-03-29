@@ -93,16 +93,16 @@ export default function LibraryView({
       <div className="mx-auto max-w-3xl">
         {/* Page header */}
         <h1 className="font-display text-[28px] font-semibold text-text">
-          Meine Lektionen
+          My Lessons
         </h1>
         <p className="mt-1 text-[15px] text-text2">
-          Dein Weg durch den A1-Kurs
+          Your journey through the A1 course
         </p>
 
         {/* Overall progress bar */}
         <div className="mt-4">
           <div className="flex items-center justify-between text-xs text-text3">
-            <span>{totalCompleted} von {totalLessons} Lektionen abgeschlossen</span>
+            <span>{totalCompleted} of {totalLessons} lessons completed</span>
             <span>{Math.round((totalCompleted / totalLessons) * 100)}%</span>
           </div>
           <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-border">
@@ -118,17 +118,17 @@ export default function LibraryView({
           <div className="mt-12 flex flex-col items-center text-center">
             <BookOpen size={64} className="text-text3" />
             <h2 className="mt-4 text-lg font-semibold text-text">
-              Noch keine Lektionen abgeschlossen
+              No lessons completed yet
             </h2>
             <p className="mt-1 text-sm text-text2">
-              Starte mit deiner ersten Lektion und dein Fortschritt erscheint hier.
+              Start your first lesson and your progress will appear here.
             </p>
             {firstLessonSlug && (
               <Link
                 href={`/lessons/${firstLessonSlug}`}
                 className="mt-6 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-light"
               >
-                Zur ersten Lektion
+                Go to first lesson
               </Link>
             )}
           </div>

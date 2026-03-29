@@ -16,7 +16,7 @@ export default function AppNav() {
   // Navigation links
   const links = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/library', label: 'Meine Lektionen', icon: Library },
+    { href: '/library', label: 'My Lessons', icon: Library },
     { href: '/review', label: 'Review', icon: BookOpen },
     { href: '/profile', label: 'Profile', icon: User },
   ]

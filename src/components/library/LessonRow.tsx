@@ -42,7 +42,7 @@ export default function LessonRow({
 
   // Format the completion date
   const formattedDate = completedAt
-    ? new Date(completedAt).toLocaleDateString('de-DE', {
+    ? new Date(completedAt).toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -65,13 +65,13 @@ export default function LessonRow({
         <div className="flex-1">
           <p className="text-[14px] font-medium text-text3">{lesson.title}</p>
           <p className="mt-0.5 text-[11px] text-text3">
-            Starte diese Lektion um die Karten freizuschalten
+            Start this lesson to unlock the cards
           </p>
         </div>
 
         {/* Flashcard count */}
         <span className="shrink-0 text-xs text-text3">
-          {flashcards.length} Karten
+          {flashcards.length} cards
         </span>
       </Link>
     )
@@ -94,14 +94,14 @@ export default function LessonRow({
           <p className="text-[14px] font-semibold text-text">{lesson.title}</p>
           {formattedDate && (
             <p className="mt-0.5 text-[11px] text-text3">
-              Abgeschlossen am {formattedDate}
+              Completed on {formattedDate}
             </p>
           )}
         </div>
 
         {/* Flashcard count + chevron */}
         <div className="flex shrink-0 items-center gap-2">
-          <span className="text-xs text-text3">{flashcards.length} Karten</span>
+          <span className="text-xs text-text3">{flashcards.length} cards</span>
           {expanded ? (
             <ChevronDown size={14} className="text-text3" />
           ) : (

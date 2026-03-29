@@ -108,7 +108,7 @@ export default function FlashcardList({
           onClick={() => setShowAll(true)}
           className="mt-2 w-full rounded-md py-1.5 text-xs font-medium text-sage-dark transition hover:bg-sage-light"
         >
-          Alle {flashcards.length} Karten anzeigen
+          Show all {flashcards.length} cards
         </button>
       )}
     </div>
