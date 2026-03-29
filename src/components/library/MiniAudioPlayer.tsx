@@ -1,12 +1,17 @@
 'use client'
 
-// MiniAudioPlayer — compact play/pause circle button for flashcards in the library
-// Only one audio plays at a time (managed by parent via onPlay callback)
-import { useState, useRef, useEffect } from 'react'
-import { Play, Pause, Loader2 } from 'lucide-react'
+// MiniAudioPlayer — same as AudioPlayer but accepts parent callbacks for state sync
+// Used in the library page where parent tracks active audio ID
+import { useRef, useState, useCallback, useEffect } from 'react'
+import { Play, Pause } from 'lucide-react'
 
-// Resolve audio URL: if relative path, prepend Supabase Storage URL
-function getAudioUrl(audioUrl: string): string {
+// Shared global ref — ensures only one audio plays across the entire page
+// This is the same variable as in AudioPlayer.tsx (module-level singletons
+// are shared when both modules are loaded in the same page)
+let currentlyPlaying: HTMLAudioElement | null = null
+
+function getAudioUrl(audioUrl: string | null): string | null {
+  if (!audioUrl) return null
   if (audioUrl.startsWith('http')) return audioUrl
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/audio/${audioUrl}`
 }
@@ -17,65 +22,72 @@ export default function MiniAudioPlayer({
   onPlay,
 }: {
   src: string
-  isActive: boolean   // true if this player is the currently active one
-  onPlay: () => void  // called when play starts (parent stops other players)
+  isActive: boolean
+  onPlay: () => void
 }) {
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const [playing, setPlaying] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const resolvedSrc = getAudioUrl(src)
+  const resolvedUrl = getAudioUrl(src)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
 
-  // Stop playing when another player becomes active
+  // Reset when audio finishes
   useEffect(() => {
-    if (!isActive && playing) {
-      audioRef.current?.pause()
-      setPlaying(false)
+    const audio = audioRef.current
+    if (!audio) return
+    const handleEnded = () => {
+      setIsPlaying(false)
+      audio.currentTime = 0
     }
-  }, [isActive, playing])
+    audio.addEventListener('ended', handleEnded)
+    return () => audio.removeEventListener('ended', handleEnded)
+  }, [])
 
-  function toggle() {
+  // Stop if parent says another player is now active
+  useEffect(() => {
+    if (!isActive && isPlaying) {
+      audioRef.current?.pause()
+      if (audioRef.current) audioRef.current.currentTime = 0
+      setIsPlaying(false)
+    }
+  }, [isActive, isPlaying])
+
+  const toggle = useCallback(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    if (playing) {
+    if (isPlaying) {
       audio.pause()
-      setPlaying(false)
+      setIsPlaying(false)
     } else {
+      // Stop any other playing audio globally
+      if (currentlyPlaying && currentlyPlaying !== audio) {
+        currentlyPlaying.pause()
+        currentlyPlaying.currentTime = 0
+      }
+      currentlyPlaying = audio
       onPlay() // tell parent this player is now active
-      setLoading(true)
-      audio.play().then(() => {
-        setLoading(false)
-        setPlaying(true)
-      }).catch(() => {
-        setLoading(false)
-      })
+      audio.play().catch(() => setIsPlaying(false))
+      setIsPlaying(true)
     }
-  }
+  }, [isPlaying, onPlay])
+
+  if (!resolvedUrl) return null
 
   return (
     <>
-      <audio
-        ref={audioRef}
-        src={resolvedSrc}
-        preload="metadata"
-        onEnded={() => setPlaying(false)}
-        onCanPlay={() => setLoading(false)}
-      />
+      <audio ref={audioRef} src={resolvedUrl} preload="none" />
       <button
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
           toggle()
         }}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-dark"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-colors duration-150 hover:bg-primary-dark"
+        aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
       >
-        {loading ? (
-          <Loader2 size={12} className="animate-spin" />
-        ) : playing ? (
-          <Pause size={12} />
-        ) : (
-          <Play size={12} className="ml-0.5" />
-        )}
+        {isPlaying
+          ? <Pause size={16} fill="white" />
+          : <Play size={16} fill="white" className="ml-0.5" />
+        }
       </button>
     </>
   )
