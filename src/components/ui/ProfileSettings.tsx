@@ -16,7 +16,7 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
   const [saving, setSaving] = useState(false)
 
   // Save a single setting to the database
-  async function updateSetting(field: string, value: number | boolean) {
+  async function updateSetting(field: string, value: string | number | boolean) {
     setSaving(true)
     await fetch('/api/profile', {
       method: 'PATCH',
@@ -152,7 +152,9 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             onBlur={() => updateSetting('full_name', fullName)}
-            onKeyDown={(e) => { if (e.key === 'Enter') updateSetting('full_name', fullName) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') updateSetting('full_name', fullName)
+            }}
             placeholder="Your name"
             className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
           />
