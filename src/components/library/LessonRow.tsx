@@ -40,16 +40,12 @@ export default function LessonRow({
   flashcards,
   isExpanded,
   onToggleExpand,
-  activeAudioId,
-  onSetActiveAudio,
 }: {
   lesson: Lesson
   completedAt: string | null
   flashcards: FlashcardBlock[]
   isExpanded: boolean
   onToggleExpand: () => void
-  activeAudioId: string | null
-  onSetActiveAudio: (id: string) => void
 }) {
   const isCompleted = !!completedAt
 
@@ -128,11 +124,7 @@ export default function LessonRow({
       {/* Flashcard detail list (expanded) */}
       {isExpanded && flashcards.length > 0 && (
         <div className="ml-8 mr-3 mb-2">
-          <FlashcardList
-            flashcards={flashcards}
-            activeAudioId={activeAudioId}
-            onSetActiveAudio={onSetActiveAudio}
-          />
+          <FlashcardList flashcards={flashcards} />
         </div>
       )}
     </div>

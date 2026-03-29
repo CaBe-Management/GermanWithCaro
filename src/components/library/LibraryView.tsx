@@ -100,9 +100,6 @@ export default function LibraryView({
   // State: which lessons have flashcards expanded (Set of lesson IDs)
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
 
-  // State: currently playing audio block ID (only one at a time)
-  const [activeAudioId, setActiveAudioId] = useState<string | null>(null)
-
   function toggleUnit(unitName: string) {
     setExpandedUnits((prev) => {
       const next = new Set(prev)
@@ -187,8 +184,6 @@ export default function LibraryView({
               onToggleUnit={() => toggleUnit(unit.unitName)}
               expandedLessons={expandedLessons}
               onToggleLesson={toggleLesson}
-              activeAudioId={activeAudioId}
-              onSetActiveAudio={setActiveAudioId}
             />
           ))}
         </div>

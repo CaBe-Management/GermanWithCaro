@@ -40,8 +40,6 @@ export default function UnitSection({
   onToggleUnit,
   expandedLessons,
   onToggleLesson,
-  activeAudioId,
-  onSetActiveAudio,
 }: {
   unitName: string
   lessons: Lesson[]
@@ -51,8 +49,6 @@ export default function UnitSection({
   onToggleUnit: () => void
   expandedLessons: Set<string>
   onToggleLesson: (id: string) => void
-  activeAudioId: string | null
-  onSetActiveAudio: (id: string) => void
 }) {
   // Count completed lessons in this unit
   const completedCount = lessons.filter((l) => completedMap.has(l.id)).length
@@ -99,8 +95,6 @@ export default function UnitSection({
               flashcards={flashcardsByLesson.get(lesson.id) ?? []}
               isExpanded={expandedLessons.has(lesson.id)}
               onToggleExpand={() => onToggleLesson(lesson.id)}
-              activeAudioId={activeAudioId}
-              onSetActiveAudio={onSetActiveAudio}
             />
           ))}
         </div>

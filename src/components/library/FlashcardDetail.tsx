@@ -2,7 +2,7 @@
 
 // FlashcardDetail — a single expanded flashcard showing German sentence,
 // translation, register, grammar note, word breakdown, and audio
-import MiniAudioPlayer from '@/components/library/MiniAudioPlayer'
+import AudioPlayer from '@/components/lesson/AudioPlayer'
 
 type WordBreakdownItem = {
   de: string
@@ -24,12 +24,8 @@ type FlashcardBlock = {
 
 export default function FlashcardDetail({
   flashcard,
-  isActiveAudio,
-  onPlayAudio,
 }: {
   flashcard: FlashcardBlock
-  isActiveAudio: boolean
-  onPlayAudio: () => void
 }) {
   const grammarNote = flashcard.content
     ? (flashcard.content as { grammar_note?: string }).grammar_note
@@ -61,11 +57,7 @@ export default function FlashcardDetail({
 
         {/* Audio play button (only if audio exists) */}
         {flashcard.audio_url && (
-          <MiniAudioPlayer
-            src={flashcard.audio_url}
-            isActive={isActiveAudio}
-            onPlay={onPlayAudio}
-          />
+          <AudioPlayer src={flashcard.audio_url} />
         )}
       </div>
 

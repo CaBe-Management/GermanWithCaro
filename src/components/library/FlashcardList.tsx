@@ -25,12 +25,8 @@ type FlashcardBlock = {
 
 export default function FlashcardList({
   flashcards,
-  activeAudioId,
-  onSetActiveAudio,
 }: {
   flashcards: FlashcardBlock[]
-  activeAudioId: string | null
-  onSetActiveAudio: (id: string) => void
 }) {
   const [showAll, setShowAll] = useState(false)
 
@@ -41,12 +37,7 @@ export default function FlashcardList({
     <div className="rounded-lg bg-sage-bg p-3">
       <div className="space-y-3">
         {visible.map((fc) => (
-          <FlashcardDetail
-            key={fc.id}
-            flashcard={fc}
-            isActiveAudio={activeAudioId === fc.id}
-            onPlayAudio={() => onSetActiveAudio(fc.id)}
-          />
+          <FlashcardDetail key={fc.id} flashcard={fc} />
         ))}
       </div>
 
