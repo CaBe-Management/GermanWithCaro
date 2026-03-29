@@ -126,7 +126,7 @@ export default function LibraryView({
             {firstLessonSlug && (
               <Link
                 href={`/lessons/${firstLessonSlug}`}
-                className="mt-6 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-light"
+                className="mt-6 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
               >
                 Go to first lesson
               </Link>

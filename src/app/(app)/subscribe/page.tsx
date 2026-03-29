@@ -75,7 +75,7 @@ function SubscribeContent() {
         <button
           onClick={handleSubscribe}
           disabled={loading}
-          className="mt-8 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary-light disabled:opacity-50"
+          className="mt-8 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-50"
         >
           {loading ? 'Redirecting to checkout...' : 'Subscribe now'}
         </button>

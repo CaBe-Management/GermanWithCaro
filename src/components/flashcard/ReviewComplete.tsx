@@ -24,7 +24,7 @@ export default function ReviewComplete({ reviewed }: { reviewed: number }) {
         {/* Link back to dashboard */}
         <Link
           href="/dashboard"
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-light"
+          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
         >
           Back to Dashboard
           <ArrowRight size={14} />

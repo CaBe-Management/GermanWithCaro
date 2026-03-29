@@ -30,7 +30,7 @@ export default function Home() {
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-light"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark"
             >
               Start Learning
             </Link>
@@ -50,7 +50,7 @@ export default function Home() {
           </p>
           <Link
             href="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white transition hover:bg-primary-light"
+            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white transition hover:bg-primary-dark"
           >
             Start for free
             <ArrowRight size={16} />
@@ -172,7 +172,7 @@ export default function Home() {
 
             <Link
               href="/signup"
-              className="mt-8 inline-flex w-full items-center justify-center rounded-lg bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary-light"
+              className="mt-8 inline-flex w-full items-center justify-center rounded-lg bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
             >
               Subscribe now
             </Link>
