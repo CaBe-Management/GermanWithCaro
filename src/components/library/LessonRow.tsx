@@ -62,7 +62,7 @@ export default function LessonRow({
       })
     : null
 
-  // Not completed — show "Start lesson" link
+  // Not completed — locked, not clickable (respects dashboard gating)
   if (!isCompleted) {
     return (
       <div className="flex items-center gap-3 rounded-lg px-3 py-3 opacity-50">
@@ -75,21 +75,12 @@ export default function LessonRow({
         <div className="flex-1">
           <p className="text-[14px] font-medium text-text3">{lesson.title}</p>
           <p className="mt-0.5 text-[11px] text-text3">
-            Complete this lesson to see the cards
+            Complete your reviews to unlock new lessons
           </p>
         </div>
 
-        {/* Right side */}
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="text-xs text-text3">{flashcards.length} cards</span>
-          <Link
-            href={`/lessons/${lesson.slug}`}
-            className="text-sm font-medium text-primary transition hover:text-primary-dark"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Start lesson
-          </Link>
-        </div>
+        {/* Right side — card count only, no link */}
+        <span className="shrink-0 text-xs text-text3">{flashcards.length} cards</span>
       </div>
     )
   }
