@@ -1,6 +1,8 @@
 // Lesson viewer page — fetches the lesson + all its blocks and renders them in order
 // Server component: does the data fetching, then passes to client components for interactivity
 import { redirect, notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import TextBlock from '@/components/lesson/TextBlock'
 import ExampleSentenceCard from '@/components/lesson/ExampleSentenceCard'
@@ -49,6 +51,15 @@ export default async function LessonPage({
   return (
     <main className="min-h-screen bg-bg px-4 py-8">
       <div className="mx-auto max-w-2xl">
+        {/* Back link */}
+        <Link
+          href="/library"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-text3 transition hover:text-text2"
+        >
+          <ArrowLeft size={14} />
+          My Lessons
+        </Link>
+
         {/* Lesson header */}
         <div className="mb-8">
           <p className="text-xs font-medium uppercase tracking-wide text-text3">
