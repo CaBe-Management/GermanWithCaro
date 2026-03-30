@@ -1,9 +1,8 @@
 'use client'
 
-// Profile settings form — lets users adjust their learning preferences
-// Each setting saves immediately when changed (no "Save" button needed)
+// Profile settings form — users adjust preferences and click Save to apply
 import { useState } from 'react'
-import { Minus, Plus } from 'lucide-react'
+import { Minus, Plus, Check } from 'lucide-react'
 import type { Profile } from '@/types'
 
 export default function ProfileSettings({ profile }: { profile: Profile }) {
@@ -14,16 +13,41 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
   const [streakReminder, setStreakReminder] = useState(profile.streak_reminder)
   const [audioAutoplay, setAudioAutoplay] = useState(profile.audio_autoplay)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
-  // Save a single setting to the database
-  async function updateSetting(field: string, value: string | number | boolean) {
+  // Check if anything changed from the original profile
+  const hasChanges =
+    fullName !== (profile.full_name ?? '') ||
+    weeklyLimit !== profile.weekly_lesson_limit ||
+    dailyLimit !== profile.daily_review_limit ||
+    streakReminder !== profile.streak_reminder ||
+    audioAutoplay !== profile.audio_autoplay
+
+  // Save all settings at once
+  async function saveAll() {
     setSaving(true)
+    setSaved(false)
     await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [field]: value }),
+      body: JSON.stringify({
+        full_name: fullName,
+        weekly_lesson_limit: weeklyLimit,
+        daily_review_limit: dailyLimit,
+        streak_reminder: streakReminder,
+        audio_autoplay: audioAutoplay,
+      }),
     })
     setSaving(false)
+    setSaved(true)
+    // Update the profile reference so hasChanges resets
+    profile.full_name = fullName
+    profile.weekly_lesson_limit = weeklyLimit
+    profile.daily_review_limit = dailyLimit
+    profile.streak_reminder = streakReminder
+    profile.audio_autoplay = audioAutoplay
+    // Hide "Saved!" after 2 seconds
+    setTimeout(() => setSaved(false), 2000)
   }
 
   // Helper: stepper control (+ / - buttons with a number in the middle)
@@ -33,7 +57,6 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
     value,
     min,
     max,
-    field,
     onChange,
   }: {
     label: string
@@ -41,14 +64,11 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
     value: number
     min: number
     max: number
-    field: string
     onChange: (val: number) => void
   }) {
     function handleChange(newVal: number) {
-      // Clamp to min/max range
       const clamped = Math.min(max, Math.max(min, newVal))
       onChange(clamped)
-      updateSetting(field, clamped)
     }
 
     return (
@@ -58,7 +78,6 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
           <p className="mt-0.5 text-xs text-text3">{helperText}</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Minus button */}
           <button
             onClick={() => handleChange(value - 1)}
             disabled={value <= min}
@@ -66,11 +85,9 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
           >
             <Minus size={14} />
           </button>
-          {/* Current value */}
           <span className="w-8 text-center text-lg font-semibold text-text">
             {value}
           </span>
-          {/* Plus button */}
           <button
             onClick={() => handleChange(value + 1)}
             disabled={value >= max}
@@ -88,30 +105,21 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
     label,
     helperText,
     value,
-    field,
     onChange,
   }: {
     label: string
     helperText: string
     value: boolean
-    field: string
     onChange: (val: boolean) => void
   }) {
-    function handleToggle() {
-      const newVal = !value
-      onChange(newVal)
-      updateSetting(field, newVal)
-    }
-
     return (
       <div className="flex items-center justify-between rounded-lg border border-border bg-white p-4">
         <div className="flex-1">
           <p className="text-sm font-medium text-text">{label}</p>
           <p className="mt-0.5 text-xs text-text3">{helperText}</p>
         </div>
-        {/* Toggle switch */}
         <button
-          onClick={handleToggle}
+          onClick={() => onChange(!value)}
           className={`relative h-6 w-11 rounded-full transition ${
             value ? 'bg-primary' : 'bg-border2'
           }`}
@@ -142,7 +150,6 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
 
         {/* Account info */}
         <div className="mt-6 rounded-lg border border-border bg-white p-4">
-          {/* Editable name field */}
           <label htmlFor="fullName" className="mb-1 block text-xs font-medium text-text3">
             Name
           </label>
@@ -151,16 +158,10 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            onBlur={() => updateSetting('full_name', fullName)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') updateSetting('full_name', fullName)
-            }}
             placeholder="Your name"
             className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
           />
-          {/* Email (read-only) */}
           <p className="mt-2 text-xs text-text3">{profile.email}</p>
-          {/* Subscription badge */}
           <div className="mt-2 flex items-center gap-2">
             <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor}`}>
               {profile.subscription_status.charAt(0).toUpperCase() + profile.subscription_status.slice(1)}
@@ -177,7 +178,6 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
             value={weeklyLimit}
             min={1}
             max={7}
-            field="weekly_lesson_limit"
             onChange={setWeeklyLimit}
           />
 
@@ -187,7 +187,6 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
             value={dailyLimit}
             min={5}
             max={100}
-            field="daily_review_limit"
             onChange={setDailyLimit}
           />
 
@@ -195,7 +194,6 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
             label="Daily reminder"
             helperText="Email reminder if you haven't studied by 7 PM."
             value={streakReminder}
-            field="streak_reminder"
             onChange={setStreakReminder}
           />
 
@@ -203,15 +201,26 @@ export default function ProfileSettings({ profile }: { profile: Profile }) {
             label="Auto-play audio"
             helperText="Plays sentence audio automatically on the review card."
             value={audioAutoplay}
-            field="audio_autoplay"
             onChange={setAudioAutoplay}
           />
         </div>
 
-        {/* Saving indicator */}
-        {saving && (
-          <p className="mt-3 text-center text-xs text-text3">Saving...</p>
-        )}
+        {/* Save button */}
+        <div className="mt-8">
+          <button
+            onClick={saveAll}
+            disabled={!hasChanges || saving}
+            className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-40"
+          >
+            {saving ? 'Saving...' : 'Save changes'}
+          </button>
+          {saved && (
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-sm text-sage">
+              <Check size={14} />
+              Saved!
+            </div>
+          )}
+        </div>
       </div>
     </main>
   )
