@@ -1,11 +1,11 @@
 'use client'
 
-// Login page — email + password form
-// On success, redirects to /dashboard
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import Button from '@/components/ui/Button'
+import Input from '@/components/ui/Input'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -20,12 +20,7 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
-
-    // Try to sign in with the email and password
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError(error.message)
@@ -33,79 +28,74 @@ export default function LoginPage() {
       return
     }
 
-    // Success — go to the dashboard
     router.push('/dashboard')
     router.refresh()
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      {/* Login card */}
-      <div className="w-full max-w-sm rounded-xl border border-border bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-bg-page px-4">
+      <div className="w-full max-w-[420px] rounded-[20px] bg-bg-card p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
         {/* Logo */}
-        <h1 className="mb-1 text-center text-2xl font-bold text-primary">
-          GermanWithCaro
+        <div className="mb-8 text-center">
+          <span className="bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] bg-clip-text text-[16px] font-bold text-transparent">
+            GermanWithCaro
+          </span>
+        </div>
+
+        <h1 className="text-center text-[24px] font-extrabold text-text-1">
+          Welcome back
         </h1>
-        <p className="mb-6 text-center text-sm text-text3">
-          Welcome back! Log in to continue learning.
+        <p className="mt-2 text-center text-[15px] text-text-2">
+          Log in to continue learning.
         </p>
 
-        {/* Error message */}
-        {error && (
-          <div className="mb-4 rounded-lg bg-error-bg p-3 text-sm text-error">
-            {error}
-          </div>
-        )}
-
-        {/* Login form */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-text2">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="you@example.com"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
-            />
-          </div>
+        <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-5">
+          <Input
+            id="email"
+            label="Email address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            error={error || undefined}
+          />
 
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-text2">
-              Password
-            </label>
-            <input
+            <Input
               id="password"
+              label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               placeholder="Your password"
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
+              required
             />
+            <div className="mt-2 text-right">
+              <Link href="#" className="text-[13px] font-medium text-primary">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-50"
-          >
+          <Button type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Log in'}
-          </button>
+          </Button>
         </form>
 
-        {/* Link to sign up */}
-        <p className="mt-6 text-center text-sm text-text3">
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[13px] text-text-3">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <p className="text-center text-[15px] text-text-2">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
-            Sign up
+          <Link href="/signup" className="font-semibold text-primary">
+            Sign up →
           </Link>
         </p>
       </div>
-    </main>
+    </div>
   )
 }

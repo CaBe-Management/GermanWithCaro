@@ -1,14 +1,16 @@
 'use client'
 
-// Signup page — email + password form
-// On success, shows a "check your email" message
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import Button from '@/components/ui/Button'
+import Input from '@/components/ui/Input'
 
 export default function SignupPage() {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -16,16 +18,20 @@ export default function SignupPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
+    if (password !== confirm) {
+      setError('Passwords do not match')
+      return
+    }
+
+    setLoading(true)
     const supabase = createClient()
 
-    // Create the new account
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // After email confirmation, send the user to the dashboard
+        data: { full_name: name },
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     })
@@ -36,99 +42,61 @@ export default function SignupPage() {
       return
     }
 
-    // Success — tell user to check their email
     setSuccess(true)
     setLoading(false)
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-white p-8 shadow-sm">
-        {/* Logo */}
-        <h1 className="mb-1 text-center text-2xl font-bold text-primary">
-          GermanWithCaro
+    <div className="flex min-h-screen items-center justify-center bg-bg-page px-4">
+      <div className="w-full max-w-[420px] rounded-[20px] bg-bg-card p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+        <div className="mb-8 text-center">
+          <span className="bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] bg-clip-text text-[16px] font-bold text-transparent">
+            GermanWithCaro
+          </span>
+        </div>
+
+        <h1 className="text-center text-[24px] font-extrabold text-text-1">
+          Create your account
         </h1>
-        <p className="mb-6 text-center text-sm text-text3">
-          Create your account to start learning German.
+        <p className="mt-2 text-center text-[15px] text-text-2">
+          Start your German learning journey.
         </p>
 
-        {/* Success message — shown after signup */}
         {success ? (
-          <div className="rounded-lg bg-primary-bg p-4 text-center">
-            <p className="text-sm font-medium text-primary-dark">
-              Check your email!
+          <div className="mt-8 rounded-xl bg-success-bg p-6 text-center">
+            <p className="text-[15px] font-semibold text-success">Check your email!</p>
+            <p className="mt-2 text-[14px] text-text-2">
+              We sent a confirmation link to <strong>{email}</strong>.
             </p>
-            <p className="mt-1 text-sm text-text2">
-              We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
-            </p>
-            <Link
-              href="/login"
-              className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
-            >
-              Go to login
+            <Link href="/login" className="mt-4 inline-block text-[14px] font-semibold text-primary">
+              Go to login →
             </Link>
           </div>
         ) : (
           <>
-            {/* Error message */}
-            {error && (
-              <div className="mb-4 rounded-lg bg-error-bg p-3 text-sm text-error">
-                {error}
-              </div>
-            )}
-
-            {/* Signup form */}
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="mb-1 block text-sm font-medium text-text2">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="mb-1 block text-sm font-medium text-text2">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  placeholder="At least 6 characters"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary-bg"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-50"
-              >
-                {loading ? 'Creating account...' : 'Sign up'}
-              </button>
+            <form onSubmit={handleSignup} className="mt-8 flex flex-col gap-5">
+              <Input id="name" label="Your name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Caroline" required />
+              <Input id="email" label="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+              <Input id="password" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" required minLength={6} />
+              <Input id="confirm" label="Confirm password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat your password" required error={error || undefined} />
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Creating account...' : 'Create account'}
+              </Button>
             </form>
 
-            {/* Link to login */}
-            <p className="mt-6 text-center text-sm text-text3">
+            <p className="mt-4 text-center text-[12px] text-text-3">
+              By signing up you agree to our{' '}
+              <Link href="/terms" className="text-primary">Terms of Service</Link> and{' '}
+              <Link href="/privacy" className="text-primary">Privacy Policy</Link>.
+            </p>
+
+            <p className="mt-6 text-center text-[15px] text-text-2">
               Already have an account?{' '}
-              <Link href="/login" className="font-medium text-primary hover:underline">
-                Log in
-              </Link>
+              <Link href="/login" className="font-semibold text-primary">Log in →</Link>
             </p>
           </>
         )}
       </div>
-    </main>
+    </div>
   )
 }

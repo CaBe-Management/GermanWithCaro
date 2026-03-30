@@ -1,89 +1,58 @@
-// Dashboard page — "Today's studies" hub
-// Fetches all the data server-side, then passes it to client components
+// Dashboard — "Today's studies" hub
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import StreakBar from '@/components/dashboard/StreakBar'
-import ActionGrid from '@/components/dashboard/ActionGrid'
+import { ArrowRight } from 'lucide-react'
+import PageCard, { PageCardHeader, PageCardContent } from '@/components/layout/PageCard'
+import ProgressBar from '@/components/ui/ProgressBar'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-
-  // Get the logged-in user
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch the user's profile (for name + weekly lesson limit)
+  // Fetch profile
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name, email, weekly_lesson_limit')
     .eq('id', user.id)
     .single()
 
-  // --- Count due flashcard reviews today ---
+  // Due reviews today
   const today = new Date().toISOString().split('T')[0]
-
   const { count: dueReviews } = await supabase
     .from('user_flashcard_srs')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .lte('next_review_date', today)
 
-  // --- Count reviews due tomorrow (for the "coming up" strip) ---
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  const tomorrowStr = tomorrow.toISOString().split('T')[0]
-
-  const { count: tomorrowReviews } = await supabase
-    .from('user_flashcard_srs')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('next_review_date', tomorrowStr)
-
-  // --- Get all completed lessons for this user ---
+  // Completed lessons
   const { data: completedLessons } = await supabase
     .from('user_lesson_progress')
     .select('lesson_id, completed_at')
     .eq('user_id', user.id)
+    .order('completed_at', { ascending: false })
 
   const completedIds = new Set((completedLessons ?? []).map((l) => l.lesson_id))
-  const totalLessonsCompleted = completedIds.size
 
-  // --- Count lessons completed this week (for weekly gating) ---
-  // Week starts Monday 00:00 UTC
-  const now = new Date()
-  const dayOfWeek = now.getUTCDay() // 0 = Sunday
-  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-  const monday = new Date(now)
-  monday.setUTCDate(now.getUTCDate() - mondayOffset)
-  monday.setUTCHours(0, 0, 0, 0)
-
-  const lessonsThisWeek = (completedLessons ?? []).filter((l) => {
-    if (!l.completed_at) return false
-    return new Date(l.completed_at) >= monday
-  }).length
-
-  const weeklyLimit = profile?.weekly_lesson_limit ?? 3
-  const weeklyLimitReached = lessonsThisWeek >= weeklyLimit
-
-  // --- Find the next lesson to unlock (first uncompleted published lesson in order) ---
+  // All published lessons
   const { data: allLessons } = await supabase
     .from('lessons')
     .select('id, title, slug, unit_name, order_index')
     .eq('is_published', true)
     .order('order_index', { ascending: true })
 
+  // Next lesson
   const nextLesson = (allLessons ?? []).find((l) => !completedIds.has(l.id)) ?? null
 
-  // Also find the lesson after next (for the "coming up" strip)
-  const nextLessonIndex = nextLesson
-    ? (allLessons ?? []).findIndex((l) => l.id === nextLesson.id)
-    : -1
-  const upcomingLesson =
-    nextLessonIndex >= 0 && nextLessonIndex + 1 < (allLessons ?? []).length
-      ? (allLessons ?? [])[nextLessonIndex + 1]
-      : null
+  // Total reviewed cards (all time)
+  const { count: totalReviewed } = await supabase
+    .from('user_flashcard_srs')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .not('last_reviewed_at', 'is', null)
 
-  // --- Calculate streak (consecutive days with at least one review) ---
+  // Streak calculation
   const { data: recentReviews } = await supabase
     .from('user_flashcard_srs')
     .select('last_reviewed_at')
@@ -93,15 +62,10 @@ export default async function DashboardPage() {
 
   let streak = 0
   if (recentReviews && recentReviews.length > 0) {
-    // Get unique dates reviewed
     const reviewDates = new Set(
-      recentReviews.map((r) =>
-        new Date(r.last_reviewed_at!).toISOString().split('T')[0]
-      )
+      recentReviews.map((r) => new Date(r.last_reviewed_at!).toISOString().split('T')[0])
     )
-    // Count consecutive days backwards from today
     const checkDate = new Date()
-    // If user hasn't reviewed today, start checking from yesterday
     if (!reviewDates.has(checkDate.toISOString().split('T')[0])) {
       checkDate.setDate(checkDate.getDate() - 1)
     }
@@ -111,67 +75,133 @@ export default async function DashboardPage() {
     }
   }
 
-  // --- Total cards reviewed (all time) ---
-  const { count: totalReviewed } = await supabase
-    .from('user_flashcard_srs')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .not('last_reviewed_at', 'is', null)
-
-  // Greeting based on time of day
+  // Greeting
   const hour = new Date().getHours()
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
   const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'learner'
 
+  const totalLessons = allLessons?.length ?? 0
+  const completedCount = completedIds.size
+  const lessonProgress = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0
+
   return (
-    <main className="min-h-screen bg-bg px-4 py-8">
-      <div className="mx-auto max-w-lg">
-        {/* Greeting */}
-        <h1 className="text-xl font-bold text-text">
-          {greeting}, {displayName}!
-        </h1>
-        <p className="mt-1 text-sm text-text3">Here&apos;s your study plan for today.</p>
-
-        {/* Streak stats bar */}
-        <StreakBar
-          streak={streak}
-          cardsReviewed={totalReviewed ?? 0}
-          lessonsCompleted={totalLessonsCompleted}
-        />
-
-        {/* Two action cards: Reviews + Next Lesson */}
-        <ActionGrid
-          dueReviews={dueReviews ?? 0}
-          nextLesson={nextLesson}
-          weeklyLimitReached={weeklyLimitReached}
-          lessonsThisWeek={lessonsThisWeek}
-          weeklyLimit={weeklyLimit}
-        />
-
-        {/* Coming up strip */}
-        <div className="mt-6 space-y-3">
-          {/* Tomorrow's reviews */}
-          {(tomorrowReviews ?? 0) > 0 && (
-            <div className="rounded-lg border border-border bg-white px-4 py-3">
-              <p className="text-xs font-medium text-text3">
-                Tomorrow: {tomorrowReviews} review{tomorrowReviews === 1 ? '' : 's'} due
-              </p>
-            </div>
-          )}
-
-          {/* Upcoming lesson (greyed out) */}
-          {upcomingLesson && (
-            <div className="rounded-lg border border-border bg-white px-4 py-3 opacity-50">
-              <p className="text-xs font-medium text-text3">Coming up</p>
-              <p className="mt-0.5 text-sm text-text2">
-                {upcomingLesson.title}
-              </p>
-              <p className="text-xs text-text3">{upcomingLesson.unit_name}</p>
-            </div>
-          )}
+    <PageCard>
+      <PageCardHeader>
+        <div className="flex items-center justify-between">
+          <span className="bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] bg-clip-text text-[16px] font-bold text-transparent">
+            GermanWithCaro
+          </span>
+          {/* Avatar */}
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-[14px] font-bold text-white">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
         </div>
-      </div>
-    </main>
+      </PageCardHeader>
+
+      <PageCardContent className="flex flex-col gap-5">
+        {/* Greeting */}
+        <div>
+          <h1 className="text-[24px] font-bold text-text-1">
+            {greeting}, {displayName}!
+          </h1>
+          <p className="mt-1 text-[14px] font-medium text-text-2">
+            {(dueReviews ?? 0) > 0
+              ? `You have ${dueReviews} cards to review today.`
+              : 'All caught up! No reviews due.'}
+          </p>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-bg-subtle p-4 text-center">
+            <p className="text-[20px] font-bold text-text-1">🔥 {streak}</p>
+            <p className="mt-1 text-[11px] font-semibold text-text-3">Days</p>
+          </div>
+          <div className="rounded-xl bg-bg-subtle p-4 text-center">
+            <p className="text-[20px] font-bold text-text-1">📚 {totalReviewed ?? 0}</p>
+            <p className="mt-1 text-[11px] font-semibold text-text-3">Cards today</p>
+          </div>
+          <div className="rounded-xl bg-bg-subtle p-4 text-center">
+            <p className="text-[20px] font-bold text-text-1">✅ {completedCount}</p>
+            <p className="mt-1 text-[11px] font-semibold text-text-3">Lessons</p>
+          </div>
+        </div>
+
+        {/* Review action card */}
+        <div className="rounded-2xl border-[1.5px] border-border bg-bg-subtle p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-text-3">Review</p>
+              <p className="mt-1 text-[17px] font-bold text-text-1">
+                {(dueReviews ?? 0) > 0 ? `${dueReviews} cards due` : 'All done! 🎉'}
+              </p>
+            </div>
+            {(dueReviews ?? 0) > 0 && (
+              <Link
+                href="/review"
+                className="flex items-center gap-1 rounded-[14px] bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(99,102,241,0.30)]"
+              >
+                Start review <ArrowRight size={14} />
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Next lesson card */}
+        {nextLesson ? (
+          <div className="rounded-2xl border-[1.5px] border-border bg-bg-subtle p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-text-3">
+              {nextLesson.unit_name}
+            </p>
+            <p className="mt-1 text-[17px] font-bold text-text-1">
+              {nextLesson.title}
+            </p>
+            <div className="mt-3">
+              <ProgressBar value={lessonProgress} />
+              <p className="mt-2 text-[12px] text-text-3">
+                {completedCount} of {totalLessons} lessons in this unit
+              </p>
+            </div>
+            <Link
+              href={`/lessons/${nextLesson.slug}`}
+              className="mt-4 flex items-center gap-1 text-[14px] font-bold text-primary"
+            >
+              Start lesson <ArrowRight size={14} />
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-2xl border-[1.5px] border-border bg-bg-subtle p-5 text-center">
+            <p className="text-[17px] font-bold text-text-1">Course complete! 🎉</p>
+            <p className="mt-1 text-[14px] text-text-2">You finished all {totalLessons} lessons.</p>
+          </div>
+        )}
+
+        {/* Recent activity */}
+        {completedLessons && completedLessons.length > 0 && (
+          <div>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[1.5px] text-text-3">
+              Recently studied
+            </p>
+            <div className="space-y-2">
+              {completedLessons.slice(0, 3).map((cl) => {
+                const lesson = (allLessons ?? []).find((l) => l.id === cl.lesson_id)
+                if (!lesson) return null
+                const date = new Date(cl.completed_at!)
+                const isToday = date.toDateString() === new Date().toDateString()
+                const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                return (
+                  <div key={cl.lesson_id} className="flex items-center justify-between rounded-xl bg-bg-subtle px-4 py-3">
+                    <p className="text-[14px] font-medium text-text-1">{lesson.title}</p>
+                    <p className="text-[12px] text-text-3">
+                      {isToday ? `Today at ${timeStr}` : `${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} at ${timeStr}`}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </PageCardContent>
+    </PageCard>
   )
 }

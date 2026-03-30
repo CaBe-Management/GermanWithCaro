@@ -1,40 +1,35 @@
 @import "tailwindcss";
 
-/* === GermanWithCaro Blush + Sage Colour Palette === */
-/* Primary: blush/terracotta for actions, Secondary: sage green for grammar/progress */
+/* === GermanWithCaro v2 — Indigo/Slate Design System === */
 
 @theme inline {
-  --color-bg: #fdfaf9;
-  --color-white: #ffffff;
-  --color-surface: #faf5f3;
-  --color-border: #ece6e2;
-  --color-border2: #ddd4ce;
-  /* Primary — Blush/Terracotta (buttons, CTAs, accents) */
-  --color-primary: #c4856c;
-  --color-primary-light: #faf0ec;
-  --color-primary-dark: #a06a52;
-  --color-primary-bg: #fdf8f6;
-  /* Secondary — Sage Green (grammar notes, progress, success states) */
-  --color-sage: #7c9a82;
-  --color-sage-light: #e8f0ea;
-  --color-sage-dark: #5a7a60;
-  --color-sage-bg: #f0f5f1;
+  /* Backgrounds */
+  --color-bg-page: #f1f5f9;
+  --color-bg-card: #ffffff;
+  --color-bg-subtle: #f8fafc;
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  /* Primary (indigo) */
+  --color-primary: #6366f1;
+  --color-primary-bg: #ede9fe;
   /* Text hierarchy */
-  --color-text: #2d2a28;
-  --color-text2: #7a706a;
-  --color-text3: #a89e98;
+  --color-text-1: #1e293b;
+  --color-text-2: #475569;
+  --color-text-3: #94a3b8;
+  --color-text-4: #cbd5e1;
   /* Semantic */
   --color-success: #059669;
+  --color-success-bg: #d1fae5;
   --color-error: #dc2626;
-  --color-error-bg: #fef2f2;
-  /* Fonts — Inter for UI, Newsreader for German sentences and headings */
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-newsreader);
+  --color-error-bg: #fee2e2;
+  --color-warning: #d97706;
+  --color-warning-bg: #fef3c7;
 }
 
-/* Set the default page background and text colour */
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background: var(--color-bg-page);
+  color: var(--color-text-1);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
