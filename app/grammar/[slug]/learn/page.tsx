@@ -48,11 +48,23 @@ function levelColor(level: string): string {
   }
 }
 
-// Render the markdown explanation as safe HTML (bold + newlines only)
-function renderExplanation(text: string) {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#e8e6f0]">$1</strong>')
-    .replace(/\n/g, '<br />')
+function highlightStructure(text: string) {
+  const parts = text.split(/(\[[^\]]+\])/g)
+  return parts.map((part, i) =>
+    part.startsWith('[') && part.endsWith(']')
+      ? <span key={i} className="text-[#9b8cf5] font-semibold">{part}</span>
+      : <span key={i} className="text-[#e8e6f0]">{part}</span>
+  )
+}
+
+function RegisterDots({ level }: { level: number }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3].map(i => (
+        <div key={i} className={`w-2.5 h-2.5 rounded-full ${i <= level ? 'bg-[#7c6df2]' : 'bg-white/10'}`} />
+      ))}
+    </div>
+  )
 }
 
 // ─── Explanation Slide ────────────────────────────────────────────────────────
@@ -60,12 +72,16 @@ function renderExplanation(text: string) {
 function ExplanationSlide({
   topic,
   queueCount,
+  previewSentences,
   onStart,
 }: {
   topic: GrammarTopic
   queueCount: number
+  previewSentences: ClozeItem[]
   onStart: () => void
 }) {
+  const hasRegister = topic.register_formal != null || topic.register_standard != null || topic.register_casual != null
+
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
 
@@ -79,23 +95,105 @@ function ExplanationSlide({
         </span>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-8 max-w-2xl mx-auto w-full">
-        <div className="mb-8">
-          <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-wider mb-2">Grammar Explanation</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#e8e6f0] mb-6">{topic.title}</h1>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-5 py-8 max-w-2xl mx-auto w-full space-y-4">
 
-          {/* Explanation card */}
-          <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
-            <div
-              className="text-[#c5c3d4] text-sm leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: renderExplanation(topic.explanation_en) }}
-            />
-          </div>
+        {/* Title */}
+        <div>
+          <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-wider mb-1">Grammar</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#e8e6f0]">{topic.title}</h1>
+          {(topic as any).translation_en && (
+            <p className="text-[#9b98b0] mt-1">{(topic as any).translation_en}</p>
+          )}
         </div>
 
-        {/* Info about session */}
-        <div className="bg-[#7c6df2]/10 border border-[#7c6df2]/20 rounded-xl px-5 py-4 mb-6">
+        {/* Structure + Register row */}
+        {(topic.structure || hasRegister) && (
+          <div className={`grid gap-4 ${hasRegister && topic.structure ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            {topic.structure && (
+              <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Structure</p>
+                <div className="bg-[#0f0e17] rounded-xl p-4 border border-white/5 font-mono text-sm leading-relaxed">
+                  {highlightStructure(topic.structure)}
+                </div>
+              </div>
+            )}
+            {hasRegister && (
+              <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Register</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[#c5c3d4]">Formal</span>
+                    <RegisterDots level={topic.register_formal ?? 0} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[#c5c3d4]">Standard</span>
+                    <RegisterDots level={topic.register_standard ?? 0} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[#c5c3d4]">Casual</span>
+                    <RegisterDots level={topic.register_casual ?? 0} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* About / Explanation */}
+        <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+          <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-4">About</p>
+          <div className="text-[#c5c3d4] text-sm leading-relaxed whitespace-pre-line">
+            {topic.explanation_en}
+          </div>
+          {/* All example sentences */}
+          {previewSentences.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {previewSentences.map(s => (
+                <div key={s.sentenceId} className="bg-[#252340] rounded-xl p-3 border border-white/5">
+                  <p className="text-[#e8e6f0] text-sm">{s.sentence_de}</p>
+                  {s.sentence_en && (
+                    <p className="text-[#9b98b0] text-xs mt-0.5">{s.sentence_en}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Fun Fact */}
+        {(topic as any).fun_fact && (
+          <div className="bg-[#7c6df2]/8 rounded-2xl p-5 border border-[#7c6df2]/25">
+            <div className="flex gap-3">
+              <span className="text-xl flex-shrink-0">💡</span>
+              <div>
+                <p className="text-xs font-bold text-[#9b8cf5] uppercase tracking-wider mb-2">Fun Fact</p>
+                <p className="text-[#c5c3d4] text-sm leading-relaxed">{(topic as any).fun_fact}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Synonyms + Related forms */}
+        {((topic as any).synonyms || (topic as any).related_forms) && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(topic as any).synonyms && (
+              <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Synonyms</p>
+                <p className="text-[#c5c3d4] text-sm leading-relaxed">{(topic as any).synonyms}</p>
+              </div>
+            )}
+            {(topic as any).related_forms && (
+              <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Related</p>
+                <p className="text-[#c5c3d4] text-sm leading-relaxed">{(topic as any).related_forms}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Session info */}
+        <div className="bg-[#7c6df2]/10 border border-[#7c6df2]/20 rounded-xl px-5 py-4">
           <p className="text-[#9b8cf5] text-sm font-medium">
             {queueCount} sentence{queueCount !== 1 ? 's' : ''} to practice
           </p>
@@ -537,6 +635,7 @@ export default function GrammarLearnPage() {
       <ExplanationSlide
         topic={topic}
         queueCount={items.length}
+        previewSentences={items}
         onStart={() => setPhase('cloze')}
       />
     )

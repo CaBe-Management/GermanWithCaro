@@ -20,24 +20,33 @@ import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 
 interface VocabWord {
   id: string
+  slug: string
   word: string
-  typ: string
-  artikel: string | null
+  type: 'NOMEN' | 'VERB' | 'ADJEKTIV' | 'AUSDRUCK' | 'ADVERB' | 'PRÄPOSITION'
+  article: string | null
   plural: string | null
   level: string
-  frequenz_rang: number | null
-  erklaerung: string | null
-  verwendung: string | null
-  genitiv: string | null
+  frequency_rank: number | null
+  translation_en: string
+  explanation_en: string
+  usage_notes: string | null
+  fun_fact: string | null
+  synonyms: string | null
+  related_words: string | null
+  nom_sg: string | null; nom_pl: string | null
+  akk_sg: string | null; akk_pl: string | null
+  dat_sg: string | null; dat_pl: string | null
+  gen_sg: string | null; gen_pl: string | null
 }
 
 interface VocabSentence {
   id: string
-  word_id: string
+  vocab_id: string
   sentence_de: string
-  sentence_en: string | null
+  sentence_en: string
   cloze_word: string
-  cloze_word_en: string | null
+  grammatical_case: 'NOMINATIV' | 'AKKUSATIV' | 'DATIV' | 'GENITIV' | null
+  min_level: string
   sort_order: number
 }
 
@@ -61,7 +70,7 @@ type ClozeItem =
 
 // A single slide in the study phase (shown before the cloze quiz)
 type StudySlide =
-  | { kind: 'vocab'; word: VocabWord }
+  | { kind: 'vocab'; word: VocabWord; sentences: VocabSentence[] }
   | { kind: 'grammar'; topic: GrammarTopic; personsInBatch: (string | null)[] }
 
 interface UserPath {
@@ -109,16 +118,6 @@ type AppPhase =
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function typColor(typ: string) {
-  switch (typ) {
-    case 'NOMEN':     return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-    case 'VERB':      return 'bg-green-500/20 text-green-300 border-green-500/30'
-    case 'ADJEKTIV':  return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-    case 'ADVERB':    return 'bg-orange-500/20 text-orange-300 border-orange-500/30'
-    case 'GRAMMATIK': return 'bg-[#7c6df2]/20 text-[#9b8cf5] border-[#7c6df2]/30'
-    default:          return 'bg-white/10 text-[#9b98b0] border-white/10'
-  }
-}
 
 function normalize(s: string) {
   return s.toLowerCase().trim()
@@ -129,20 +128,6 @@ function createCloze(sentence: string, clozeWord: string): string {
   return sentence.replace(new RegExp(clozeWord, 'i'), '___')
 }
 
-function getDeclension(artikel: string, word: string, genitiv: string | null) {
-  const art = artikel.toLowerCase()
-  let akkArt = artikel, datArt = artikel, genArt = artikel
-  let genForm = genitiv || `${word}s`
-  if (art === 'der') { akkArt = 'den'; datArt = 'dem'; genArt = 'des' }
-  else if (art === 'die') { akkArt = 'die'; datArt = 'der'; genArt = 'der'; genForm = genitiv || word }
-  else if (art === 'das') { akkArt = 'das'; datArt = 'dem'; genArt = 'des' }
-  return [
-    { label: 'Nominativ', art: artikel, noun: word },
-    { label: 'Akkusativ', art: akkArt,  noun: word },
-    { label: 'Dativ',     art: datArt,  noun: word },
-    { label: 'Genitiv',   art: genArt,  noun: genForm },
-  ]
-}
 
 function renderMd(text: string): string {
   return text
@@ -157,47 +142,35 @@ async function fetchVocabItems(
   lessonOrder: string,
   batchSize: number
 ): Promise<VocabLearnItem[]> {
-  // Get sentence IDs already in the vocab review queue (already learned)
+  // Words are "learned" once any gwc_vocab_reviews row exists for them
   const { data: reviewRows } = await supabase
-    .from('gwc_user_reviews')
-    .select('word_sentence_id')
+    .from('gwc_vocab_reviews')
+    .select('vocab_id')
     .eq('session_id', sessionId)
-    .eq('item_type', 'vocab')
-    .not('word_sentence_id', 'is', null)
 
-  const reviewedSentenceIds = (reviewRows || []).map((r: { word_sentence_id: string }) => r.word_sentence_id)
+  const learnedWordIds = new Set((reviewRows || []).map((r: { vocab_id: string }) => r.vocab_id))
 
-  // Resolve sentence IDs → word IDs so we skip already-learned words
-  let reviewedWordIds = new Set<string>()
-  if (reviewedSentenceIds.length > 0) {
-    const { data: reviewed } = await supabase
-      .from('gwc_word_sentences')
-      .select('word_id')
-      .in('id', reviewedSentenceIds)
-    reviewedWordIds = new Set((reviewed || []).map((s: { word_id: string }) => s.word_id))
-  }
-
-  // Fetch words in the order set by lessonOrder
-  const orderCol = lessonOrder === 'alphabetical' ? 'word' : 'frequenz_rang'
+  // Fetch words ordered by frequency rank (or alphabetically)
+  const orderCol = lessonOrder === 'alphabetical' ? 'word' : 'frequency_rank'
   const { data: words } = await supabase
-    .from('gwc_words')
+    .from('gwc_vocab')
     .select('*')
     .order(orderCol, { ascending: true, nullsFirst: false })
     .limit(500)
 
-  const newWords = (words || []).filter((w: VocabWord) => !reviewedWordIds.has(w.id))
+  const newWords = (words || []).filter((w: VocabWord) => !learnedWordIds.has(w.id))
   const wordIds  = newWords.slice(0, batchSize * 3).map((w: VocabWord) => w.id)
   if (wordIds.length === 0) return []
 
   const { data: sentences } = await supabase
-    .from('gwc_word_sentences')
+    .from('gwc_vocab_sentences')
     .select('*')
-    .in('word_id', wordIds)
+    .in('vocab_id', wordIds)
     .order('sort_order', { ascending: true })
 
   const result: VocabLearnItem[] = []
   for (const word of newWords) {
-    const wordSentences = (sentences || []).filter((s: VocabSentence) => s.word_id === word.id)
+    const wordSentences = (sentences || []).filter((s: VocabSentence) => s.vocab_id === word.id)
     if (wordSentences.length > 0) {
       result.push({ type: 'vocab', word, sentences: wordSentences })
     }
@@ -297,30 +270,65 @@ async function fetchGrammarItems(
 // ─── Word Overview Slide ──────────────────────────────────────────────────────
 // Shows full word info for a vocab item. "Continue" advances to next word or quiz.
 
+const TYPE_LABELS: Record<string, string> = {
+  NOMEN: 'Noun', VERB: 'Verb', ADJEKTIV: 'Adjective',
+  AUSDRUCK: 'Expression', ADVERB: 'Adverb', PRÄPOSITION: 'Preposition',
+}
+
+const CASE_LABEL: Record<string, string> = {
+  NOMINATIV: 'Nominative', AKKUSATIV: 'Accusative', DATIV: 'Dative', GENITIV: 'Genitive',
+}
+
+const CASE_COLORS: Record<string, string> = {
+  NOMINATIV: 'bg-[#7c6df2]/15 text-[#9b8cf5]',
+  AKKUSATIV: 'bg-[#3bd395]/10 text-[#3bd395]',
+  DATIV:     'bg-[#ffa550]/10 text-[#ffa550]',
+  GENITIV:   'bg-[#ffc850]/10 text-[#ffc850]',
+}
+
+function highlightCloze(sentence: string, cloze: string) {
+  const idx = sentence.toLowerCase().indexOf(cloze.toLowerCase())
+  if (idx === -1) return <span>{sentence}</span>
+  return (
+    <>
+      {sentence.slice(0, idx)}
+      <span className="text-[#7c6df2] font-bold">{sentence.slice(idx, idx + cloze.length)}</span>
+      {sentence.slice(idx + cloze.length)}
+    </>
+  )
+}
+
 function WordOverviewSlide({
   word,
+  sentences,
   onContinue,
   onExit,
   current,
   total,
 }: {
   word: VocabWord
+  sentences: VocabSentence[]
   onContinue: () => void
   onExit: () => void
   current: number
   total: number
 }) {
-  const isNoun = word.typ === 'NOMEN' && word.artikel
-  const declension = isNoun ? getDeclension(word.artikel!, word.word, word.genitiv) : null
+  const isNoun = word.type === 'NOMEN'
+
+  // Group sentences by case for nouns
+  const caseOrder = ['NOMINATIV', 'AKKUSATIV', 'DATIV', 'GENITIV'] as const
+  const sentencesByCase = isNoun
+    ? caseOrder.reduce((acc, cas) => {
+        acc[cas] = sentences.filter(s => s.grammatical_case === cas)
+        return acc
+      }, {} as Record<string, VocabSentence[]>)
+    : null
 
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
-        <button
-          onClick={onExit}
-          className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm"
-        >
+        <button onClick={onExit} className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
           ← Exit
         </button>
         <span className="text-[#9b98b0] text-sm">{current} / {total}</span>
@@ -328,68 +336,148 @@ function WordOverviewSlide({
 
       {/* Progress bar */}
       <div className="h-0.5 bg-white/5">
-        <div
-          className="h-full bg-[#7c6df2] transition-all duration-500"
-          style={{ width: `${((current - 1) / total) * 100}%` }}
-        />
+        <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${((current - 1) / total) * 100}%` }} />
       </div>
 
-      {/* Content */}
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-6 py-8 text-center">
-          {/* Badges */}
-          <div className="flex gap-2 mb-6 flex-wrap justify-center">
-            <span className={`px-3 py-1 rounded-md text-xs font-bold border ${typColor(word.typ)}`}>{word.typ}</span>
-            <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">{word.level}</span>
-            {word.frequenz_rang && (
-              <span className="px-3 py-1 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">#{word.frequenz_rang}</span>
+        <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+
+          {/* Hero */}
+          <div>
+            {word.article && (
+              <p className="text-[#7c6df2] text-sm font-bold uppercase tracking-widest mb-1">{word.article} · {TYPE_LABELS[word.type] ?? word.type}</p>
             )}
-            {word.verwendung && (
-              <span className="px-3 py-1 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">{word.verwendung}</span>
+            <h1 className="text-[2.2rem] font-extrabold text-[#e8e6f0] leading-tight">{word.word}</h1>
+            {word.plural && (
+              <p className="text-[#9b98b0] text-sm mt-1">Plural: <span className="text-[#e8e6f0]">die {word.plural}</span></p>
+            )}
+            <p className="text-[#9b98b0] text-base mt-2">🇬🇧 {word.translation_en}</p>
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              <span className="text-[0.72rem] font-bold tracking-widest uppercase bg-[#7c6df2]/15 text-[#9b8cf5] px-3 py-1 rounded-full">{word.level}</span>
+              {word.frequency_rank && (
+                <span className="text-[0.72rem] font-bold tracking-widest uppercase bg-[#3bd395]/10 text-[#3bd395] px-3 py-1 rounded-full">⚡ Rank #{word.frequency_rank}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Meaning & Explanation */}
+          <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+            <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Meaning & Explanation</p>
+            <p className="text-[#e8e6f0] text-sm leading-relaxed">{word.explanation_en}</p>
+            {word.usage_notes && (
+              <p className="text-[#9b98b0] text-xs leading-relaxed mt-3 pt-3 border-t border-white/5">
+                💡 <strong className="text-[#e8e6f0]">Usage:</strong> {word.usage_notes}
+              </p>
             )}
           </div>
 
-          {/* Word */}
-          <h1 className="text-5xl sm:text-6xl font-bold text-[#9b8cf5] mb-3 leading-tight">
-            {word.artikel ? `${word.artikel} ${word.word}` : word.word}
-          </h1>
-          {word.plural && (
-            <p className="text-[#9b98b0] text-base mb-4">Pl. <span className="text-[#e8e6f0] font-medium">{word.plural}</span></p>
-          )}
-
-          {/* Explanation (English meaning) */}
-          {word.erklaerung && (
-            <div className="w-full max-w-sm mx-auto mt-4 bg-[#252340] rounded-xl p-4 border border-white/5 text-left">
-              <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1.5">Meaning</p>
-              <p className="text-[#e8e6f0] text-sm leading-relaxed">{word.erklaerung}</p>
-            </div>
-          )}
-
           {/* Declension table for nouns */}
-          {declension && (
-            <div className="w-full max-w-sm mx-auto mt-4 bg-[#252340] rounded-xl border border-white/5 overflow-hidden text-left">
-              <p className="text-xs text-[#9b98b0] uppercase tracking-wider px-4 pt-3 pb-2">Declension (Singular)</p>
-              {declension.map(({ label, art, noun }) => (
-                <div key={label} className="flex items-center gap-3 px-4 py-2 border-t border-white/5">
-                  <span className="text-xs text-[#9b98b0] w-20 shrink-0">{label}</span>
-                  <span className="text-[#7c6df2] font-medium text-sm">{art}</span>
-                  <span className="text-[#e8e6f0] text-sm">{noun}</span>
-                </div>
-              ))}
+          {isNoun && (word.nom_sg || word.akk_sg || word.dat_sg || word.gen_sg) && (
+            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Declension</p>
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Case</th>
+                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Singular</th>
+                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3">Plural</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { label: 'Nominative', sg: word.nom_sg, pl: word.nom_pl },
+                    { label: 'Accusative', sg: word.akk_sg, pl: word.akk_pl },
+                    { label: 'Dative',     sg: word.dat_sg, pl: word.dat_pl },
+                    { label: 'Genitive',   sg: word.gen_sg, pl: word.gen_pl },
+                  ].map(({ label, sg, pl }) => (
+                    <tr key={label} className="border-t border-white/5">
+                      <td className="py-2.5 pr-4 font-bold text-[#7c6df2] text-xs">{label}</td>
+                      <td className="py-2.5 pr-4 text-[#e8e6f0]">{sg || '—'}</td>
+                      <td className="py-2.5 text-[#e8e6f0]">{pl || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
-          {/* Non-noun info */}
-          {!declension && (
-            <div className="mt-6 grid grid-cols-2 gap-3 w-full max-w-sm mx-auto text-left">
-              <div className="bg-[#252340] rounded-xl p-4 border border-white/5">
-                <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1">Type</p>
-                <p className="text-[#e8e6f0] font-bold">{word.typ}</p>
-              </div>
-              {word.frequenz_rang && (
-                <div className="bg-[#252340] rounded-xl p-4 border border-white/5">
-                  <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1">Rank</p>
-                  <p className="text-[#e8e6f0] font-bold">#{word.frequenz_rang}</p>
+          {/* Fun Fact */}
+          {word.fun_fact && (
+            <div className="bg-gradient-to-br from-[#7c6df2]/10 to-[#7c6df2]/5 border border-[#7c6df2]/20 rounded-2xl p-5">
+              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#7c6df2] mb-2">Fun Fact</p>
+              <p className="text-[#c8c5d8] text-sm leading-relaxed">{word.fun_fact}</p>
+            </div>
+          )}
+
+          {/* Synonyms + Related */}
+          {(word.synonyms || word.related_words) && (
+            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Related Words</p>
+              {word.synonyms && (
+                <>
+                  <p className="text-[#e8e6f0] text-xs mb-2">Synonyms</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {word.synonyms.split(',').map(s => (
+                      <span key={s} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{s.trim()}</span>
+                    ))}
+                  </div>
+                </>
+              )}
+              {word.related_words && (
+                <>
+                  <p className="text-[#e8e6f0] text-xs mb-2">Related forms</p>
+                  <div className="flex flex-wrap gap-2">
+                    {word.related_words.split(',').map(r => (
+                      <span key={r} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{r.trim()}</span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* All sentences */}
+          {sentences.length > 0 && (
+            <div className="space-y-4">
+              {isNoun && sentencesByCase ? (
+                caseOrder.map(cas => {
+                  const grp = sentencesByCase[cas]
+                  if (!grp || grp.length === 0) return null
+                  return (
+                    <div key={cas}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className={`text-[0.68rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full ${CASE_COLORS[cas]}`}>
+                          {CASE_LABEL[cas]}
+                        </span>
+                        <div className="flex-1 h-px bg-white/6" />
+                      </div>
+                      <div className="space-y-2">
+                        {grp.map(s => (
+                          <div key={s.id} className="bg-[#1a1830] border border-white/5 rounded-2xl px-5 py-4">
+                            <p className="text-[#e8e6f0] text-[0.95rem] font-medium leading-snug">
+                              {highlightCloze(s.sentence_de, s.cloze_word)}
+                            </p>
+                            <p className="text-[#9b98b0] text-[0.8rem] mt-1">{s.sentence_en}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div>
+                  <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Example Sentences</p>
+                  <div className="space-y-2">
+                    {sentences.map(s => (
+                      <div key={s.id} className="bg-[#1a1830] border border-white/5 rounded-2xl px-5 py-4">
+                        <p className="text-[#e8e6f0] text-[0.95rem] font-medium leading-snug">
+                          {highlightCloze(s.sentence_de, s.cloze_word)}
+                        </p>
+                        <p className="text-[#9b98b0] text-[0.8rem] mt-1">{s.sentence_en}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -401,7 +489,7 @@ function WordOverviewSlide({
       <div className="px-6 py-4 border-t border-white/5">
         <button
           onClick={onContinue}
-          className="w-full max-w-lg mx-auto block py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
+          className="w-full max-w-2xl mx-auto block py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
         >
           Continue →
         </button>
@@ -1083,8 +1171,8 @@ function ClozeSession({
 
   const progress = results.length / items.length
 
-  // Hint 1: always visible — English equivalent word for vocab (e.g. "I" for "ich")
-  const hint1Vocab = current.kind === 'vocab' ? (current.sentence as VocabSentence).cloze_word_en : null
+  // Hint 1: grammar person (e.g. "ich"); vocab no longer has a cloze_word_en field
+  const hint1Vocab = null
   const hint1Grammar = current.kind === 'grammar' ? current.sentence.person : null
 
   return (
@@ -1317,9 +1405,9 @@ export default function LearnPage() {
       const grammarTopicsSeen = new Set<string>()
       const slides: StudySlide[] = []
 
-      // Vocab slides first (one per word)
+      // Vocab slides first (one per word, all sentences included)
       for (const v of vocab) {
-        slides.push({ kind: 'vocab', word: v.word })
+        slides.push({ kind: 'vocab', word: v.word, sentences: v.sentences })
       }
 
       // Grammar slides: one per unique topic, listing which persons are in this batch
@@ -1762,6 +1850,7 @@ export default function LearnPage() {
       {currentSlide.kind === 'vocab' && (
         <WordOverviewSlide
           word={currentSlide.word}
+          sentences={currentSlide.sentences}
           onContinue={goNextSlide}
           onExit={() => handleEarlyExit([])}
           current={slideIndex + 1}
