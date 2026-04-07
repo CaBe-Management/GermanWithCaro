@@ -733,6 +733,7 @@ function ClozeSession({
   const [answered, setAnswered]           = useState(false)
   const [showingExplainer, setShowingExplainer] = useState(false)
   const [showFormationHint, setShowFormationHint] = useState(false)
+  const [showEN, setShowEN]               = useState(false)
   const [results, setResults]             = useState<ClozeResult[]>([])
   const seenTopicsRef                     = useRef<Set<string>>(new Set())
 
@@ -743,6 +744,7 @@ function ClozeSession({
     setInput('')
     setAnswered(false)
     setShowFormationHint(false)
+    setShowEN(false)
     if (current?.kind === 'grammar' && !seenTopicsRef.current.has(current.topic.id)) {
       seenTopicsRef.current.add(current.topic.id)
       setShowingExplainer(true)
@@ -921,8 +923,10 @@ function ClozeSession({
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="max-w-2xl w-full text-center space-y-6">
 
-          {/* Word/topic label */}
-          <p className="text-[#9b8cf5] font-bold text-lg">{cardBadge}</p>
+          {/* Word/topic label — hidden for verb (already shown inside hint box) */}
+          {current.kind !== 'verb' && (
+            <p className="text-[#9b8cf5] font-bold text-lg">{cardBadge}</p>
+          )}
 
           {/* Hint box — verb: show tense + translation in structured card */}
           {current.kind === 'verb' ? (
@@ -967,14 +971,7 @@ function ClozeSession({
             </div>
           ) : null}
 
-          {/* English translation: always for vocab; sentence translation for verb/grammar */}
-          {current.kind === 'vocab' ? renderEN() : (
-            sentence?.sentence_en
-              ? <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
-              : null
-          )}
-
-          {/* German sentence with gap + audio button */}
+          {/* German sentence with gap */}
           <div className="flex items-center justify-center gap-3">
             <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
               {clozeParts[0]}
@@ -989,9 +986,38 @@ function ClozeSession({
               </span>
               {clozeParts[1]}
             </p>
-            {/* Audio button — key=index remounts on card change, stopping any playback */}
-            <AudioButton key={index} filename={sentence?.audio_file} />
           </div>
+
+          {/* English translation: collapsible on front, always shown on back */}
+          {sentence?.sentence_en && (
+            answered ? (
+              current.kind === 'vocab' ? renderEN() : (
+                <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
+              )
+            ) : (
+              showEN ? (
+                <div className="space-y-1">
+                  {current.kind === 'vocab' ? renderEN() : (
+                    <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowEN(true)}
+                  className="text-xs text-[#9b98b0] hover:text-[#e8e6f0] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                >
+                  🌐 Translation anzeigen
+                </button>
+              )
+            )
+          )}
+
+          {/* Audio button — below everything, key=index remounts on card change */}
+          {sentence?.audio_file && (
+            <div className="flex justify-center">
+              <AudioButton key={index} filename={sentence.audio_file} />
+            </div>
+          )}
 
           {/* Wrong answer feedback */}
           {answered && !isCorrect && (
