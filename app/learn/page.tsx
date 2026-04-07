@@ -672,6 +672,7 @@ function ClozeSession({
   const [input, setInput]                 = useState('')
   const [answered, setAnswered]           = useState(false)
   const [showingExplainer, setShowingExplainer] = useState(false)
+  const [showFormationHint, setShowFormationHint] = useState(false)
   const [results, setResults]             = useState<ClozeResult[]>([])
   const seenTopicsRef                     = useRef<Set<string>>(new Set())
 
@@ -681,6 +682,7 @@ function ClozeSession({
   useEffect(() => {
     setInput('')
     setAnswered(false)
+    setShowFormationHint(false)
     if (current?.kind === 'grammar' && !seenTopicsRef.current.has(current.topic.id)) {
       seenTopicsRef.current.add(current.topic.id)
       setShowingExplainer(true)
@@ -784,6 +786,18 @@ function ClozeSession({
               : current.kind === 'grammar' ? current.topic.translation_en
               : current.verb.translation_en
 
+  // Formation hint: shown behind a reveal button for complex verb tenses
+  const FORMATION_HINTS: Partial<Record<string, string>> = {
+    'PERFEKT':          'haben / sein  +  Partizip II',
+    'FUTUR I':          'werden  +  Infinitiv',
+    'KONJUNKTIV II':    'Konj. II-Form  oder  würde + Infinitiv',
+    'PLUSQUAMPERFEKT':  'hatte / war  +  Partizip II',
+    'FUTUR II':         'werden  +  Partizip II  +  haben / sein',
+  }
+  const formationHint = current.kind === 'verb'
+    ? (FORMATION_HINTS[current.tense] ?? null)
+    : null
+
   // EN translation display (with cloze_word_en highlight for vocab)
   function renderEN() {
     if (!sentence?.sentence_en) return null
@@ -852,8 +866,28 @@ function ClozeSession({
 
           {/* Hint 1: grammar/verb show big English translation box */}
           {hint1 && (
-            <div className="w-full max-w-md mx-auto bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
-              <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
+            <div className="w-full max-w-md mx-auto space-y-2">
+              <div className="bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
+                <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
+              </div>
+
+              {/* Formation hint reveal button — only for complex verb tenses */}
+              {formationHint && (
+                <div className="flex justify-center">
+                  {showFormationHint ? (
+                    <p className="text-xs text-[#9b98b0] italic px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                      {formationHint}
+                    </p>
+                  ) : (
+                    <button
+                      onClick={() => setShowFormationHint(true)}
+                      className="text-xs text-[#9b98b0] hover:text-[#e8e6f0] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                    >
+                      💡 Bildung zeigen
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
