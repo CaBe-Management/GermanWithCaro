@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #0f0e17;
+  color: #e8e6f0;
+}
+
+/* ─── Landing Page Animations ──────────────────────────────────────────────── */
+
+/* Gentle bob float for phone mockups */
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  40%       { transform: translateY(-14px) rotate(0.8deg); }
+  70%       { transform: translateY(-7px) rotate(-0.5deg); }
+}
+
+/* Slow vertical float for background words */
+@keyframes floatWord {
+  0%, 100% { transform: translateY(0px); opacity: 0.07; }
+  50%       { transform: translateY(-20px); opacity: 0.13; }
+}
+
+/* Fade in from below on load */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Breathing glow for background orbs */
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.55; }
+}
+
+/* Tailwind-friendly animation utility classes */
+.animate-float-bob  { animation: floatBob  8s ease-in-out infinite; }
+.animate-float-word { animation: floatWord 7s ease-in-out infinite; }
+.animate-fade-in-up { animation: fadeInUp  0.7s ease-out both; }
+.animate-glow-pulse { animation: glowPulse 5s ease-in-out infinite; }
+
+/* Scroll-triggered fade-in — add .is-visible via IntersectionObserver */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.75s ease-out, transform 0.75s ease-out;
+}
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Hide scrollbar inside phone mockup */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@layer components {
+  .btn-primary {
+    /* min-h-[44px] satisfies Apple HIG tap target requirement */
+    @apply px-6 py-3 bg-accent-purple text-white rounded-lg font-medium hover:bg-accent-violet transition-colors min-h-[44px];
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-bg-secondary text-text-primary rounded-lg font-medium hover:bg-bg-card transition-colors border border-accent-purple min-h-[44px];
+  }
+
+  .card {
+    @apply bg-bg-card rounded-xl p-6 border border-bg-secondary;
+  }
+
+  .input-field {
+    /* text-base = 16px prevents iOS from auto-zooming; min-h-[44px] ensures tap target */
+    @apply bg-bg-secondary text-text-primary rounded-lg px-4 py-3 border border-bg-card focus:border-accent-purple focus:outline-none transition-colors text-base min-h-[44px];
+  }
+}

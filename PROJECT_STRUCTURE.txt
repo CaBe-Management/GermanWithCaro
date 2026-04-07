@@ -1,0 +1,62 @@
+German With Caro - gwc_v2 Project Structure
+============================================
+
+PROJECT LOCATION:
+/sessions/ecstatic-eager-goodall/mnt/German With Caro/gwc_v2/
+
+COMPLETE FILE LISTING:
+
+Configuration & Setup:
+  package.json                - NPM dependencies (React 18, Next.js 15, Tailwind, Supabase)
+  tsconfig.json               - TypeScript configuration
+  next.config.ts              - Next.js configuration
+  tailwind.config.ts          - Tailwind CSS dark theme setup
+  postcss.config.js           - PostCSS configuration
+  .env.local.example          - Environment variables template
+  .gitignore                  - Git ignore rules
+
+Documentation:
+  README.md                   - Complete app documentation
+  SETUP.md                    - Step-by-step setup guide
+  PROJECT_STRUCTURE.txt       - This file
+
+App Pages (Next.js App Router):
+  app/layout.tsx              - Root layout with Navbar
+  app/globals.css             - Global Tailwind styles
+  app/page.tsx                - Dashboard/home page
+  app/learn/page.tsx          - Learning interface (cloze cards)
+  app/review/page.tsx         - Spaced repetition reviews
+
+Components (Reusable UI):
+  components/Navbar.tsx       - Navigation bar with Learn/Review badges
+  components/ClozeCard.tsx    - Main learning card (cloze deletion)
+  components/WordCard.tsx     - Word information display
+
+Utilities & Logic:
+  lib/supabase.ts             - Supabase client & TypeScript interfaces
+  lib/srs.ts                  - SM-2 spaced repetition algorithm
+  lib/session.ts              - Anonymous session management
+
+Database:
+  supabase/seed.sql           - Schema & seed data (20 A1 words + 60 sentences)
+
+TOTAL CODE: 1,566 lines
+
+KEY FEATURES:
+✓ Dark purple/violet theme (Bunpro-inspired)
+✓ Cloze deletion learning cards
+✓ Spaced repetition (SM-2 algorithm)
+✓ Anonymous learning (localStorage session ID)
+✓ Real-time Supabase sync
+✓ Progress tracking & statistics
+✓ No server components required
+✓ Full TypeScript support
+✓ Responsive design
+
+READY TO RUN:
+  npm install                 # Install dependencies
+  npm run dev                 # Start development server
+  npm run build               # Build for production
+  npm run start               # Start production server
+
+See SETUP.md for complete setup instructions.
