@@ -8,6 +8,7 @@ import { calculateNextReview } from '@/lib/srs'
 import {
   awardXPAndUpdateStreak,
   updateDailyCards,
+  getOrCreateProgress,
   XP_CORRECT_LEARN,
   XP_WRONG_LEARN,
 } from '@/lib/gamification'
@@ -881,7 +882,11 @@ export default function LearnPage() {
           return
         }
 
-        // 1. Load active paths
+        // 1. Load user level from profile
+        const progress = await getOrCreateProgress(sessionId)
+        const userLevel = progress?.german_level ?? 'A1'
+
+        // 2. Load active paths
         const { data: pathRows } = await supabase
           .from('gwc_user_paths')
           .select('*')
@@ -900,7 +905,7 @@ export default function LearnPage() {
         const firstDef = getPathById(activePaths[0].path_id)
         if (firstDef) setPathName(firstDef.name)
 
-        // 2. Fetch items from each path
+        // 3. Fetch items from each path
         const allVocab: VocabLearnItem[]     = []
         const allGrammar: GrammarLearnItem[] = []
         const allVerbs: VerbLearnItem[]      = []
@@ -920,8 +925,8 @@ export default function LearnPage() {
             const grammar = await fetchGrammarItems(sessionId, path.batch_size)
             allGrammar.push(...grammar)
           }
-          // Verbs are fetched for all path types
-          const verbs = await fetchVerbItems(sessionId, Math.ceil(path.batch_size / 2))
+          // Verbs fetched for all path types, filtered by user level
+          const verbs = await fetchVerbItems(sessionId, Math.ceil(path.batch_size / 2), userLevel)
           allVerbs.push(...verbs)
         }
 
