@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -25,13 +25,44 @@ function levelGte(a: GermanLevel, b: GermanLevel) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function AudioButton({ small }: { small?: boolean }) {
+function AudioButton({ filename, small }: { filename?: string | null; small?: boolean }) {
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    return () => { audioRef.current?.pause() }
+  }, [])
+
+  function toggle() {
+    if (!filename) return
+    if (!audioRef.current) {
+      audioRef.current = new Audio(`/audio/${filename}`)
+      audioRef.current.onended = () => setPlaying(false)
+    }
+    if (playing) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setPlaying(false)
+    } else {
+      audioRef.current.play()
+      setPlaying(true)
+    }
+  }
+
+  if (!filename) return null
+
   return (
     <button
-      className={`shrink-0 text-[#9b98b0] hover:text-[#7c6df2] transition-colors ${small ? 'text-base p-1' : 'flex items-center gap-2 bg-[#7c6df2]/10 border border-[#7c6df2]/25 text-[#7c6df2] px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#7c6df2]/20'}`}
-      onClick={() => {}}
+      className={`shrink-0 transition-colors ${small
+        ? 'text-[#9b98b0] hover:text-[#7c6df2] p-1'
+        : 'flex items-center gap-2 bg-[#7c6df2]/10 border border-[#7c6df2]/25 text-[#7c6df2] px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#7c6df2]/20'
+      } ${playing ? 'opacity-70' : ''}`}
+      onClick={toggle}
     >
-      {small ? '🔊' : '🔊 Listen'}
+      {small
+        ? (playing ? '⏸' : '🔊')
+        : (playing ? '⏸ Stop' : '🔊 Listen')
+      }
     </button>
   )
 }
@@ -98,7 +129,7 @@ function SentenceCard({ sentence }: { sentence: VocabSentence }) {
         </p>
         <p className="text-[#9b98b0] text-[0.8rem] mt-1">{sentence.sentence_en}</p>
       </div>
-      <AudioButton small />
+      <AudioButton filename={sentence.audio_file} small />
     </div>
   )
 }
@@ -216,7 +247,7 @@ export default function VocabDetailPage() {
               )}
             </div>
           </div>
-          <AudioButton />
+          <AudioButton filename={word.audio_file} />
         </div>
 
         {/* ── Tabs ─────────────────────────────────────────────────── */}

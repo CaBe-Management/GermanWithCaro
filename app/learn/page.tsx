@@ -930,7 +930,9 @@ function ClozeSession({
               <div className="bg-[#252340] rounded-xl border border-white/5 overflow-hidden">
                 {/* Tense row */}
                 <div className="flex items-center justify-between px-5 py-2.5 border-b border-white/5">
-                  <span className="text-xs font-bold text-[#60a5fa] uppercase tracking-wider">{current.tense}</span>
+                  <span className="text-xs font-bold text-[#60a5fa] uppercase tracking-wider">
+                    {current.verb.word} · {current.tense}
+                  </span>
                   <span className="text-xs text-[#9b98b0]">{current.sentence.person}</span>
                 </div>
                 {/* Translation row */}
