@@ -113,6 +113,7 @@ export default function Dashboard() {
   const [reviewExpanded, setReviewExpanded] = useState(false)
   const [vocabDoneToday, setVocabDoneToday]     = useState(0)
   const [grammarDoneToday, setGrammarDoneToday] = useState(0)
+  const [verbDoneToday, setVerbDoneToday]       = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -141,6 +142,7 @@ export default function Dashboard() {
           { data: grammarTopics },
           { data: vocabReviewRows },
           { data: grammarReviewRows },
+          { data: verbReviewRows },
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
@@ -187,6 +189,9 @@ export default function Dashboard() {
           // Grammar review history
           supabase.from('gwc_user_reviews').select('grammar_sentence_id, reviewed_at')
             .eq('session_id', sessionId).eq('item_type', 'grammar').not('grammar_sentence_id', 'is', null),
+          // Verb review history (for done-today count)
+          supabase.from('gwc_verb_reviews').select('reviewed_at')
+            .eq('session_id', sessionId).not('reviewed_at', 'is', null),
           // User XP, streak, daily goal
           getOrCreateProgress(sessionId),
         ])
@@ -206,6 +211,9 @@ export default function Dashboard() {
         )
         setGrammarDoneToday(
           (grammarReviewRows || []).filter((r: { reviewed_at: string }) => r.reviewed_at >= todayStart).length
+        )
+        setVerbDoneToday(
+          (verbReviewRows || []).filter((r: { reviewed_at: string }) => r.reviewed_at >= todayStart).length
         )
 
         // ── Active paths ─────────────────────────────────────────────────────
@@ -454,6 +462,7 @@ export default function Dashboard() {
                         // Estimate done today based on path type
                         const pathDone = def.type === 'vocab'   ? vocabDoneToday
                                        : def.type === 'grammar' ? grammarDoneToday
+                                       : def.type === 'verb'    ? verbDoneToday
                                        : vocabDoneToday + grammarDoneToday
                         const doneClamped = Math.min(pathDone, path.daily_goal)
                         return (

@@ -142,7 +142,13 @@ export default function GrammarPage() {
   const filtered = topics.filter(t => {
     if (levelFilter !== 'all' && t.level !== levelFilter) return false
     if (categoryFilter !== 'all' && t.category !== categoryFilter) return false
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (search) {
+      const q = search.toLowerCase()
+      const matchesTitle   = t.title.toLowerCase().includes(q)
+      const matchesEN      = t.translation_en?.toLowerCase().includes(q) ?? false
+      const matchesExplain = t.explanation_en?.toLowerCase().includes(q) ?? false
+      if (!matchesTitle && !matchesEN && !matchesExplain) return false
+    }
     return true
   })
 
