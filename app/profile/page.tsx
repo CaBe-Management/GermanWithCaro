@@ -9,6 +9,7 @@ import {
   getXPProgress,
   checkAndAwardBadges,
   saveDailyGoal,
+  saveGermanLevel,
   BADGE_DEFS,
   getBadgeStat,
   todayStr,
@@ -224,6 +225,48 @@ function DailyGoalControl({ initialGoal }: { initialGoal: number }) {
   )
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const GERMAN_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
+type GermanLevel = typeof GERMAN_LEVELS[number]
+
+// ─── Level Selector component ────────────────────────────────────────────────
+
+function LevelSelector({ current, onChange }: { current: GermanLevel; onChange: (l: GermanLevel) => void }) {
+  const descriptions: Record<GermanLevel, string> = {
+    A1: 'Complete beginner',
+    A2: 'Elementary',
+    B1: 'Intermediate',
+    B2: 'Upper intermediate',
+    C1: 'Advanced',
+    C2: 'Mastery',
+  }
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-sm font-bold text-[#e8e6f0]">Your German Level</p>
+        <span className="text-xs text-[#9b98b0]">{descriptions[current]}</span>
+      </div>
+      <p className="text-xs text-[#9b98b0] mb-3">Controls which sentences and exercises are shown to you</p>
+      <div className="grid grid-cols-6 gap-2">
+        {GERMAN_LEVELS.map(l => (
+          <button
+            key={l}
+            onClick={() => onChange(l)}
+            className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+              current === l
+                ? 'bg-[#7c6df2] text-white shadow-md shadow-[#7c6df2]/30'
+                : 'bg-white/5 text-[#9b98b0] hover:bg-white/10 hover:text-[#e8e6f0] border border-white/5'
+            }`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -235,6 +278,13 @@ export default function ProfilePage() {
   const [activeDays, setActiveDays]       = useState<Set<string>>(new Set())
   const [unlockedBadges, setUnlockedBadges] = useState<UnlockedBadge[]>([])
   const [userEmail, setUserEmail]         = useState<string | null>(null)
+  const [germanLevel, setGermanLevel]     = useState<GermanLevel>('A1')
+
+  async function handleSaveGermanLevel(level: GermanLevel) {
+    setGermanLevel(level)
+    const sessionId = getOrCreateSessionId()
+    await saveGermanLevel(sessionId, level)
+  }
 
   useEffect(() => {
     async function load() {
@@ -287,9 +337,10 @@ export default function ProfilePage() {
           learnedWords = new Set((sentWords || []).map((s: { word_id: string }) => s.word_id)).size
         }
 
-        // ── User progress (XP, streak, daily goal) ──────────────────────────
+        // ── User progress (XP, streak, daily goal, german level) ────────────
         const prog = await getOrCreateProgress(sessionId)
         setProgress(prog)
+        if (prog?.german_level) setGermanLevel(prog.german_level as GermanLevel)
         const daysStudied = prog?.days_studied ?? 0
 
         setStats({ totalReviews, correctRate, learnedWords, daysStudied })
@@ -404,6 +455,11 @@ export default function ProfilePage() {
           </div>
           {/* XP progress bar */}
           <XPBar xp={xp} />
+        </div>
+
+        {/* ── German Level ──────────────────────────────────────────────────── */}
+        <div className="bg-[#1a1830] rounded-2xl px-6 py-5 border border-white/5">
+          <LevelSelector current={germanLevel} onChange={handleSaveGermanLevel} />
         </div>
 
         {/* ── Streak + Week view ────────────────────────────────────────────── */}

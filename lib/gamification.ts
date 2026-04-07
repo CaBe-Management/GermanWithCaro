@@ -200,6 +200,7 @@ export interface UserProgress {
   daily_cards_today: number
   daily_cards_date: string | null
   days_studied: number
+  german_level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 }
 
 // ─── DB Helpers ───────────────────────────────────────────────────────────────
@@ -334,6 +335,20 @@ export async function saveDailyGoal(sessionId: string, goal: number): Promise<vo
   if (typeof window !== 'undefined') {
     localStorage.setItem('gwc_daily_goal', String(goal))
   }
+}
+
+/**
+ * Saves the user's self-selected German level to the DB.
+ */
+export async function saveGermanLevel(
+  sessionId: string,
+  level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+): Promise<void> {
+  await getOrCreateProgress(sessionId)
+  await supabase
+    .from('gwc_user_progress')
+    .update({ german_level: level, updated_at: new Date().toISOString() })
+    .eq('session_id', sessionId)
 }
 
 /**

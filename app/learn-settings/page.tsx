@@ -125,14 +125,14 @@ function PathSettingsModal({ userPath, onClose, onUpdate, onRemove }: PathSettin
                 <p className="text-xs text-[#9b98b0] mb-4">New sentences to learn per day from this deck.</p>
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => setDailyGoal(v => Math.max(1, v - 5))}
+                    onClick={() => setDailyGoal(v => Math.max(1, v - 1))}
                     className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-[#e8e6f0] hover:bg-white/10 transition-colors text-xl font-bold"
                   >
                     −
                   </button>
                   <span className="text-3xl font-bold text-[#e8e6f0] w-14 text-center tabular-nums">{dailyGoal}</span>
                   <button
-                    onClick={() => setDailyGoal(v => Math.min(100, v + 5))}
+                    onClick={() => setDailyGoal(v => Math.min(100, v + 1))}
                     className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-[#e8e6f0] hover:bg-white/10 transition-colors text-xl font-bold"
                   >
                     +

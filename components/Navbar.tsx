@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { getOrCreateProgress, getLevelFromXP, todayStr } from '@/lib/gamification'
+import { ALL_PATHS } from '@/lib/paths'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,6 @@ export default function Navbar() {
 
   const [learnCount, setLearnCount] = useState<number | null>(null)
   const [reviewCount, setReviewCount] = useState<number | null>(null)
-  const [levels, setLevels] = useState<string[]>([])
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userLevel, setUserLevel] = useState<number | null>(null)  // current XP level
 
@@ -58,12 +58,10 @@ export default function Navbar() {
         const [
           { data: { user } },
           { count: dueCount },
-          { data: levelData },
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
           supabase.from('gwc_user_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
-          supabase.from('gwc_words').select('level'),
           // Fetch user progress for global daily_goal + how many cards learned today
           getOrCreateProgress(sessionId),
         ])
@@ -76,9 +74,6 @@ export default function Navbar() {
         const dailyDone = (progressData?.daily_cards_date === today) ? (progressData?.daily_cards_today ?? 0) : 0
         setLearnCount(Math.max(0, (progressData?.daily_goal ?? 0) - dailyDone))
         setReviewCount(dueCount || 0)
-
-        const uniqueLevels = [...new Set((levelData || []).map((w: { level: string }) => w.level))].sort()
-        setLevels(uniqueLevels)
 
         // Load user's XP level for the level badge
         const progress = await getOrCreateProgress(sessionId)
@@ -198,26 +193,35 @@ export default function Navbar() {
                     <p className="text-xs text-[#9b98b0]">Topics & practice</p>
                   </div>
                 </Link>
+                <Link
+                  href="/vocab"
+                  onClick={() => pathsDropdown.setOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
+                    pathname.startsWith('/vocab') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                  }`}
+                >
+                  <span className="text-lg">📚</span>
+                  <div>
+                    <p className="text-sm font-semibold leading-tight">Vocabulary</p>
+                    <p className="text-xs text-[#9b98b0]">Words & phrases</p>
+                  </div>
+                </Link>
                 <p className="px-3 pt-2.5 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">
-                  Vocabulary Paths
+                  Paths
                 </p>
-                {levels.length > 0 ? levels.map(level => (
+                {ALL_PATHS.map(path => (
                   <Link
-                    key={level}
-                    href={`/path/${level}`}
+                    key={path.id}
+                    href={`/path/${path.id}`}
                     onClick={() => pathsDropdown.setOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-white/5 ${
-                      pathname === `/path/${level}` ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                      pathname === `/path/${path.id}` ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
                     }`}
                   >
-                    <span className="w-8 h-5 flex items-center justify-center bg-[#7c6df2]/20 text-[#9b8cf5] rounded text-xs font-bold">
-                      {level}
-                    </span>
-                    <span>Caro's {level} Path</span>
+                    <span className="text-base">{path.icon}</span>
+                    <span>{path.name}</span>
                   </Link>
-                )) : (
-                  <p className="px-3 py-2.5 text-sm text-[#9b98b0]">No paths yet</p>
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -401,28 +405,35 @@ export default function Navbar() {
                       <p className="text-xs text-[#9b98b0]">Topics & practice</p>
                     </div>
                   </Link>
+                  <Link
+                    href="/vocab"
+                    onClick={() => mobileMenu.setOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
+                      pathname.startsWith('/vocab') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                    }`}
+                  >
+                    <span className="text-base">📚</span>
+                    <div>
+                      <p className="font-medium leading-tight">Vocabulary</p>
+                      <p className="text-xs text-[#9b98b0]">Words & phrases</p>
+                    </div>
+                  </Link>
 
-                  {/* Vocabulary paths */}
-                  {levels.length > 0 && (
-                    <>
-                      <p className="px-4 pt-2 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider">Vocabulary Paths</p>
-                      {levels.map(level => (
-                        <Link
-                          key={level}
-                          href={`/path/${level}`}
-                          onClick={() => mobileMenu.setOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
-                            pathname === `/path/${level}` ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                          }`}
-                        >
-                          <span className="w-8 h-5 flex items-center justify-center bg-[#7c6df2]/20 text-[#9b8cf5] rounded text-xs font-bold">
-                            {level}
-                          </span>
-                          <span>Caro's {level} Path</span>
-                        </Link>
-                      ))}
-                    </>
-                  )}
+                  {/* Paths */}
+                  <p className="px-4 pt-2 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">Paths</p>
+                  {ALL_PATHS.map(path => (
+                    <Link
+                      key={path.id}
+                      href={`/path/${path.id}`}
+                      onClick={() => mobileMenu.setOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
+                        pathname === `/path/${path.id}` ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                      }`}
+                    >
+                      <span className="text-base">{path.icon}</span>
+                      <span>{path.name}</span>
+                    </Link>
+                  ))}
                 </div>
 
                 {/* User section */}

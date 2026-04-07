@@ -69,6 +69,10 @@ export interface GrammarTopic {
   resources: GrammarResource[] | null  // YouTube / TikTok / Website links
   synonyms: string | null          // Synonymous expressions
   related_forms: string | null     // Related grammar / question words
+  audio_file: string | null
+  // Path membership: NULL = not in path, number = position in path
+  path_a1_grammar: number | null
+  path_caros_path: number | null
 }
 
 export interface GrammarResource {
@@ -76,6 +80,46 @@ export interface GrammarResource {
   url: string
   title: string
   description?: string
+}
+
+// ─── Vocab Types ─────────────────────────────────────────────────────────────
+
+export interface VocabWord {
+  id: string
+  slug: string
+  word: string
+  type: 'NOMEN' | 'VERB' | 'ADJEKTIV' | 'AUSDRUCK' | 'ADVERB' | 'PRÄPOSITION'
+  article: string | null
+  plural: string | null
+  level: string
+  frequency_rank: number | null
+  translation_en: string
+  explanation_en: string
+  usage_notes: string | null
+  fun_fact: string | null
+  synonyms: string | null
+  related_words: string | null
+  audio_file: string | null
+  nom_sg: string | null; nom_pl: string | null
+  akk_sg: string | null; akk_pl: string | null
+  dat_sg: string | null; dat_pl: string | null
+  gen_sg: string | null; gen_pl: string | null
+  path_a1_vocabulary: number | null
+  path_caros_path: number | null
+  created_at: string
+}
+
+export interface VocabSentence {
+  id: string
+  vocab_id: string
+  sentence_de: string
+  sentence_en: string
+  cloze_word: string
+  grammatical_case: 'NOMINATIV' | 'AKKUSATIV' | 'DATIV' | 'GENITIV' | null
+  min_level: string
+  sort_order: number
+  audio_file: string | null
+  created_at: string
 }
 
 export interface GrammarSentence {
