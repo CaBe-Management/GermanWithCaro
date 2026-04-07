@@ -286,27 +286,29 @@ const VERB_PATH_COL: Record<string, string> = {
 }
 
 async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 'A1', pathId?: string): Promise<VerbLearnItem[]> {
+  // Check at (verb × tense) granularity — not just verb level.
+  // This means levelling up to A2 surfaces "sein × Perfekt" as a new card
+  // even though "sein × Präsens" was already learned.
   const { data: reviewRows } = await supabase
     .from('gwc_verb_reviews')
-    .select('verb_id')
+    .select('verb_id, tense')
     .eq('session_id', sessionId)
-  const learnedIds = new Set((reviewRows || []).map((r: { verb_id: string }) => r.verb_id))
+  const learnedCards = new Set(
+    (reviewRows || []).map((r: { verb_id: string; tense: string }) => `${r.verb_id}__${r.tense}`)
+  )
 
   const pathCol = pathId ? VERB_PATH_COL[pathId] : null
 
   let query = supabase.from('gwc_verbs').select('*')
   if (pathCol) {
-    // Filter to verbs that are in this path and order by their position
     query = query.not(pathCol, 'is', null).order(pathCol, { ascending: true })
   } else {
     query = query.order('frequency_rank', { ascending: true, nullsFirst: false })
   }
   const { data: verbs } = await query.limit(200)
+  if (!verbs || verbs.length === 0) return []
 
-  const newVerbs = (verbs || []).filter((v: VerbWord) => !learnedIds.has(v.id))
-  const verbIds  = newVerbs.slice(0, batchSize * 3).map((v: VerbWord) => v.id)
-  if (verbIds.length === 0) return []
-
+  const verbIds = (verbs as VerbWord[]).map(v => v.id)
   const { data: sentences } = await supabase
     .from('gwc_verb_sentences')
     .select('*')
@@ -314,12 +316,15 @@ async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 
     .order('sort_order', { ascending: true })
 
   const result: VerbLearnItem[] = []
-  for (const verb of newVerbs) {
-    // Only include sentences for tenses the user has unlocked
-    const verbSents = ((sentences || []) as VerbSentence[])
-      .filter(s => s.verb_id === verb.id && levelGte(userLevel, TENSE_MIN_LEVEL[s.tense] ?? 'A1'))
-    if (verbSents.length > 0) {
-      result.push({ type: 'verb', verb, sentences: verbSents })
+  for (const verb of verbs as VerbWord[]) {
+    // Only sentences for tenses unlocked at current level AND not yet learned
+    const newSents = ((sentences || []) as VerbSentence[]).filter(s =>
+      s.verb_id === verb.id &&
+      levelGte(userLevel, TENSE_MIN_LEVEL[s.tense] ?? 'A1') &&
+      !learnedCards.has(`${verb.id}__${s.tense}`)
+    )
+    if (newSents.length > 0) {
+      result.push({ type: 'verb', verb, sentences: newSents })
     }
     if (result.length >= batchSize) break
   }
@@ -510,6 +515,148 @@ function GrammarExplainer({ topic, onContinue }: { topic: GrammarTopic; onContin
   )
 }
 
+// ─── Verb Intro (shown before first cloze of each new verb × tense) ──────────
+
+const TENSE_LABEL_MAP: Record<string, string> = {
+  'PRÄSENS':        'Präsens',
+  'PERFEKT':        'Perfekt',
+  'PRÄTERITUM':     'Präteritum',
+  'FUTUR I':        'Futur I',
+  'KONJUNKTIV II':  'Konjunktiv II',
+  'PLUSQUAMPERFEKT':'Plusquamperfekt',
+  'FUTUR II':       'Futur II',
+}
+
+function getConjRows(verb: VerbWord, tense: string): { person: string; form: string }[] {
+  const persons = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie']
+  const futAux  = ['werde', 'wirst', 'wird', 'werden', 'werdet', 'werden']
+  const plusqAux = verb.auxiliary === 'sein'
+    ? ['war','warst','war','waren','wart','waren']
+    : ['hatte','hattest','hatte','hatten','hattet','hatten']
+
+  switch (tense) {
+    case 'PRÄSENS':
+      return [
+        { person: 'ich',       form: verb.praes_ich ?? '—' },
+        { person: 'du',        form: verb.praes_du  ?? '—' },
+        { person: 'er/sie/es', form: verb.praes_er  ?? '—' },
+        { person: 'wir',       form: verb.praes_wir ?? '—' },
+        { person: 'ihr',       form: verb.praes_ihr ?? '—' },
+        { person: 'sie/Sie',   form: verb.praes_sie ?? '—' },
+      ]
+    case 'PERFEKT':
+      return persons.map((p, i) => ({
+        person: p,
+        form: `${verb.auxiliary === 'sein'
+          ? ['bin','bist','ist','sind','seid','sind'][i]
+          : ['habe','hast','hat','haben','habt','haben'][i]} ${verb.partizip_ii ?? '…'}`,
+      }))
+    case 'PRÄTERITUM':
+      return [
+        { person: 'ich',       form: verb.praet_ich ?? '—' },
+        { person: 'du',        form: verb.praet_du  ?? '—' },
+        { person: 'er/sie/es', form: verb.praet_er  ?? '—' },
+        { person: 'wir',       form: verb.praet_wir ?? '—' },
+        { person: 'ihr',       form: verb.praet_ihr ?? '—' },
+        { person: 'sie/Sie',   form: verb.praet_sie ?? '—' },
+      ]
+    case 'FUTUR I':
+      return persons.map((p, i) => ({ person: p, form: `${futAux[i]} ${verb.word}` }))
+    case 'KONJUNKTIV II':
+      return verb.konj2_ich ? [
+        { person: 'ich',       form: verb.konj2_ich ?? '—' },
+        { person: 'du',        form: verb.konj2_du  ?? '—' },
+        { person: 'er/sie/es', form: verb.konj2_er  ?? '—' },
+        { person: 'wir',       form: verb.konj2_wir ?? '—' },
+        { person: 'ihr',       form: verb.konj2_ihr ?? '—' },
+        { person: 'sie/Sie',   form: verb.konj2_sie ?? '—' },
+      ] : persons.map(p => ({ person: p, form: `würde ${verb.word}` }))
+    case 'PLUSQUAMPERFEKT':
+      return persons.map((p, i) => ({ person: p, form: `${plusqAux[i]} ${verb.partizip_ii ?? '…'}` }))
+    case 'FUTUR II':
+      return persons.map((p, i) => ({
+        person: p,
+        form: `${futAux[i]} ${verb.partizip_ii ?? '…'} ${verb.auxiliary ?? 'haben'}`,
+      }))
+    default:
+      return []
+  }
+}
+
+function VerbIntroScreen({ verb, tense, onContinue }: {
+  verb: VerbWord
+  tense: string
+  onContinue: () => void
+}) {
+  const rows = getConjRows(verb, tense)
+  const tenseLabel = TENSE_LABEL_MAP[tense] ?? tense
+  const minLevel = TENSE_MIN_LEVEL[tense] ?? 'A1'
+
+  return (
+    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
+      <div className="flex items-center px-5 py-3 border-b border-white/5">
+        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+          ← Dashboard
+        </Link>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10">
+        <div className="max-w-lg w-full">
+
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-4 justify-center flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">
+              Verb
+            </span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/20">
+              {tenseLabel}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
+              {minLevel}
+            </span>
+          </div>
+
+          {/* Verb name */}
+          <h2 className="text-4xl font-bold text-[#7c6df2] text-center mb-1">{verb.word}</h2>
+          <p className="text-[#9b98b0] text-center italic mb-6">{verb.translation_en}</p>
+
+          {/* Conjugation table */}
+          <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden mb-4">
+            <div className="px-5 py-3 border-b border-white/5">
+              <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold">{tenseLabel}</p>
+            </div>
+            <table className="w-full">
+              <tbody>
+                {rows.map(({ person, form }) => (
+                  <tr key={person} className="border-t border-white/5 first:border-0">
+                    <td className="py-2.5 px-5 text-[#9b98b0] text-sm w-28">{person}</td>
+                    <td className="py-2.5 px-5 text-[#e8e6f0] font-semibold">{form}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Fun fact */}
+          {verb.fun_fact && (
+            <div className="bg-[#1a1830] rounded-2xl border border-[#7c6df2]/15 px-5 py-4 mb-4">
+              <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1.5">✨ Fun Fact</p>
+              <p className="text-[#c5c3d4] text-sm leading-relaxed">{verb.fun_fact}</p>
+            </div>
+          )}
+
+          <button
+            onClick={onContinue}
+            className="w-full py-4 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all hover:-translate-y-0.5 shadow-lg shadow-[#7c6df2]/30 text-lg mt-2"
+          >
+            Practice →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Unified Cloze Session ────────────────────────────────────────────────────
 
 function ClozeSession({
@@ -530,13 +677,22 @@ function ClozeSession({
 
   const current = items[index]
 
-  // When index changes: reset state, and check if we need to show a grammar explainer first
+  // When index changes: reset state and check if we need an intro screen
   useEffect(() => {
     setInput('')
     setAnswered(false)
     if (current?.kind === 'grammar' && !seenTopicsRef.current.has(current.topic.id)) {
       seenTopicsRef.current.add(current.topic.id)
       setShowingExplainer(true)
+    } else if (current?.kind === 'verb') {
+      // Show intro once per (verb × tense) combination
+      const key = `${current.verb.id}__${current.tense}`
+      if (!seenTopicsRef.current.has(key)) {
+        seenTopicsRef.current.add(key)
+        setShowingExplainer(true)
+      } else {
+        setShowingExplainer(false)
+      }
     } else {
       setShowingExplainer(false)
     }
@@ -588,11 +744,20 @@ function ClozeSession({
     return () => window.removeEventListener('keydown', handler)
   }, [answered, handleCheck, handleNext, showingExplainer])
 
-  // Show grammar topic explainer before first cloze of that topic
+  // Show intro screen before first cloze of a grammar topic or verb × tense
   if (showingExplainer && current?.kind === 'grammar') {
     return (
       <GrammarExplainer
         topic={current.topic}
+        onContinue={() => setShowingExplainer(false)}
+      />
+    )
+  }
+  if (showingExplainer && current?.kind === 'verb') {
+    return (
+      <VerbIntroScreen
+        verb={current.verb}
+        tense={current.tense}
         onContinue={() => setShowingExplainer(false)}
       />
     )
