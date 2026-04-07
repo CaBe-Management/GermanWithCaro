@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase'
 import type { GrammarTopic, GrammarSentence, GrammarResource } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
-import Navbar from '@/components/Navbar'
 
 // GrammarTopic now includes all detail-page fields (translation_en, structure, register_*, fun_fact, resources)
 type GrammarTopicExtended = GrammarTopic
@@ -378,7 +377,6 @@ export default function GrammarTopicPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f0e17]">
-        <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="w-8 h-8 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin" />
         </div>
@@ -389,7 +387,6 @@ export default function GrammarTopicPage() {
   if (error || !topic) {
     return (
       <div className="min-h-screen bg-[#0f0e17]">
-        <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] px-6">
           <div className="text-center">
             <p className="text-4xl mb-4">😕</p>
@@ -411,8 +408,6 @@ export default function GrammarTopicPage() {
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
-      <Navbar />
-
       <div className="max-w-3xl mx-auto px-5 py-10">
 
         {/* ── Breadcrumb ── */}
@@ -738,17 +733,6 @@ export default function GrammarTopicPage() {
               </>
             )}
 
-            {/* Suggest resources CTA */}
-            <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5 border-dashed text-center">
-              <p className="text-[#9b98b0] text-sm">
-                Know a great resource for this topic?
-              </p>
-              <p className="text-[#9b98b0] text-xs mt-1">
-                <a href="mailto:hello@germanwithcaro.com" className="text-[#7c6df2] hover:text-[#9b8cf5] transition-colors">
-                  Send us a suggestion ↗
-                </a>
-              </p>
-            </div>
           </div>
         )}
 

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { GrammarTopic } from '@/lib/supabase'
-import Navbar from '@/components/Navbar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -157,8 +156,6 @@ export default function GrammarPage() {
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
-      <Navbar />
-
       <div className="max-w-4xl mx-auto px-5 py-10">
 
         {/* ── Header ── */}

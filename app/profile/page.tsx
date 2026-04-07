@@ -490,11 +490,6 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* ── Daily Goal Setting ─────────────────────────────────────────────── */}
-        <div className="bg-[#1a1830] rounded-2xl px-6 py-5 border border-white/5">
-          <DailyGoalControl initialGoal={dailyGoal} />
-        </div>
-
         {/* ── Quick nav ──────────────────────────────────────────────────────── */}
         <div className="flex gap-3">
           <Link href="/dashboard" className="flex-1 py-3 rounded-xl bg-[#7c6df2] text-white font-bold text-center hover:bg-[#9b8cf5] transition-colors">

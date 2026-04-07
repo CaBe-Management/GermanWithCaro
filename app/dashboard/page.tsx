@@ -8,7 +8,6 @@ import { getOrCreateProgress, getXPProgress, BADGE_DEFS } from '@/lib/gamificati
 import type { UserProgress } from '@/lib/gamification'
 import { getPathById } from '@/lib/paths'
 import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
-import Navbar from '@/components/Navbar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -376,8 +375,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
-      <Navbar />
-
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
 
         {/* ════════════════════════════════════════════════════════════════════

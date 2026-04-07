@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import type { GrammarTopic, Word } from '@/lib/supabase'
 import WordRow from '@/components/WordRow'
-import Navbar from '@/components/Navbar'
 
 interface WordWithReviewCount extends Word {
   reviewCount: number
@@ -114,8 +113,6 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
-      <Navbar />
-
       <div className="max-w-4xl mx-auto px-5 py-10">
 
         {/* ── Header ── */}
