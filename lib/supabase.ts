@@ -131,5 +131,6 @@ export interface GrammarSentence {
   person: string | null   // ich/du/er/wir/ihr/sie
   tense: string | null    // präsens/perfekt/präteritum
   sort_order: number
+  audio_file: string | null
   created_at: string
 }

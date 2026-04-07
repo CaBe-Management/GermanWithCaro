@@ -38,6 +38,7 @@ interface VocabSentence {
   cloze_word: string
   cloze_word_en: string | null
   sort_order: number
+  audio_file: string | null
 }
 
 interface VocabLearnItem {
@@ -468,6 +469,64 @@ function SentencesSlide({ word, sentences }: { word: VocabWord; sentences: Vocab
   )
 }
 
+// ─── Audio Button ─────────────────────────────────────────────────────────────
+
+function AudioButton({ filename, size = 'md' }: { filename?: string | null; size?: 'sm' | 'md' }) {
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Clean up on unmount (card change via key prop)
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause()
+    }
+  }, [])
+
+  function toggle() {
+    if (!filename) return
+    if (!audioRef.current) {
+      audioRef.current = new Audio(`/audio/${filename}`)
+      audioRef.current.onended = () => setPlaying(false)
+    }
+    if (playing) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setPlaying(false)
+    } else {
+      audioRef.current.play()
+      setPlaying(true)
+    }
+  }
+
+  if (!filename) return null
+
+  const dim = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
+  const icon = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'
+
+  return (
+    <button
+      onClick={toggle}
+      className={`${dim} rounded-full flex items-center justify-center transition-colors shrink-0 ${
+        playing
+          ? 'bg-[#7c6df2] text-white'
+          : 'bg-white/5 text-[#9b98b0] hover:bg-[#7c6df2]/20 hover:text-[#9b8cf5]'
+      }`}
+      title={playing ? 'Stop' : 'Audio abspielen'}
+    >
+      {playing ? (
+        <svg className={icon} fill="currentColor" viewBox="0 0 16 16">
+          <rect x="3" y="3" width="4" height="10" rx="1" />
+          <rect x="9" y="3" width="4" height="10" rx="1" />
+        </svg>
+      ) : (
+        <svg className={icon} fill="currentColor" viewBox="0 0 16 16">
+          <path d="M5 3.5l9 4.5-9 4.5V3.5z" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 // ─── Grammar Topic Explanation (shown inline before first sentence of a topic) ─
 
 function GrammarExplainer({ topic, onContinue }: { topic: GrammarTopic; onContinue: () => void }) {
@@ -864,14 +923,22 @@ function ClozeSession({
           {/* Word/topic label */}
           <p className="text-[#9b8cf5] font-bold text-lg">{cardBadge}</p>
 
-          {/* Hint 1: grammar/verb show big English translation box */}
-          {hint1 && (
+          {/* Hint box — verb: show tense + translation in structured card */}
+          {current.kind === 'verb' ? (
             <div className="w-full max-w-md mx-auto space-y-2">
-              <div className="bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
-                <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
+              <div className="bg-[#252340] rounded-xl border border-white/5 overflow-hidden">
+                {/* Tense row */}
+                <div className="flex items-center justify-between px-5 py-2.5 border-b border-white/5">
+                  <span className="text-xs font-bold text-[#60a5fa] uppercase tracking-wider">{current.tense}</span>
+                  <span className="text-xs text-[#9b98b0]">{current.sentence.person}</span>
+                </div>
+                {/* Translation row */}
+                <div className="px-5 py-3">
+                  <p className="text-[#e8e6f0] text-xl font-semibold italic">{current.verb.translation_en}</p>
+                </div>
               </div>
 
-              {/* Formation hint reveal button — only for complex verb tenses */}
+              {/* Formation hint reveal button — only for complex tenses */}
               {formationHint && (
                 <div className="flex justify-center">
                   {showFormationHint ? (
@@ -889,25 +956,39 @@ function ClozeSession({
                 </div>
               )}
             </div>
+          ) : hint1 ? (
+            <div className="w-full max-w-md mx-auto">
+              <div className="bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
+                <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {/* English translation: always for vocab; sentence translation for verb/grammar */}
+          {current.kind === 'vocab' ? renderEN() : (
+            sentence?.sentence_en
+              ? <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
+              : null
           )}
 
-          {/* English translation shown for vocab */}
-          {!hint1 && renderEN()}
-
-          {/* German sentence with gap — user types the missing word */}
-          <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
-            {clozeParts[0]}
-            <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
-              !answered
-                ? 'border-[#7c6df2] text-[#9b8cf5]'
-                : isCorrect
-                  ? 'border-[#4ade80] text-[#4ade80]'
-                  : 'border-[#f87171] text-[#f87171]'
-            }`}>
-              {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
-            </span>
-            {clozeParts[1]}
-          </p>
+          {/* German sentence with gap + audio button */}
+          <div className="flex items-center justify-center gap-3">
+            <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
+              {clozeParts[0]}
+              <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
+                !answered
+                  ? 'border-[#7c6df2] text-[#9b8cf5]'
+                  : isCorrect
+                    ? 'border-[#4ade80] text-[#4ade80]'
+                    : 'border-[#f87171] text-[#f87171]'
+              }`}>
+                {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
+              </span>
+              {clozeParts[1]}
+            </p>
+            {/* Audio button — key=index remounts on card change, stopping any playback */}
+            <AudioButton key={index} filename={sentence?.audio_file} />
+          </div>
 
           {/* Wrong answer feedback */}
           {answered && !isCorrect && (
