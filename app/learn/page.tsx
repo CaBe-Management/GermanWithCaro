@@ -279,18 +279,29 @@ function levelGte(a: string, b: string) {
   return LEVEL_ORDER.indexOf(a) >= LEVEL_ORDER.indexOf(b)
 }
 
-async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 'A1'): Promise<VerbLearnItem[]> {
+// Map path IDs to the gwc_verbs column that stores position in that path
+const VERB_PATH_COL: Record<string, string> = {
+  'a1-verbs':      'path_a1_verbs',
+  'caros-path-a1': 'path_caros_path',
+}
+
+async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 'A1', pathId?: string): Promise<VerbLearnItem[]> {
   const { data: reviewRows } = await supabase
     .from('gwc_verb_reviews')
     .select('verb_id')
     .eq('session_id', sessionId)
   const learnedIds = new Set((reviewRows || []).map((r: { verb_id: string }) => r.verb_id))
 
-  const { data: verbs } = await supabase
-    .from('gwc_verbs')
-    .select('*')
-    .order('frequency_rank', { ascending: true, nullsFirst: false })
-    .limit(200)
+  const pathCol = pathId ? VERB_PATH_COL[pathId] : null
+
+  let query = supabase.from('gwc_verbs').select('*')
+  if (pathCol) {
+    // Filter to verbs that are in this path and order by their position
+    query = query.not(pathCol, 'is', null).order(pathCol, { ascending: true })
+  } else {
+    query = query.order('frequency_rank', { ascending: true, nullsFirst: false })
+  }
+  const { data: verbs } = await query.limit(200)
 
   const newVerbs = (verbs || []).filter((v: VerbWord) => !learnedIds.has(v.id))
   const verbIds  = newVerbs.slice(0, batchSize * 3).map((v: VerbWord) => v.id)
@@ -925,9 +936,10 @@ export default function LearnPage() {
             const grammar = await fetchGrammarItems(sessionId, path.batch_size)
             allGrammar.push(...grammar)
           }
-          // Verbs fetched for all path types, filtered by user level
-          const verbs = await fetchVerbItems(sessionId, Math.ceil(path.batch_size / 2), userLevel)
-          allVerbs.push(...verbs)
+          if (def.type === 'verb' || def.type === 'mixed') {
+            const verbs = await fetchVerbItems(sessionId, path.batch_size, userLevel, path.path_id)
+            allVerbs.push(...verbs)
+          }
         }
 
         setCurrentGoal(totalGoal)

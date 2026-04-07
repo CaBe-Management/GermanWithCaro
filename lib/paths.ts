@@ -10,7 +10,7 @@ export interface PathDef {
   level: string       // 'A1', 'A2', etc.
   icon: string        // emoji
   description: string
-  type: 'mixed' | 'grammar' | 'vocab'
+  type: 'mixed' | 'grammar' | 'vocab' | 'verb'
   badge: string       // short label shown next to level in dashboard
 }
 
@@ -42,6 +42,15 @@ export const ALL_PATHS: PathDef[] = [
     description: 'All A1 vocabulary words ordered by frequency (most common words first).',
     type: 'vocab',
     badge: '[Vocab]',
+  },
+  {
+    id: 'a1-verbs',
+    name: 'A1 Verb Conjugation',
+    level: 'A1',
+    icon: '🔤',
+    description: 'Master German verb conjugation across all tenses. Each verb is its own SRS card — tenses unlock as your level grows.',
+    type: 'verb',
+    badge: '[Verbs]',
   },
 ]
 
