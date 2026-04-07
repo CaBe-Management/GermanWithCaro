@@ -78,7 +78,7 @@ export default function PathPage() {
           .not(vocabCol, 'is', null)
           .order(vocabCol, { ascending: true })
 
-        for (const row of data || []) {
+        for (const row of (data as any[]) || []) {
           results.push({
             kind: 'vocab',
             id: row.id,
@@ -102,7 +102,7 @@ export default function PathPage() {
           .not(grammarCol, 'is', null)
           .order(grammarCol, { ascending: true })
 
-        for (const row of data || []) {
+        for (const row of (data as any[]) || []) {
           results.push({
             kind: 'grammar',
             id: row.id,
