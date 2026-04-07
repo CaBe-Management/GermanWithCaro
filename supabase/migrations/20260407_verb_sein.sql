@@ -1,6 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Verb: sein (to be)
 -- Level: A1 | Category: irregular | frequency_rank: 1
+-- Uses ON CONFLICT to handle re-runs gracefully
 -- ─────────────────────────────────────────────────────────────────────────────
 
 DO $$
@@ -29,24 +30,63 @@ VALUES (
   'Sein is so irregular that its Präsens forms (bin, bist, ist, sind, seid, sind) and Präteritum forms (war, warst, war, waren, wart, waren) look almost nothing like the infinitive "sein" — they come from three entirely different ancient Proto-Germanic roots.',
   NULL,
   'werden, existieren, bleiben',
-  'sein',    -- auxiliary for Perfekt: ich bin gewesen
+  'sein',
   'gewesen',
-  -- Präsens
+  -- Praesens
   'bin', 'bist', 'ist', 'sind', 'seid', 'sind',
-  -- Präteritum
+  -- Praeteritum
   'war', 'warst', 'war', 'waren', 'wart', 'waren',
-  -- Konjunktiv II (highly irregular — not "würde + sein")
+  -- Konjunktiv II (highly irregular)
   'wäre', 'wärst', 'wäre', 'wären', 'wärt', 'wären',
-  1,   -- path_a1_verbs position 1
-  1    -- path_caros_path position 1
+  1,
+  1
 )
+ON CONFLICT (slug) DO UPDATE SET
+  translation_en   = EXCLUDED.translation_en,
+  explanation_en   = EXCLUDED.explanation_en,
+  usage_notes      = EXCLUDED.usage_notes,
+  fun_fact         = EXCLUDED.fun_fact,
+  related_words    = EXCLUDED.related_words,
+  auxiliary        = EXCLUDED.auxiliary,
+  partizip_ii      = EXCLUDED.partizip_ii,
+  praes_ich        = EXCLUDED.praes_ich,
+  praes_du         = EXCLUDED.praes_du,
+  praes_er         = EXCLUDED.praes_er,
+  praes_wir        = EXCLUDED.praes_wir,
+  praes_ihr        = EXCLUDED.praes_ihr,
+  praes_sie        = EXCLUDED.praes_sie,
+  praet_ich        = EXCLUDED.praet_ich,
+  praet_du         = EXCLUDED.praet_du,
+  praet_er         = EXCLUDED.praet_er,
+  praet_wir        = EXCLUDED.praet_wir,
+  praet_ihr        = EXCLUDED.praet_ihr,
+  praet_sie        = EXCLUDED.praet_sie,
+  konj2_ich        = EXCLUDED.konj2_ich,
+  konj2_du         = EXCLUDED.konj2_du,
+  konj2_er         = EXCLUDED.konj2_er,
+  konj2_wir        = EXCLUDED.konj2_wir,
+  konj2_ihr        = EXCLUDED.konj2_ihr,
+  konj2_sie        = EXCLUDED.konj2_sie,
+  path_a1_verbs    = EXCLUDED.path_a1_verbs,
+  path_caros_path  = EXCLUDED.path_caros_path
 RETURNING id INTO v_id;
 
--- ─────────────────────────────────────────────────────────────────────────────
--- PRÄSENS — min_level A1
--- cloze: conjugated form of sein
--- audio: sein_praes_{person}.mp3
+-- If ON CONFLICT triggered, v_id will be NULL (RETURNING only works on INSERT rows).
+-- Fetch the existing id in that case.
+IF v_id IS NULL THEN
+  SELECT id INTO v_id FROM gwc_verbs WHERE slug = 'sein';
+END IF;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Delete any existing sentences for this verb so we get a clean re-insert.
+-- This is safe because gwc_verb_reviews references (verb_id, tense) not sentence_id.
+-- ─────────────────────────────────────────────────────────────────────────────
+DELETE FROM gwc_verb_sentences WHERE verb_id = v_id;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PRAESENS — min_level A1
+-- cloze: conjugated form of sein
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO gwc_verb_sentences
   (verb_id, sentence_de, sentence_en, cloze_word, tense, person, min_level, sort_order, audio_file)
 VALUES
@@ -61,24 +101,22 @@ VALUES
 -- PERFEKT — min_level A2
 -- Formation: sein (conjugated) + gewesen
 -- cloze: conjugated "bin/bist/ist/sind/seid/sind"
--- audio: sein_perf_{person}.mp3
-
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO gwc_verb_sentences
   (verb_id, sentence_de, sentence_en, cloze_word, tense, person, min_level, sort_order, audio_file)
 VALUES
-  (v_id, 'Ich bin den ganzen Tag zu Hause gewesen.',    'I have been at home all day.',        'bin',  'PERFEKT', 'ich',      'A2', 1, 'sein_perf_ich.mp3'),
-  (v_id, 'Bist du schon in Berlin gewesen?',            'Have you ever been to Berlin?',       'Bist', 'PERFEKT', 'du',       'A2', 2, 'sein_perf_du.mp3'),
-  (v_id, 'Sie ist sehr krank gewesen.',                 'She has been very ill.',              'ist',  'PERFEKT', 'er/sie/es','A2', 3, 'sein_perf_er.mp3'),
-  (v_id, 'Wir sind schon lange Freunde gewesen.',       'We have been friends for a long time.','sind','PERFEKT', 'wir',      'A2', 4, 'sein_perf_wir.mp3'),
-  (v_id, 'Ihr seid sehr ruhig gewesen.',                'You (all) have been very quiet.',     'seid', 'PERFEKT', 'ihr',      'A2', 5, 'sein_perf_ihr.mp3'),
-  (v_id, 'Sie sind gestern im Kino gewesen.',           'They were at the cinema yesterday.',  'sind', 'PERFEKT', 'sie/Sie',  'A2', 6, 'sein_perf_sie.mp3');
+  (v_id, 'Ich bin den ganzen Tag zu Hause gewesen.',    'I have been at home all day.',          'bin',  'PERFEKT', 'ich',      'A2', 1, 'sein_perf_ich.mp3'),
+  (v_id, 'Bist du schon in Berlin gewesen?',            'Have you ever been to Berlin?',         'Bist', 'PERFEKT', 'du',       'A2', 2, 'sein_perf_du.mp3'),
+  (v_id, 'Sie ist sehr krank gewesen.',                 'She has been very ill.',                'ist',  'PERFEKT', 'er/sie/es','A2', 3, 'sein_perf_er.mp3'),
+  (v_id, 'Wir sind schon lange Freunde gewesen.',       'We have been friends for a long time.', 'sind', 'PERFEKT', 'wir',      'A2', 4, 'sein_perf_wir.mp3'),
+  (v_id, 'Ihr seid sehr ruhig gewesen.',                'You (all) have been very quiet.',       'seid', 'PERFEKT', 'ihr',      'A2', 5, 'sein_perf_ihr.mp3'),
+  (v_id, 'Sie sind gestern im Kino gewesen.',           'They were at the cinema yesterday.',    'sind', 'PERFEKT', 'sie/Sie',  'A2', 6, 'sein_perf_sie.mp3');
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- PRÄTERITUM — min_level B1
--- sein is one of the few verbs where Präteritum is used even in spoken German
--- cloze: conjugated Präteritum form
--- audio: sein_praet_{person}.mp3
-
+-- PRAETERITUM — min_level B1
+-- sein is one of the few verbs where Praeteritum is common even in spoken German
+-- cloze: conjugated Praeteritum form
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO gwc_verb_sentences
   (verb_id, sentence_de, sentence_en, cloze_word, tense, person, min_level, sort_order, audio_file)
 VALUES
@@ -93,8 +131,7 @@ VALUES
 -- FUTUR I — min_level B1
 -- Formation: werden (conjugated) + sein (Infinitiv)
 -- cloze: conjugated form of "werden"
--- audio: sein_fut1_{person}.mp3
-
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO gwc_verb_sentences
   (verb_id, sentence_de, sentence_en, cloze_word, tense, person, min_level, sort_order, audio_file)
 VALUES
@@ -109,8 +146,7 @@ VALUES
 -- KONJUNKTIV II — min_level B2
 -- Forms: wäre, wärst, wäre, wären, wärt, wären (highly irregular)
 -- cloze: conjugated Konjunktiv II form
--- audio: sein_konj2_{person}.mp3
-
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO gwc_verb_sentences
   (verb_id, sentence_de, sentence_en, cloze_word, tense, person, min_level, sort_order, audio_file)
 VALUES
@@ -123,10 +159,9 @@ VALUES
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- PLUSQUAMPERFEKT — min_level B2
--- Formation: war/warst/... (Präteritum of sein) + gewesen
--- cloze: conjugated Präteritum form of auxiliary "sein" (war/warst/...)
--- audio: sein_plusq_{person}.mp3
-
+-- Formation: war/warst/... (Praeteritum of sein) + gewesen
+-- cloze: conjugated Praeteritum form of auxiliary "sein"
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO gwc_verb_sentences
   (verb_id, sentence_de, sentence_en, cloze_word, tense, person, min_level, sort_order, audio_file)
 VALUES
@@ -141,8 +176,7 @@ VALUES
 -- FUTUR II — min_level C1
 -- Formation: werden (conjugated) + gewesen + sein
 -- cloze: conjugated form of "werden"
--- audio: sein_fut2_{person}.mp3
-
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO gwc_verb_sentences
   (verb_id, sentence_de, sentence_en, cloze_word, tense, person, min_level, sort_order, audio_file)
 VALUES

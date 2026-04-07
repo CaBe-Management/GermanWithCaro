@@ -230,39 +230,158 @@ function DailyGoalControl({ initialGoal }: { initialGoal: number }) {
 const GERMAN_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
 type GermanLevel = typeof GERMAN_LEVELS[number]
 
+const LEVEL_DESCRIPTIONS: Record<GermanLevel, string> = {
+  A1: 'Komplette Anfänger',
+  A2: 'Grundkenntnisse',
+  B1: 'Mittelstufe',
+  B2: 'Obere Mittelstufe',
+  C1: 'Fortgeschritten',
+  C2: 'Meisterschaft',
+}
+
+// What NEW content gets unlocked AT each level (shown when going up to or through that level)
+const LEVEL_UNLOCKS: Record<GermanLevel, string[]> = {
+  A1: ['Präsens-Konjugation', 'A1-Vokabeln & Sätze'],
+  A2: ['Perfekt-Verbformen (bin/habe + Partizip II)', 'A2-Vokabeln & Grammatik'],
+  B1: ['Präteritum', 'Futur I (werde + Infinitiv)', 'B1-Sätze & Grammatik'],
+  B2: ['Konjunktiv II (wäre, würde …)', 'Plusquamperfekt', 'komplexe Kasusformen', 'B2-Inhalte'],
+  C1: ['Futur II (werde … gemacht haben)', 'C1-Sätze & Grammatik'],
+  C2: ['alle C2-Inhalte & Mastery-Übungen'],
+}
+
 // ─── Level Selector component ────────────────────────────────────────────────
 
-function LevelSelector({ current, onChange }: { current: GermanLevel; onChange: (l: GermanLevel) => void }) {
-  const descriptions: Record<GermanLevel, string> = {
-    A1: 'Complete beginner',
-    A2: 'Elementary',
-    B1: 'Intermediate',
-    B2: 'Upper intermediate',
-    C1: 'Advanced',
-    C2: 'Mastery',
+function LevelSelector({
+  savedLevel,
+  onSave,
+}: {
+  savedLevel: GermanLevel
+  onSave: (l: GermanLevel) => Promise<void>
+}) {
+  const [selected, setSelected]   = useState<GermanLevel>(savedLevel)
+  const [saving, setSaving]       = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
+
+  const savedIdx   = GERMAN_LEVELS.indexOf(savedLevel)
+  const selectedIdx = GERMAN_LEVELS.indexOf(selected)
+  const isDirty    = selected !== savedLevel
+  const goingUp    = selectedIdx > savedIdx
+  const goingDown  = selectedIdx < savedIdx
+
+  // Collect features that change between savedLevel and selected
+  const changedFeatures: string[] = []
+  if (goingUp) {
+    for (let i = savedIdx + 1; i <= selectedIdx; i++) {
+      changedFeatures.push(...LEVEL_UNLOCKS[GERMAN_LEVELS[i]])
+    }
+  } else if (goingDown) {
+    for (let i = selectedIdx + 1; i <= savedIdx; i++) {
+      changedFeatures.push(...LEVEL_UNLOCKS[GERMAN_LEVELS[i]])
+    }
   }
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave(selected)
+    setSaving(false)
+    setJustSaved(true)
+    setTimeout(() => setJustSaved(false), 2000)
+  }
+
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-1">
-        <p className="text-sm font-bold text-[#e8e6f0]">Your German Level</p>
-        <span className="text-xs text-[#9b98b0]">{descriptions[current]}</span>
+        <p className="text-sm font-bold text-[#e8e6f0]">Dein Deutschniveau</p>
+        <span className="text-xs text-[#9b98b0]">{LEVEL_DESCRIPTIONS[selected]}</span>
       </div>
-      <p className="text-xs text-[#9b98b0] mb-3">Controls which sentences and exercises are shown to you</p>
-      <div className="grid grid-cols-6 gap-2">
-        {GERMAN_LEVELS.map(l => (
-          <button
-            key={l}
-            onClick={() => onChange(l)}
-            className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
-              current === l
-                ? 'bg-[#7c6df2] text-white shadow-md shadow-[#7c6df2]/30'
-                : 'bg-white/5 text-[#9b98b0] hover:bg-white/10 hover:text-[#e8e6f0] border border-white/5'
-            }`}
-          >
-            {l}
-          </button>
-        ))}
+      <p className="text-xs text-[#9b98b0] mb-3">
+        Bestimmt, welche Sätze, Verbformen und Übungen dir angezeigt werden
+      </p>
+
+      {/* Level buttons */}
+      <div className="grid grid-cols-6 gap-2 mb-3">
+        {GERMAN_LEVELS.map(l => {
+          const isSaved    = l === savedLevel
+          const isSelected = l === selected
+          return (
+            <button
+              key={l}
+              onClick={() => setSelected(l)}
+              className={`py-2.5 rounded-xl text-sm font-bold transition-all relative ${
+                isSelected
+                  ? goingUp
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                    : goingDown
+                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30'
+                      : 'bg-[#7c6df2] text-white shadow-md shadow-[#7c6df2]/30'
+                  : 'bg-white/5 text-[#9b98b0] hover:bg-white/10 hover:text-[#e8e6f0] border border-white/5'
+              }`}
+            >
+              {l}
+              {/* dot = currently saved level when something else is selected */}
+              {isSaved && !isSelected && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#7c6df2] border border-[#1a1830]" />
+              )}
+            </button>
+          )
+        })}
       </div>
+
+      {/* Info message when level changed */}
+      {isDirty && (
+        <div className={`rounded-xl p-3.5 mb-3 border text-sm leading-relaxed ${
+          goingUp
+            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+            : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
+        }`}>
+          {goingUp ? (
+            <>
+              <p className="font-bold mb-1.5">🔓 Wird freigeschaltet:</p>
+              <ul className="space-y-0.5 text-xs">
+                {changedFeatures.map(f => (
+                  <li key={f} className="flex items-start gap-1.5">
+                    <span className="mt-px shrink-0">✓</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <>
+              <p className="font-bold mb-1.5">🔒 Wird ausgeblendet:</p>
+              <ul className="space-y-0.5 text-xs">
+                {changedFeatures.map(f => (
+                  <li key={f} className="flex items-start gap-1.5">
+                    <span className="mt-px shrink-0">–</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Save button — only visible when something changed */}
+      {isDirty && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
+            goingUp
+              ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-sm shadow-emerald-500/30'
+              : 'bg-amber-500 hover:bg-amber-400 text-white shadow-sm shadow-amber-500/30'
+          } disabled:opacity-60`}
+        >
+          {saving ? 'Speichern …' : `Niveau auf ${selected} setzen`}
+        </button>
+      )}
+
+      {/* Brief success confirmation */}
+      {justSaved && !isDirty && (
+        <p className="text-xs text-emerald-400 text-center mt-2">✓ Gespeichert</p>
+      )}
     </div>
   )
 }
@@ -459,7 +578,7 @@ export default function ProfilePage() {
 
         {/* ── German Level ──────────────────────────────────────────────────── */}
         <div className="bg-[#1a1830] rounded-2xl px-6 py-5 border border-white/5">
-          <LevelSelector current={germanLevel} onChange={handleSaveGermanLevel} />
+          <LevelSelector savedLevel={germanLevel} onSave={handleSaveGermanLevel} />
         </div>
 
         {/* ── Streak + Week view ────────────────────────────────────────────── */}
