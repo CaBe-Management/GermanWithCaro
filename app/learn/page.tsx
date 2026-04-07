@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
@@ -1126,6 +1127,9 @@ function CompletionScreen({ data }: { data: CompletionData }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function LearnPage() {
+  const searchParams   = useSearchParams()
+  const pathFilter     = searchParams.get('path') ?? null   // e.g. "a1-verbs", "caros-path-a1"
+
   const [appPhase, setAppPhase]       = useState<AppPhase>('loading')
   const [error, setError]             = useState<string | null>(null)
 
@@ -1177,13 +1181,17 @@ export default function LearnPage() {
         const progress = await getOrCreateProgress(sessionId)
         const userLevel = progress?.german_level ?? 'A1'
 
-        // 2. Load active paths
-        const { data: pathRows } = await supabase
+        // 2. Load active paths — filtered to a single path if ?path= param is present
+        let pathQuery = supabase
           .from('gwc_user_paths')
           .select('*')
           .eq('session_id', sessionId)
           .eq('active', true)
           .order('queue_position', { ascending: true })
+        if (pathFilter) {
+          pathQuery = pathQuery.eq('path_id', pathFilter)
+        }
+        const { data: pathRows } = await pathQuery
 
         const activePaths = (pathRows || []) as UserPath[]
 
@@ -1292,9 +1300,9 @@ export default function LearnPage() {
     const grammarResults = results.filter(r => r.type === 'grammar')
     const verbResults    = results.filter(r => r.type === 'verb')
 
-    // Save vocab reviews (always new inserts)
+    // Save vocab reviews — upsert to avoid duplicate inserts if session is replayed
     if (vocabResults.length > 0) {
-      await supabase.from('gwc_user_reviews').insert(
+      await supabase.from('gwc_user_reviews').upsert(
         vocabResults.map(r => {
           const srs = calculateNextReview(r.correct, 2.5, 1, 0)
           return {
@@ -1309,7 +1317,8 @@ export default function LearnPage() {
             interval_days:       srs.nextInterval,
             repetitions:         srs.newRepetitions,
           }
-        })
+        }),
+        { onConflict: 'session_id,word_sentence_id', ignoreDuplicates: false }
       )
     }
 

@@ -17,6 +17,8 @@ export interface Word {
   erklaerung: string | null       // Grammar / usage explanation
   verwendung: string | null       // When to use: formal, casual, etc.
   genitiv: string | null          // Genitive form (nouns)
+  translation_en: string | null   // English translation
+  explanation_en: string | null   // English explanation
 }
 
 export interface WordSentence {

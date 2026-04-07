@@ -7,11 +7,25 @@ import { getOrCreateSessionId } from '@/lib/session'
 import type { GrammarTopic, Word } from '@/lib/supabase'
 import WordRow from '@/components/WordRow'
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface WordWithReviewCount extends Word {
   reviewCount: number
 }
 
-// Category labels for grammar topics
+interface VerbResult {
+  id: string
+  slug: string
+  word: string
+  translation_en: string
+  level: string
+  category: string
+  auxiliary: string | null
+  partizip_ii: string | null
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 const CATEGORY_LABELS: Record<string, string> = {
   verb_conjugation: 'Verb Conjugation',
   adjective_usage:  'Adjective Usage',
@@ -32,19 +46,23 @@ function levelColor(level: string): string {
   }
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function SearchPage() {
   const [query, setQuery]   = useState('')
-  const [filter, setFilter] = useState<'all' | 'vocab' | 'grammar'>('all')
+  const [filter, setFilter] = useState<'all' | 'vocab' | 'grammar' | 'verbs'>('all')
   const [loading, setLoading] = useState(false)
 
-  const [wordResults, setWordResults]       = useState<WordWithReviewCount[]>([])
+  const [wordResults,    setWordResults]    = useState<WordWithReviewCount[]>([])
   const [grammarResults, setGrammarResults] = useState<GrammarTopic[]>([])
+  const [verbResults,    setVerbResults]    = useState<VerbResult[]>([])
 
   useEffect(() => {
     const search = async () => {
       if (query.trim().length === 0) {
         setWordResults([])
         setGrammarResults([])
+        setVerbResults([])
         return
       }
 
@@ -53,21 +71,27 @@ export default function SearchPage() {
         const sessionId = getOrCreateSessionId()
         const q = query.trim()
 
-        // ── Vocab words ───────────────────────────────────────────────────────
+        // ── Vocab words — match German OR English ─────────────────────────────
         if (filter === 'all' || filter === 'vocab') {
-          const { data: words } = await supabase
-            .from('gwc_words')
-            .select('*')
-            .ilike('word', `%${q}%`)
-            .limit(30)
+          const [{ data: byDE }, { data: byEN }] = await Promise.all([
+            supabase.from('gwc_words').select('*').ilike('word', `%${q}%`).limit(30),
+            supabase.from('gwc_words').select('*').ilike('translation_en', `%${q}%`).limit(30),
+          ])
 
-          if (words && words.length > 0) {
-            const wordIds = words.map((w: Word) => w.id)
+          // Merge + deduplicate by id
+          const merged: Word[] = []
+          const seen = new Set<string>()
+          for (const w of [...(byDE || []), ...(byEN || [])]) {
+            if (!seen.has(w.id)) { seen.add(w.id); merged.push(w) }
+          }
+          merged.sort((a, b) => (a.frequenz_rang ?? 999) - (b.frequenz_rang ?? 999))
+
+          if (merged.length > 0) {
+            const wordIds = merged.map((w: Word) => w.id)
             const [{ data: sentences }, { data: reviews }] = await Promise.all([
               supabase.from('gwc_word_sentences').select('id, word_id').in('word_id', wordIds),
               supabase.from('gwc_user_reviews').select('word_sentence_id').eq('session_id', sessionId).eq('item_type', 'vocab'),
             ])
-
             const sentenceToWord: Record<string, string> = {}
             ;(sentences || []).forEach((s: { id: string; word_id: string }) => { sentenceToWord[s.id] = s.word_id })
             const reviewsPerWord: Record<string, number> = {}
@@ -75,8 +99,7 @@ export default function SearchPage() {
               const wid = sentenceToWord[r.word_sentence_id]
               if (wid) reviewsPerWord[wid] = (reviewsPerWord[wid] || 0) + 1
             })
-
-            setWordResults(words.map((w: Word) => ({ ...w, reviewCount: reviewsPerWord[w.id] || 0 })))
+            setWordResults(merged.map((w: Word) => ({ ...w, reviewCount: reviewsPerWord[w.id] || 0 })))
           } else {
             setWordResults([])
           }
@@ -84,19 +107,43 @@ export default function SearchPage() {
           setWordResults([])
         }
 
-        // ── Grammar topics ────────────────────────────────────────────────────
+        // ── Grammar topics — match title OR explanation_en OR translation_en ──
         if (filter === 'all' || filter === 'grammar') {
-          const { data: topics } = await supabase
-            .from('gwc_grammar_topics')
-            .select('*')
-            .ilike('title', `%${q}%`)
-            .order('sort_order', { ascending: true })
-            .limit(20)
+          const [{ data: byTitle }, { data: byExpl }, { data: byTrans }] = await Promise.all([
+            supabase.from('gwc_grammar_topics').select('*').ilike('title', `%${q}%`).limit(20),
+            supabase.from('gwc_grammar_topics').select('*').ilike('explanation_en', `%${q}%`).limit(20),
+            supabase.from('gwc_grammar_topics').select('*').ilike('translation_en', `%${q}%`).limit(20),
+          ])
 
-          setGrammarResults((topics as GrammarTopic[]) || [])
+          const merged: GrammarTopic[] = []
+          const seen = new Set<string>()
+          for (const t of [...(byTitle || []), ...(byExpl || []), ...(byTrans || [])]) {
+            if (!seen.has(t.id)) { seen.add(t.id); merged.push(t) }
+          }
+          merged.sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999))
+          setGrammarResults(merged)
         } else {
           setGrammarResults([])
         }
+
+        // ── Verbs — match German word OR English translation ──────────────────
+        if (filter === 'all' || filter === 'verbs') {
+          const [{ data: byDE }, { data: byEN }] = await Promise.all([
+            supabase.from('gwc_verbs').select('id,slug,word,translation_en,level,category,auxiliary,partizip_ii').ilike('word', `%${q}%`).limit(20),
+            supabase.from('gwc_verbs').select('id,slug,word,translation_en,level,category,auxiliary,partizip_ii').ilike('translation_en', `%${q}%`).limit(20),
+          ])
+
+          const merged: VerbResult[] = []
+          const seen = new Set<string>()
+          for (const v of [...(byDE || []), ...(byEN || [])]) {
+            if (!seen.has(v.id)) { seen.add(v.id); merged.push(v) }
+          }
+          merged.sort((a, b) => a.word.localeCompare(b.word))
+          setVerbResults(merged)
+        } else {
+          setVerbResults([])
+        }
+
       } catch (e) {
         console.error('Search error:', e)
       } finally {
@@ -108,7 +155,7 @@ export default function SearchPage() {
     return () => clearTimeout(timer)
   }, [query, filter])
 
-  const hasResults = wordResults.length > 0 || grammarResults.length > 0
+  const hasResults = wordResults.length > 0 || grammarResults.length > 0 || verbResults.length > 0
   const isEmpty    = query.trim().length === 0
 
   return (
@@ -118,14 +165,14 @@ export default function SearchPage() {
         {/* ── Header ── */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#e8e6f0] mb-1">Search</h1>
-          <p className="text-[#9b98b0] text-sm">Search words and grammar topics.</p>
+          <p className="text-[#9b98b0] text-sm">Search in German or English — words, grammar and verbs.</p>
         </div>
 
         {/* ── Search input ── */}
         <div className="mb-5">
           <input
             type="text"
-            placeholder="Search words or grammar topics…"
+            placeholder="Search in German or English…"
             value={query}
             onChange={e => setQuery(e.target.value)}
             autoFocus
@@ -135,17 +182,22 @@ export default function SearchPage() {
 
         {/* ── Filter buttons ── */}
         <div className="flex gap-2 flex-wrap mb-8">
-          {(['all', 'vocab', 'grammar'] as const).map(f => (
+          {([
+            { id: 'all',     label: 'All' },
+            { id: 'vocab',   label: 'Words' },
+            { id: 'verbs',   label: 'Verbs' },
+            { id: 'grammar', label: 'Grammar' },
+          ] as const).map(f => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors capitalize ${
-                filter === f
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                filter === f.id
                   ? 'bg-[#7c6df2] text-white border-[#7c6df2]'
                   : 'bg-white/5 text-[#9b98b0] border-white/10 hover:border-white/20 hover:text-[#e8e6f0]'
               }`}
             >
-              {f === 'all' ? 'All' : f === 'vocab' ? 'Words' : 'Grammar Topics'}
+              {f.label}
             </button>
           ))}
         </div>
@@ -161,7 +213,7 @@ export default function SearchPage() {
         {!loading && isEmpty && (
           <div className="text-center py-16">
             <p className="text-4xl mb-4">🔍</p>
-            <p className="text-[#9b98b0]">Start typing to search words and grammar topics.</p>
+            <p className="text-[#9b98b0]">Search in German or English — words, verbs and grammar topics.</p>
           </div>
         )}
 
@@ -174,10 +226,10 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* ── Word results ── */}
+        {/* ── Vocab results ── */}
         {!loading && wordResults.length > 0 && (
           <div className="mb-8">
-            {(filter === 'all') && (
+            {filter === 'all' && (
               <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">
                 Words ({wordResults.length})
               </p>
@@ -190,12 +242,49 @@ export default function SearchPage() {
           </div>
         )}
 
+        {/* ── Verb results ── */}
+        {!loading && verbResults.length > 0 && (
+          <div className="mb-8">
+            {filter === 'all' && (
+              <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">
+                Verbs ({verbResults.length})
+              </p>
+            )}
+            <div className="space-y-3">
+              {verbResults.map(verb => (
+                <Link
+                  key={verb.id}
+                  href={`/verbs/${verb.slug}`}
+                  className="flex items-center gap-4 bg-[#1a1830] rounded-2xl px-4 py-3.5 border border-white/5 hover:border-[#7c6df2]/40 transition-all group"
+                >
+                  {/* Level badge */}
+                  <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-bold border ${levelColor(verb.level)}`}>
+                    {verb.level}
+                  </span>
+                  {/* Verb + translation */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[#e8e6f0] group-hover:text-[#9b8cf5] transition-colors">
+                      {verb.word}
+                    </p>
+                    <p className="text-sm text-[#9b98b0] truncate">{verb.translation_en}</p>
+                  </div>
+                  {/* Category */}
+                  <span className="shrink-0 px-2 py-0.5 rounded-md text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                    {verb.category}
+                  </span>
+                  <span className="text-[#7c6df2] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">→</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ── Grammar topic results ── */}
         {!loading && grammarResults.length > 0 && (
           <div>
-            {(filter === 'all') && (
+            {filter === 'all' && (
               <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">
-                Grammar Topics ({grammarResults.length})
+                Grammar ({grammarResults.length})
               </p>
             )}
             <div className="space-y-3">
@@ -218,10 +307,11 @@ export default function SearchPage() {
                       <p className="font-bold text-[#e8e6f0] group-hover:text-[#9b8cf5] transition-colors">
                         {topic.title}
                       </p>
+                      {topic.translation_en && (
+                        <p className="text-xs text-[#9b98b0] mt-0.5 truncate">{topic.translation_en}</p>
+                      )}
                     </div>
-                    <span className="text-[#7c6df2] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1">
-                      →
-                    </span>
+                    <span className="text-[#7c6df2] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1">→</span>
                   </div>
                 </Link>
               ))}

@@ -286,6 +286,7 @@ function AddDeckSheet({ activePaths, onAdd, onClose }: AddDeckSheetProps) {
   const typeColor = (type: string) =>
     type === 'mixed'   ? 'bg-yellow-500/15 text-yellow-300 border-yellow-500/25' :
     type === 'grammar' ? 'bg-blue-500/15 text-blue-300 border-blue-500/25' :
+    type === 'verb'    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' :
                          'bg-green-500/15 text-green-300 border-green-500/25'
 
   return (
@@ -322,7 +323,7 @@ function AddDeckSheet({ activePaths, onAdd, onClose }: AddDeckSheetProps) {
                       <p className="font-bold text-[#e8e6f0]">{path.name}</p>
                       <span className="text-xs border border-white/15 text-[#9b98b0] px-1.5 py-0.5 rounded-md shrink-0">{path.level}</span>
                       <span className={`text-xs border px-1.5 py-0.5 rounded-md shrink-0 ${typeColor(path.type)}`}>
-                        {path.type === 'mixed' ? 'Mixed' : path.type === 'grammar' ? 'Grammar' : 'Vocab'}
+                        {path.type === 'mixed' ? 'Mixed' : path.type === 'grammar' ? 'Grammar' : path.type === 'verb' ? 'Verbs' : 'Vocab'}
                       </span>
                     </div>
                     <p className="text-xs text-[#9b98b0] leading-relaxed">{path.description}</p>
@@ -358,11 +359,13 @@ function PathRow({
   const typeColor =
     userPath.def.type === 'mixed'   ? 'bg-yellow-500/15 text-yellow-300 border-yellow-500/25' :
     userPath.def.type === 'grammar' ? 'bg-blue-500/15 text-blue-300 border-blue-500/25' :
+    userPath.def.type === 'verb'    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' :
                                       'bg-green-500/15 text-green-300 border-green-500/25'
 
   const typeLabel =
-    userPath.def.type === 'mixed' ? 'Mixed' :
-    userPath.def.type === 'grammar' ? 'Grammar' : 'Vocab'
+    userPath.def.type === 'mixed'   ? 'Mixed' :
+    userPath.def.type === 'grammar' ? 'Grammar' :
+    userPath.def.type === 'verb'    ? 'Verbs' : 'Vocab'
 
   return (
     <div className="flex items-center gap-3 bg-[#252340] rounded-xl p-4 border border-white/5">
