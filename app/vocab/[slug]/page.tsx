@@ -355,7 +355,7 @@ export default function VocabDetailPage() {
                       <div className="flex-1 h-px bg-white/6" />
                       {!unlocked
                         ? <LevelGate minLevel={minLevel} />
-                        : <span className="text-[0.68rem] font-bold tracking-widest uppercase text-[#9b98b0]">{word.level}</span>
+                        : <span className="text-[0.68rem] font-bold tracking-widest uppercase text-[#9b98b0]">{minLevel}</span>
                       }
                     </div>
                     <div className="space-y-2.5">

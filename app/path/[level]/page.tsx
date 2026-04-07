@@ -2,207 +2,261 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { supabase, Word } from '@/lib/supabase'
-import { getOrCreateSessionId } from '@/lib/session'
-import WordRow from '@/components/WordRow'
+import { useParams, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { getPathById } from '@/lib/paths'
 
-interface WordWithReviewCount extends Word {
-  reviewCount: number
+interface VocabItem {
+  kind: 'vocab'
+  id: string
+  slug: string
+  word: string
+  article: string | null
+  type: string
+  level: string
+  translation_en: string
+  position: number
+}
+
+interface GrammarItem {
+  kind: 'grammar'
+  id: string
+  slug: string
+  title: string
+  level: string
+  category: string
+  translation_en: string | null
+  position: number
+}
+
+type PathItem = VocabItem | GrammarItem
+
+// Map path ID → DB column name for vocab + grammar
+const VOCAB_COL: Record<string, string> = {
+  'a1-vocabulary':  'path_a1_vocabulary',
+  'caros-path-a1':  'path_caros_path',
+}
+const GRAMMAR_COL: Record<string, string> = {
+  'a1-grammar':    'path_a1_grammar',
+  'caros-path-a1': 'path_caros_path',
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  NOMEN: 'Noun', VERB: 'Verb', ADJEKTIV: 'Adj',
+  AUSDRUCK: 'Phrase', ADVERB: 'Adverb', PRÄPOSITION: 'Prep',
+}
+const CAT_LABELS: Record<string, string> = {
+  question_words: 'Question Words', verb_conjugation: 'Verb Conjugation',
+  cases: 'Cases', adjectives: 'Adjectives', modal_verbs: 'Modal Verbs',
+  word_order: 'Word Order', negation: 'Negation',
 }
 
 export default function PathPage() {
   const params = useParams()
-  const level = params.level as string
-  const [words, setWords] = useState<WordWithReviewCount[]>([])
-  const [filteredWords, setFilteredWords] = useState<WordWithReviewCount[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
+  const router = useRouter()
+  const pathId = params.level as string
+
+  const path = getPathById(pathId)
+
+  const [items, setItems] = useState<PathItem[]>([])
+  const [filtered, setFiltered] = useState<PathItem[]>([])
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const wordsPerPage = 50
 
   useEffect(() => {
-    const fetchWords = async () => {
-      try {
-        const sessionId = getOrCreateSessionId()
+    if (!path) { setLoading(false); return }
 
-        // Get all words for this level
-        const { data: levelWords } = await supabase
-          .from('gwc_words')
-          .select('*')
-          .eq('level', level)
-          .order('frequenz_rang', { ascending: true })
+    async function load() {
+      const results: PathItem[] = []
 
-        if (!levelWords) {
-          setLoading(false)
-          return
+      // ── Vocab ────────────────────────────────────────────────────────────
+      const vocabCol = VOCAB_COL[pathId]
+      if (vocabCol) {
+        const { data } = await supabase
+          .from('gwc_vocab')
+          .select(`id, slug, word, article, type, level, translation_en, ${vocabCol}`)
+          .not(vocabCol, 'is', null)
+          .order(vocabCol, { ascending: true })
+
+        for (const row of data || []) {
+          results.push({
+            kind: 'vocab',
+            id: row.id,
+            slug: row.slug,
+            word: row.word,
+            article: row.article,
+            type: row.type,
+            level: row.level,
+            translation_en: row.translation_en,
+            position: row[vocabCol] as number,
+          })
         }
-
-        // Efficient batch approach: 2 extra queries instead of N×2
-        const wordIds = levelWords.map((w: Word) => w.id)
-
-        const [{ data: sentences }, { data: reviews }] = await Promise.all([
-          supabase.from('gwc_word_sentences').select('id, word_id').in('word_id', wordIds),
-          supabase.from('gwc_user_reviews').select('word_sentence_id').eq('session_id', sessionId),
-        ])
-
-        // Build sentence→word lookup + count reviews per word
-        const sentenceToWord: Record<string, string> = {}
-        ;(sentences || []).forEach((s: { id: string; word_id: string }) => {
-          sentenceToWord[s.id] = s.word_id
-        })
-
-        const reviewsPerWord: Record<string, number> = {}
-        ;(reviews || []).forEach((r: { word_sentence_id: string }) => {
-          const wordId = sentenceToWord[r.word_sentence_id]
-          if (wordId) reviewsPerWord[wordId] = (reviewsPerWord[wordId] || 0) + 1
-        })
-
-        const wordsWithCounts: WordWithReviewCount[] = levelWords.map((w: Word) => ({
-          ...w,
-          reviewCount: reviewsPerWord[w.id] || 0,
-        }))
-
-        setWords(wordsWithCounts)
-        setFilteredWords(wordsWithCounts)
-      } catch (error) {
-        console.error('Error fetching words:', error)
-      } finally {
-        setLoading(false)
       }
+
+      // ── Grammar ──────────────────────────────────────────────────────────
+      const grammarCol = GRAMMAR_COL[pathId]
+      if (grammarCol) {
+        const { data } = await supabase
+          .from('gwc_grammar_topics')
+          .select(`id, slug, title, level, category, translation_en, ${grammarCol}`)
+          .not(grammarCol, 'is', null)
+          .order(grammarCol, { ascending: true })
+
+        for (const row of data || []) {
+          results.push({
+            kind: 'grammar',
+            id: row.id,
+            slug: row.slug,
+            title: row.title,
+            level: row.level,
+            category: row.category,
+            translation_en: row.translation_en,
+            position: row[grammarCol] as number,
+          })
+        }
+      }
+
+      // For mixed path: sort everything by position
+      if (path?.type === 'mixed') {
+        results.sort((a, b) => a.position - b.position)
+      }
+
+      setItems(results)
+      setFiltered(results)
+      setLoading(false)
     }
 
-    fetchWords()
-  }, [level])
+    load()
+  }, [pathId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filter words based on search query
   useEffect(() => {
-    const filtered = words.filter((word) =>
-      word.word.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (word.artikel && word.artikel.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      word.typ.toLowerCase().includes(searchQuery.toLowerCase())
+    const q = search.toLowerCase()
+    setFiltered(
+      items.filter(item =>
+        item.kind === 'vocab'
+          ? item.word.toLowerCase().includes(q) || item.translation_en.toLowerCase().includes(q)
+          : item.title.toLowerCase().includes(q) || (item.translation_en ?? '').toLowerCase().includes(q)
+      )
     )
-    setFilteredWords(filtered)
-    setCurrentPage(1)
-  }, [searchQuery, words])
+  }, [search, items])
 
-  // Pagination
-  const startIndex = (currentPage - 1) * wordsPerPage
-  const paginatedWords = filteredWords.slice(startIndex, startIndex + wordsPerPage)
-  const totalPages = Math.ceil(filteredWords.length / wordsPerPage)
-
-  const getLevelDescription = () => {
-    switch (level) {
-      case 'A1':
-        return 'Elementarstufe 1 — Anfänger'
-      case 'A2':
-        return 'Elementarstufe 2'
-      case 'B1':
-        return 'Mittelstufe 1'
-      default:
-        return `Level ${level}`
-    }
+  if (!path) {
+    return (
+      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#9b98b0] mb-4">Path not found.</p>
+          <Link href="/dashboard" className="text-[#7c6df2] hover:underline">← Back to Dashboard</Link>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-[#0f0e17]">
+      <div className="max-w-3xl mx-auto px-6 py-12">
+
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-text-primary mb-2">
-            Caro's {level} Path
-          </h1>
-          <p className="text-text-muted mb-6">{getLevelDescription()}</p>
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-3xl">{path.icon}</span>
+            <h1 className="text-3xl font-bold text-[#e8e6f0]">{path.name}</h1>
+            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/15 text-[#9b8cf5] border border-[#7c6df2]/20">
+              {path.level}
+            </span>
+          </div>
+          <p className="text-[#9b98b0] text-sm mb-6 max-w-xl">{path.description}</p>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-3 flex-wrap">
             <Link
-              href="/learn"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent-purple text-white font-medium hover:bg-accent-violet transition-colors"
+              href={`/learn?path=${pathId}`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-semibold hover:bg-[#9b8cf5] transition-colors"
             >
-              Learn {filteredWords.length} →
-            </Link>
-            <Link
-              href="/review"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors"
-            >
-              Review (0)
+              Learn {items.length} →
             </Link>
           </div>
         </div>
 
-        {/* Search Input */}
-        <div className="mb-8">
+        {/* Search */}
+        <div className="mb-6">
           <input
             type="text"
-            placeholder="Search for Vocab or Grammar..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field w-full"
+            placeholder="Search words or grammar..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-[#1a1830] border border-white/8 rounded-xl px-4 py-3 text-[#e8e6f0] placeholder-[#6b6880] text-sm focus:outline-none focus:border-[#7c6df2]/50 transition-colors"
           />
         </div>
 
-        {/* Words List */}
+        {/* Items */}
         {loading ? (
-          <div className="text-center py-12">
-            <p className="text-text-muted">Loading words...</p>
+          <div className="text-center py-16">
+            <div className="w-6 h-6 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-[#9b98b0] text-sm">Loading path...</p>
           </div>
-        ) : paginatedWords.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-text-muted">
-              {searchQuery ? 'No words found' : 'No words in this level'}
-            </p>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-[#9b98b0]">{search ? 'No results for your search.' : 'No items in this path yet.'}</p>
           </div>
         ) : (
-          <>
-            <div className="space-y-3 mb-8">
-              {paginatedWords.map((word) => (
-                <WordRow
-                  key={word.id}
-                  word={word}
-                  reviewCount={word.reviewCount}
-                />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mb-8">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-lg bg-bg-card text-text-primary disabled:opacity-50 hover:bg-bg-secondary transition-colors"
+          <div className="space-y-2">
+            {filtered.map((item, i) => (
+              item.kind === 'vocab' ? (
+                <Link
+                  key={item.id}
+                  href={`/vocab/${item.slug}`}
+                  className="flex items-center gap-4 bg-[#1a1830] border border-white/5 rounded-xl px-4 py-3.5 hover:border-[#7c6df2]/30 hover:bg-[#1f1d3a] transition-all group"
                 >
-                  Previous
-                </button>
-
-                <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                        currentPage === page
-                          ? 'bg-accent-purple text-white'
-                          : 'bg-bg-card text-text-muted hover:bg-bg-secondary'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-lg bg-bg-card text-text-primary disabled:opacity-50 hover:bg-bg-secondary transition-colors"
+                  <span className="text-[#6b6880] text-xs w-6 text-right shrink-0">{item.position}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {item.article && (
+                        <span className="text-[#9b98b0] text-sm">{item.article}</span>
+                      )}
+                      <span className="text-[#e8e6f0] font-semibold">{item.word}</span>
+                      <span className="text-[#9b98b0] text-xs">—</span>
+                      <span className="text-[#9b98b0] text-sm">{item.translation_en}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[0.65rem] font-bold bg-[#7c6df2]/10 text-[#9b8cf5]">
+                      {TYPE_LABELS[item.type] ?? item.type}
+                    </span>
+                    <span className="text-[0.68rem] font-bold text-[#6b6880] tracking-wider">{item.level}</span>
+                    <span className="text-[#6b6880] group-hover:text-[#9b8cf5] transition-colors">→</span>
+                  </div>
+                </Link>
+              ) : (
+                <Link
+                  key={item.id}
+                  href={`/grammar/${item.slug}`}
+                  className="flex items-center gap-4 bg-[#1a1830] border border-white/5 rounded-xl px-4 py-3.5 hover:border-[#7c6df2]/30 hover:bg-[#1f1d3a] transition-all group"
                 >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
+                  <span className="text-[#6b6880] text-xs w-6 text-right shrink-0">{item.position}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#e8e6f0] font-semibold">{item.title}</span>
+                      {item.translation_en && (
+                        <>
+                          <span className="text-[#9b98b0] text-xs">—</span>
+                          <span className="text-[#9b98b0] text-sm">{item.translation_en}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[0.65rem] font-bold bg-[#2a1f5a]/60 text-[#b4a8f5]">
+                      {CAT_LABELS[item.category] ?? item.category}
+                    </span>
+                    <span className="text-[0.68rem] font-bold text-[#6b6880] tracking-wider">{item.level}</span>
+                    <span className="text-[#6b6880] group-hover:text-[#9b8cf5] transition-colors">→</span>
+                  </div>
+                </Link>
+              )
+            ))}
+          </div>
         )}
+
       </div>
     </div>
   )

@@ -1265,9 +1265,9 @@ function ClozeSession({
 
   const progress = results.length / items.length
 
-  // Hint 1: grammar person (e.g. "ich"); vocab no longer has a cloze_word_en field
-  const hint1Vocab = null
-  const hint1Grammar = current.kind === 'grammar' ? current.sentence.person : null
+  // Hint 1: vocab → English translation of the word (always visible); grammar → person form
+  const hint1Vocab = current.kind === 'vocab' ? current.word.translation_en : null
+  const hint1Grammar = current.kind === 'grammar' ? current.topic.translation_en : null
 
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
