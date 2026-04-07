@@ -59,9 +59,10 @@ interface VocabLearnItem {
 interface GrammarLearnItem {
   type: 'grammar'
   topic: GrammarTopic
-  sentence: GrammarSentence   // representative sentence for the cloze quiz
-  formKey: string             // "topic_uuid:person" — uniquely identifies this SRS form
-  person: string | null       // which conjugation person this form covers (null = no-person topic)
+  sentence: GrammarSentence      // representative sentence for the cloze quiz
+  topicSentences: GrammarSentence[] // all sentences for this topic (for the study slide)
+  formKey: string                // "topic_uuid:person" — uniquely identifies this SRS form
+  person: string | null          // which conjugation person this form covers (null = no-person topic)
 }
 
 type ClozeItem =
@@ -71,7 +72,7 @@ type ClozeItem =
 // A single slide in the study phase (shown before the cloze quiz)
 type StudySlide =
   | { kind: 'vocab'; word: VocabWord; sentences: VocabSentence[] }
-  | { kind: 'grammar'; topic: GrammarTopic; personsInBatch: (string | null)[] }
+  | { kind: 'grammar'; topic: GrammarTopic; personsInBatch: (string | null)[]; sentences: GrammarSentence[] }
 
 interface UserPath {
   id: string
@@ -257,13 +258,21 @@ async function fetchGrammarItems(
     })
     .slice(0, batchSize)
 
+  // Build a map of all sentences per topic (for the study slide)
+  const topicSentencesMap: Record<string, GrammarSentence[]> = {}
+  for (const s of (allSentences as GrammarSentence[] || [])) {
+    if (!topicSentencesMap[s.topic_id]) topicSentencesMap[s.topic_id] = []
+    topicSentencesMap[s.topic_id].push(s)
+  }
+
   // 7. Build one GrammarLearnItem per form (first sentence in pool = representative for learn)
   return newForms.map(([key, form]) => ({
     type: 'grammar' as const,
-    topic:   topicMap[form.topicId],
-    sentence: form.sentences[0],
-    formKey: key,
-    person:  form.person,
+    topic:          topicMap[form.topicId],
+    sentence:       form.sentences[0],
+    topicSentences: topicSentencesMap[form.topicId] ?? [],
+    formKey:        key,
+    person:         form.person,
   }))
 }
 
@@ -510,81 +519,166 @@ const GRAMMAR_CATEGORY_LABELS: Record<string, string> = {
   case_system:        'Case System',
 }
 
+function highlightStructure(text: string) {
+  const parts = text.split(/(\[[^\]]+\])/g)
+  return parts.map((part, i) =>
+    part.startsWith('[') && part.endsWith(']')
+      ? <span key={i} className="text-[#9b8cf5] font-semibold">{part}</span>
+      : <span key={i} className="text-[#e8e6f0]">{part}</span>
+  )
+}
+
+function RegisterDots({ level }: { level: number }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3].map(i => (
+        <div key={i} className={`w-2.5 h-2.5 rounded-full ${i <= level ? 'bg-[#7c6df2]' : 'bg-white/10'}`} />
+      ))}
+    </div>
+  )
+}
+
 function GrammarStudySlide({
   topic,
   personsInBatch,
+  sentences,
   onContinue,
   onExit,
   current,
   total,
 }: {
   topic: GrammarTopic
-  personsInBatch: (string | null)[]  // which forms from this topic are in the current batch
+  personsInBatch: (string | null)[]
+  sentences: GrammarSentence[]
   onContinue: () => void
   onExit: () => void
   current: number
   total: number
 }) {
   const hasPersons = personsInBatch.some(p => p !== null)
+  const hasRegister = topic.register_formal != null || topic.register_standard != null || topic.register_casual != null
 
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
-        <button onClick={onExit} className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
-          ← Exit
-        </button>
+        <button onClick={onExit} className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">← Exit</button>
         <span className="text-[#9b98b0] text-sm">{current} / {total}</span>
       </div>
 
       {/* Progress bar */}
       <div className="h-0.5 bg-white/5">
-        <div
-          className="h-full bg-[#7c6df2] transition-all duration-500"
-          style={{ width: `${((current - 1) / total) * 100}%` }}
-        />
+        <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${((current - 1) / total) * 100}%` }} />
       </div>
 
-      {/* Content */}
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-6 py-8">
-          {/* Badges */}
-          <div className="flex gap-2 mb-6 flex-wrap justify-center">
-            <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
-              Grammar
-            </span>
-            <span className="px-3 py-1 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
-              {topic.level}
-            </span>
-            <span className="px-3 py-1 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
-              {GRAMMAR_CATEGORY_LABELS[topic.category] ?? topic.category}
-            </span>
+        <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+
+          {/* Title */}
+          <div>
+            <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-wider mb-1">Grammar</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#e8e6f0]">{topic.title}</h1>
+            {(topic as any).translation_en && (
+              <p className="text-[#9b98b0] mt-1">{(topic as any).translation_en}</p>
+            )}
           </div>
 
-          {/* Topic title */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#e8e6f0] text-center mb-4">{topic.title}</h1>
-
-          {/* Highlight which forms we're practicing (only for verb conjugation topics) */}
+          {/* Person badges for conjugation topics */}
           {hasPersons && (
-            <div className="flex gap-2 justify-center mb-6 flex-wrap">
-              {personsInBatch
-                .filter((p): p is string => p !== null)
-                .map(p => (
-                  <span key={p} className="px-3 py-1.5 rounded-xl text-sm font-bold bg-[#7c6df2]/30 text-[#9b8cf5] border border-[#7c6df2]/50">
-                    {p}
-                  </span>
-                ))}
+            <div className="flex gap-2 flex-wrap">
+              {personsInBatch.filter((p): p is string => p !== null).map(p => (
+                <span key={p} className="px-3 py-1.5 rounded-xl text-sm font-bold bg-[#7c6df2]/30 text-[#9b8cf5] border border-[#7c6df2]/50">{p}</span>
+              ))}
             </div>
           )}
 
-          {/* Full explanation */}
-          <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
-            <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-4">How it works</p>
-            <div
-              className="text-[#c5c3d4] text-sm leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: renderMd(topic.explanation_en) }}
-            />
+          {/* Structure + Register */}
+          {(topic.structure || hasRegister) && (
+            <div className={`grid gap-4 ${hasRegister && topic.structure ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {topic.structure && (
+                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Structure</p>
+                  <div className="bg-[#0f0e17] rounded-xl p-4 border border-white/5 font-mono text-sm leading-relaxed">
+                    {highlightStructure(topic.structure)}
+                  </div>
+                </div>
+              )}
+              {hasRegister && (
+                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Register</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#c5c3d4]">Formal</span>
+                      <RegisterDots level={topic.register_formal ?? 0} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#c5c3d4]">Standard</span>
+                      <RegisterDots level={topic.register_standard ?? 0} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#c5c3d4]">Casual</span>
+                      <RegisterDots level={topic.register_casual ?? 0} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* About */}
+          <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+            <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-4">About</p>
+            <div className="text-[#c5c3d4] text-sm leading-relaxed whitespace-pre-line">{topic.explanation_en}</div>
           </div>
+
+          {/* Fun Fact */}
+          {(topic as any).fun_fact && (
+            <div className="bg-[#7c6df2]/8 rounded-2xl p-5 border border-[#7c6df2]/25">
+              <div className="flex gap-3">
+                <span className="text-xl flex-shrink-0">💡</span>
+                <div>
+                  <p className="text-xs font-bold text-[#9b8cf5] uppercase tracking-wider mb-2">Fun Fact</p>
+                  <p className="text-[#c5c3d4] text-sm leading-relaxed">{(topic as any).fun_fact}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Synonyms + Related */}
+          {((topic as any).synonyms || (topic as any).related_forms) && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(topic as any).synonyms && (
+                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Synonyms</p>
+                  <p className="text-[#c5c3d4] text-sm">{(topic as any).synonyms}</p>
+                </div>
+              )}
+              {(topic as any).related_forms && (
+                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Related</p>
+                  <p className="text-[#c5c3d4] text-sm">{(topic as any).related_forms}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* All sentences */}
+          {sentences.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Example Sentences</p>
+              <div className="space-y-2">
+                {sentences.map(s => (
+                  <div key={s.id} className="bg-[#1a1830] border border-white/5 rounded-2xl px-5 py-4">
+                    <p className="text-[#e8e6f0] text-[0.95rem] font-medium leading-snug">
+                      {highlightCloze(s.sentence_de, s.cloze_word)}
+                    </p>
+                    {s.sentence_en && <p className="text-[#9b98b0] text-[0.8rem] mt-1">{s.sentence_en}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -592,7 +686,7 @@ function GrammarStudySlide({
       <div className="px-6 py-4 border-t border-white/5">
         <button
           onClick={onContinue}
-          className="w-full max-w-lg mx-auto block py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
+          className="w-full max-w-2xl mx-auto block py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
         >
           Continue →
         </button>
@@ -1417,7 +1511,7 @@ export default function LearnPage() {
           const personsForTopic = grammar
             .filter(item => item.topic.id === g.topic.id)
             .map(item => item.person)
-          slides.push({ kind: 'grammar', topic: g.topic, personsInBatch: personsForTopic })
+          slides.push({ kind: 'grammar', topic: g.topic, personsInBatch: personsForTopic, sentences: g.topicSentences })
         }
       }
 
@@ -1863,6 +1957,7 @@ export default function LearnPage() {
         <GrammarStudySlide
           topic={currentSlide.topic}
           personsInBatch={currentSlide.personsInBatch}
+          sentences={currentSlide.sentences}
           onContinue={goNextSlide}
           onExit={() => handleEarlyExit([])}
           current={slideIndex + 1}
