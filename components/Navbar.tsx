@@ -196,7 +196,7 @@ export default function Navbar() {
                 <Link
                   href="/vocab"
                   onClick={() => pathsDropdown.setOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
                     pathname.startsWith('/vocab') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
                   }`}
                 >
@@ -204,6 +204,19 @@ export default function Navbar() {
                   <div>
                     <p className="text-sm font-semibold leading-tight">Vocabulary</p>
                     <p className="text-xs text-[#9b98b0]">Words & phrases</p>
+                  </div>
+                </Link>
+                <Link
+                  href="/verbs"
+                  onClick={() => pathsDropdown.setOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
+                    pathname.startsWith('/verbs') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                  }`}
+                >
+                  <span className="text-lg">🔤</span>
+                  <div>
+                    <p className="text-sm font-semibold leading-tight">Verb Conjugation</p>
+                    <p className="text-xs text-[#9b98b0]">All tenses & forms</p>
                   </div>
                 </Link>
                 <p className="px-3 pt-2.5 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">
@@ -416,6 +429,19 @@ export default function Navbar() {
                     <div>
                       <p className="font-medium leading-tight">Vocabulary</p>
                       <p className="text-xs text-[#9b98b0]">Words & phrases</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/verbs"
+                    onClick={() => mobileMenu.setOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
+                      pathname.startsWith('/verbs') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                    }`}
+                  >
+                    <span className="text-base">🔤</span>
+                    <div>
+                      <p className="font-medium leading-tight">Verb Conjugation</p>
+                      <p className="text-xs text-[#9b98b0]">All tenses & forms</p>
                     </div>
                   </Link>
 

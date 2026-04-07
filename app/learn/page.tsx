@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
 import {
   awardXPAndUpdateStreak,
   updateDailyCards,
-  getOrCreateProgress,
   XP_CORRECT_LEARN,
   XP_WRONG_LEARN,
 } from '@/lib/gamification'
@@ -20,33 +18,24 @@ import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 
 interface VocabWord {
   id: string
-  slug: string
   word: string
-  type: 'NOMEN' | 'VERB' | 'ADJEKTIV' | 'AUSDRUCK' | 'ADVERB' | 'PRÄPOSITION'
-  article: string | null
+  typ: string
+  artikel: string | null
   plural: string | null
   level: string
-  frequency_rank: number | null
-  translation_en: string
-  explanation_en: string
-  usage_notes: string | null
-  fun_fact: string | null
-  synonyms: string | null
-  related_words: string | null
-  nom_sg: string | null; nom_pl: string | null
-  akk_sg: string | null; akk_pl: string | null
-  dat_sg: string | null; dat_pl: string | null
-  gen_sg: string | null; gen_pl: string | null
+  frequenz_rang: number | null
+  erklaerung: string | null
+  verwendung: string | null
+  genitiv: string | null
 }
 
 interface VocabSentence {
   id: string
-  vocab_id: string
+  word_id: string
   sentence_de: string
-  sentence_en: string
+  sentence_en: string | null
   cloze_word: string
-  grammatical_case: 'NOMINATIV' | 'AKKUSATIV' | 'DATIV' | 'GENITIV' | null
-  min_level: string
+  cloze_word_en: string | null
   sort_order: number
 }
 
@@ -59,20 +48,36 @@ interface VocabLearnItem {
 interface GrammarLearnItem {
   type: 'grammar'
   topic: GrammarTopic
-  sentence: GrammarSentence      // representative sentence for the cloze quiz
-  topicSentences: GrammarSentence[] // all sentences for this topic (for the study slide)
-  formKey: string                // "topic_uuid:person" — uniquely identifies this SRS form
-  person: string | null          // which conjugation person this form covers (null = no-person topic)
+  sentence: GrammarSentence
 }
 
-type ClozeItem =
-  | { kind: 'vocab'; word: VocabWord; sentence: VocabSentence }
-  | { kind: 'grammar'; topic: GrammarTopic; sentence: GrammarSentence; formKey: string }
+interface VerbWord {
+  id: string; slug: string; word: string; translation_en: string
+  level: string; category: string; frequency_rank: number | null
+  explanation_en: string; usage_notes: string | null
+  fun_fact: string | null; synonyms: string | null; related_words: string | null
+  auxiliary: string | null; partizip_ii: string | null
+  praes_ich: string | null; praes_du: string | null; praes_er: string | null
+  praes_wir: string | null; praes_ihr: string | null; praes_sie: string | null
+  praet_ich: string | null; praet_du: string | null; praet_er: string | null
+  praet_wir: string | null; praet_ihr: string | null; praet_sie: string | null
+  konj2_ich: string | null; konj2_du: string | null; konj2_er: string | null
+  konj2_wir: string | null; konj2_ihr: string | null; konj2_sie: string | null
+}
+interface VerbSentence {
+  id: string; verb_id: string; sentence_de: string; sentence_en: string
+  cloze_word: string; tense: string; person: string
+  min_level: string; sort_order: number; audio_file: string | null
+}
+interface VerbLearnItem {
+  type: 'verb'; verb: VerbWord; sentences: VerbSentence[]
+}
 
-// A single slide in the study phase (shown before the cloze quiz)
-type StudySlide =
-  | { kind: 'vocab'; word: VocabWord; sentences: VocabSentence[] }
-  | { kind: 'grammar'; topic: GrammarTopic; personsInBatch: (string | null)[]; sentences: GrammarSentence[] }
+// Unified cloze item
+type ClozeItem =
+  | { kind: 'vocab';   word: VocabWord;   sentence: VocabSentence }
+  | { kind: 'grammar'; topic: GrammarTopic; sentence: GrammarSentence }
+  | { kind: 'verb';    verb: VerbWord;    sentence: VerbSentence; tense: string }
 
 interface UserPath {
   id: string
@@ -84,16 +89,12 @@ interface UserPath {
   active: boolean
 }
 
-// Extended result — stores sentence text for the Results screen
 interface ClozeResult {
-  id: string
-  type: 'vocab' | 'grammar'
+  id: string           // sentence ID
+  type: 'vocab' | 'grammar' | 'verb'
   correct: boolean
-  sentence_de: string
-  sentence_en: string | null
-  cloze_word: string
-  label: string    // word.word or topic.title
-  formKey?: string // grammar only — stored in DB for form-level SRS
+  verbId?: string      // verb only — uuid of gwc_verbs row
+  verbTense?: string   // verb only — tense string
 }
 
 interface CompletionData {
@@ -104,21 +105,29 @@ interface CompletionData {
   dailyTotal: number
 }
 
-// All phases the app can be in
-type AppPhase =
-  | 'loading'
-  | 'no-paths'
-  | 'no-items'
-  | 'studying'        // vocab browse (word overview, one word at a time)
-  | 'quiz-modal'      // "Quiz Time!" overlay before cloze
-  | 'cloze'           // cloze quiz cards
-  | 'path-end'        // after one path's batch: offer "5 more" or "continue" or "done"
-  | 'good-job'        // early-exit modal mid-session
-  | 'results'         // full results screen after session
-  | 'daily-goal-reached'
+type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'studying' | 'quiz-modal' | 'cloze' | 'done' | 'daily-goal-reached'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function typColor(typ: string) {
+  switch (typ) {
+    case 'NOMEN':     return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+    case 'VERB':      return 'bg-green-500/20 text-green-300 border-green-500/30'
+    case 'ADJEKTIV':  return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+    case 'ADVERB':    return 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+    case 'GRAMMATIK': return 'bg-[#7c6df2]/20 text-[#9b8cf5] border-[#7c6df2]/30'
+    default:          return 'bg-white/10 text-[#9b98b0] border-white/10'
+  }
+}
+
+function highlightWord(sentence: string, word: string) {
+  const parts = sentence.split(new RegExp(`(${word})`, 'gi'))
+  return parts.map((part, i) =>
+    new RegExp(`^${word}$`, 'i').test(part)
+      ? <span key={i} className="text-[#9b8cf5] font-bold underline decoration-[#7c6df2]/50">{part}</span>
+      : <span key={i}>{part}</span>
+  )
+}
 
 function normalize(s: string) {
   return s.toLowerCase().trim()
@@ -129,7 +138,22 @@ function createCloze(sentence: string, clozeWord: string): string {
   return sentence.replace(new RegExp(clozeWord, 'i'), '___')
 }
 
+function getDeclension(artikel: string, word: string, genitiv: string | null) {
+  const art = artikel.toLowerCase()
+  let akkArt = artikel, datArt = artikel, genArt = artikel
+  let genForm = genitiv || `${word}s`
+  if (art === 'der') { akkArt = 'den'; datArt = 'dem'; genArt = 'des' }
+  else if (art === 'die') { akkArt = 'die'; datArt = 'der'; genArt = 'der'; genForm = genitiv || word }
+  else if (art === 'das') { akkArt = 'das'; datArt = 'dem'; genArt = 'des' }
+  return [
+    { label: 'Nominativ', art: artikel, noun: word },
+    { label: 'Akkusativ', art: akkArt,  noun: word },
+    { label: 'Dativ',     art: datArt,  noun: word },
+    { label: 'Genitiv',   art: genArt,  noun: genForm },
+  ]
+}
 
+// Simple markdown: **bold** and \n → <br>
 function renderMd(text: string): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#e8e6f0]">$1</strong>')
@@ -143,35 +167,47 @@ async function fetchVocabItems(
   lessonOrder: string,
   batchSize: number
 ): Promise<VocabLearnItem[]> {
-  // Words are "learned" once any gwc_vocab_reviews row exists for them
+  // Get sentence IDs that are already in the vocab review queue
   const { data: reviewRows } = await supabase
-    .from('gwc_vocab_reviews')
-    .select('vocab_id')
+    .from('gwc_user_reviews')
+    .select('word_sentence_id')
     .eq('session_id', sessionId)
+    .eq('item_type', 'vocab')
+    .not('word_sentence_id', 'is', null)
 
-  const learnedWordIds = new Set((reviewRows || []).map((r: { vocab_id: string }) => r.vocab_id))
+  const reviewedSentenceIds = (reviewRows || []).map((r: { word_sentence_id: string }) => r.word_sentence_id)
 
-  // Fetch words ordered by frequency rank (or alphabetically)
-  const orderCol = lessonOrder === 'alphabetical' ? 'word' : 'frequency_rank'
+  // Resolve those sentence IDs to word IDs
+  let reviewedWordIds = new Set<string>()
+  if (reviewedSentenceIds.length > 0) {
+    const { data: reviewed } = await supabase
+      .from('gwc_word_sentences')
+      .select('word_id')
+      .in('id', reviewedSentenceIds)
+    reviewedWordIds = new Set((reviewed || []).map((s: { word_id: string }) => s.word_id))
+  }
+
+  // Fetch words in the order set by lessonOrder
+  const orderCol = lessonOrder === 'alphabetical' ? 'word' : 'frequenz_rang'
   const { data: words } = await supabase
-    .from('gwc_vocab')
+    .from('gwc_words')
     .select('*')
     .order(orderCol, { ascending: true, nullsFirst: false })
     .limit(500)
 
-  const newWords = (words || []).filter((w: VocabWord) => !learnedWordIds.has(w.id))
+  const newWords = (words || []).filter((w: VocabWord) => !reviewedWordIds.has(w.id))
   const wordIds  = newWords.slice(0, batchSize * 3).map((w: VocabWord) => w.id)
   if (wordIds.length === 0) return []
 
   const { data: sentences } = await supabase
-    .from('gwc_vocab_sentences')
+    .from('gwc_word_sentences')
     .select('*')
-    .in('vocab_id', wordIds)
+    .in('word_id', wordIds)
     .order('sort_order', { ascending: true })
 
   const result: VocabLearnItem[] = []
   for (const word of newWords) {
-    const wordSentences = (sentences || []).filter((s: VocabSentence) => s.vocab_id === word.id)
+    const wordSentences = (sentences || []).filter((s: VocabSentence) => s.word_id === word.id)
     if (wordSentences.length > 0) {
       result.push({ type: 'vocab', word, sentences: wordSentences })
     }
@@ -184,42 +220,21 @@ async function fetchGrammarItems(
   sessionId: string,
   batchSize: number
 ): Promise<GrammarLearnItem[]> {
-  // ── Architecture: SRS unit = FORM (topic_id, person), not individual sentence ──
-  // Form key format: "topic_uuid:person"  e.g. "3a7b…:ich"
-  //                 "topic_uuid:null"     for topics without person (one-shot grammar topics)
-  // Each form has a pool of ~8–10 sentences. During learn, we show the first sentence.
-  // During review, we pick a random sentence from the pool each time.
-
-  // 1. Get form keys for forms already learned (new-style rows with grammar_form_key)
-  const { data: newStyleRows } = await supabase
-    .from('gwc_user_reviews')
-    .select('grammar_form_key')
-    .eq('session_id', sessionId)
-    .eq('item_type', 'grammar')
-    .not('grammar_form_key', 'is', null)
-
-  const learnedFormKeys = new Set<string>(
-    (newStyleRows || []).map((r: { grammar_form_key: string }) => r.grammar_form_key).filter(Boolean)
-  )
-
-  // 2. Also get old-style reviewed sentence IDs (backwards compat — rows without form_key)
-  const { data: oldStyleRows } = await supabase
+  // Get already-reviewed grammar sentence IDs
+  const { data: reviewRows } = await supabase
     .from('gwc_user_reviews')
     .select('grammar_sentence_id')
     .eq('session_id', sessionId)
     .eq('item_type', 'grammar')
-    .is('grammar_form_key', null)
     .not('grammar_sentence_id', 'is', null)
 
-  const oldReviewedSentIds = new Set<string>(
-    (oldStyleRows || []).map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id).filter(Boolean)
-  )
+  const reviewedIds = new Set((reviewRows || []).map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id))
 
-  // 3. Fetch all topics and sentences
-  const [{ data: topics }, { data: allSentences }] = await Promise.all([
-    supabase.from('gwc_grammar_topics').select('*').order('sort_order', { ascending: true }),
-    supabase.from('gwc_grammar_sentences').select('*').order('sort_order', { ascending: true }),
-  ])
+  // Fetch topics sorted by their sort_order (so we teach topics in order)
+  const { data: topics } = await supabase
+    .from('gwc_grammar_topics')
+    .select('*')
+    .order('sort_order', { ascending: true })
 
   const topicMap: Record<string, GrammarTopic> = Object.fromEntries(
     (topics || []).map((t: GrammarTopic) => [t.id, t])
@@ -228,598 +243,106 @@ async function fetchGrammarItems(
     (topics || []).map((t: GrammarTopic, i: number) => [t.id, i])
   )
 
-  // 4. Group sentences into forms: Map<form_key, { topicId, person, sentences[] }>
-  const formsMap = new Map<string, { topicId: string; person: string | null; sentences: GrammarSentence[] }>()
-  for (const s of (allSentences as GrammarSentence[] || [])) {
-    const key = `${s.topic_id}:${s.person ?? 'null'}`
-    if (!formsMap.has(key)) formsMap.set(key, { topicId: s.topic_id, person: s.person, sentences: [] })
-    formsMap.get(key)!.sentences.push(s)
-  }
+  // Fetch all grammar sentences
+  const { data: sentences } = await supabase
+    .from('gwc_grammar_sentences')
+    .select('*')
+    .order('sort_order', { ascending: true })
 
-  // 5. For old-style rows: if any sentence of a form was reviewed, mark the form as learned
-  for (const [key, form] of formsMap) {
-    if (!learnedFormKeys.has(key) && form.sentences.some(s => oldReviewedSentIds.has(s.id))) {
-      learnedFormKeys.add(key)
-    }
-  }
-
-  // Standard grammatical person order (used to sort forms within a topic)
-  const PERSON_ORDER = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie']
-
-  // 6. Filter to new (unlearned) forms, sort by topic order → person order, take batchSize
-  const newForms = Array.from(formsMap.entries())
-    .filter(([key, form]) => !learnedFormKeys.has(key) && topicMap[form.topicId])
-    .sort(([, formA], [, formB]) => {
-      const topicDiff = (topicOrder[formA.topicId] ?? 999) - (topicOrder[formB.topicId] ?? 999)
-      if (topicDiff !== 0) return topicDiff
-      const pA = formA.person ? PERSON_ORDER.indexOf(formA.person) : PERSON_ORDER.length
-      const pB = formB.person ? PERSON_ORDER.indexOf(formB.person) : PERSON_ORDER.length
-      return pA - pB
+  // Filter unreviewed, sort by (topicOrder, sentenceSortOrder), take batchSize
+  const unreviewed = (sentences as GrammarSentence[] || [])
+    .filter(s => !reviewedIds.has(s.id))
+    .sort((a, b) => {
+      const tDiff = (topicOrder[a.topic_id] ?? 999) - (topicOrder[b.topic_id] ?? 999)
+      return tDiff !== 0 ? tDiff : a.sort_order - b.sort_order
     })
     .slice(0, batchSize)
 
-  // Build a map of all sentences per topic (for the study slide)
-  const topicSentencesMap: Record<string, GrammarSentence[]> = {}
-  for (const s of (allSentences as GrammarSentence[] || [])) {
-    if (!topicSentencesMap[s.topic_id]) topicSentencesMap[s.topic_id] = []
-    topicSentencesMap[s.topic_id].push(s)
+  return unreviewed
+    .filter(s => topicMap[s.topic_id])
+    .map(s => ({
+      type: 'grammar' as const,
+      topic: topicMap[s.topic_id],
+      sentence: s,
+    }))
+}
+
+// ─── Fetch Verbs ──────────────────────────────────────────────────────────────
+
+const TENSE_MIN_LEVEL: Record<string, string> = {
+  'PRÄSENS': 'A1', 'PERFEKT': 'A2', 'PRÄTERITUM': 'B1',
+  'FUTUR I': 'B1', 'KONJUNKTIV II': 'B2', 'PLUSQUAMPERFEKT': 'B2', 'FUTUR II': 'C1',
+}
+const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+function levelGte(a: string, b: string) {
+  return LEVEL_ORDER.indexOf(a) >= LEVEL_ORDER.indexOf(b)
+}
+
+async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 'A1'): Promise<VerbLearnItem[]> {
+  const { data: reviewRows } = await supabase
+    .from('gwc_verb_reviews')
+    .select('verb_id')
+    .eq('session_id', sessionId)
+  const learnedIds = new Set((reviewRows || []).map((r: { verb_id: string }) => r.verb_id))
+
+  const { data: verbs } = await supabase
+    .from('gwc_verbs')
+    .select('*')
+    .order('frequency_rank', { ascending: true, nullsFirst: false })
+    .limit(200)
+
+  const newVerbs = (verbs || []).filter((v: VerbWord) => !learnedIds.has(v.id))
+  const verbIds  = newVerbs.slice(0, batchSize * 3).map((v: VerbWord) => v.id)
+  if (verbIds.length === 0) return []
+
+  const { data: sentences } = await supabase
+    .from('gwc_verb_sentences')
+    .select('*')
+    .in('verb_id', verbIds)
+    .order('sort_order', { ascending: true })
+
+  const result: VerbLearnItem[] = []
+  for (const verb of newVerbs) {
+    // Only include sentences for tenses the user has unlocked
+    const verbSents = ((sentences || []) as VerbSentence[])
+      .filter(s => s.verb_id === verb.id && levelGte(userLevel, TENSE_MIN_LEVEL[s.tense] ?? 'A1'))
+    if (verbSents.length > 0) {
+      result.push({ type: 'verb', verb, sentences: verbSents })
+    }
+    if (result.length >= batchSize) break
   }
-
-  // 7. Build one GrammarLearnItem per form (first sentence in pool = representative for learn)
-  return newForms.map(([key, form]) => ({
-    type: 'grammar' as const,
-    topic:          topicMap[form.topicId],
-    sentence:       form.sentences[0],
-    topicSentences: topicSentencesMap[form.topicId] ?? [],
-    formKey:        key,
-    person:         form.person,
-  }))
-}
-
-// ─── Word Overview Slide ──────────────────────────────────────────────────────
-// Shows full word info for a vocab item. "Continue" advances to next word or quiz.
-
-const TYPE_LABELS: Record<string, string> = {
-  NOMEN: 'Noun', VERB: 'Verb', ADJEKTIV: 'Adjective',
-  AUSDRUCK: 'Expression', ADVERB: 'Adverb', PRÄPOSITION: 'Preposition',
-}
-
-const CASE_LABEL: Record<string, string> = {
-  NOMINATIV: 'Nominative', AKKUSATIV: 'Accusative', DATIV: 'Dative', GENITIV: 'Genitive',
-}
-
-const CASE_COLORS: Record<string, string> = {
-  NOMINATIV: 'bg-[#7c6df2]/15 text-[#9b8cf5]',
-  AKKUSATIV: 'bg-[#3bd395]/10 text-[#3bd395]',
-  DATIV:     'bg-[#ffa550]/10 text-[#ffa550]',
-  GENITIV:   'bg-[#ffc850]/10 text-[#ffc850]',
-}
-
-function highlightCloze(sentence: string, cloze: string) {
-  const idx = sentence.toLowerCase().indexOf(cloze.toLowerCase())
-  if (idx === -1) return <span>{sentence}</span>
-  return (
-    <>
-      {sentence.slice(0, idx)}
-      <span className="text-[#7c6df2] font-bold">{sentence.slice(idx, idx + cloze.length)}</span>
-      {sentence.slice(idx + cloze.length)}
-    </>
-  )
-}
-
-function WordOverviewSlide({
-  word,
-  sentences,
-  onContinue,
-  onExit,
-  current,
-  total,
-}: {
-  word: VocabWord
-  sentences: VocabSentence[]
-  onContinue: () => void
-  onExit: () => void
-  current: number
-  total: number
-}) {
-  const isNoun = word.type === 'NOMEN'
-
-  // Group sentences by case for nouns
-  const caseOrder = ['NOMINATIV', 'AKKUSATIV', 'DATIV', 'GENITIV'] as const
-  const sentencesByCase = isNoun
-    ? caseOrder.reduce((acc, cas) => {
-        acc[cas] = sentences.filter(s => s.grammatical_case === cas)
-        return acc
-      }, {} as Record<string, VocabSentence[]>)
-    : null
-
-  return (
-    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
-        <button onClick={onExit} className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
-          ← Exit
-        </button>
-        <span className="text-[#9b98b0] text-sm">{current} / {total}</span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-0.5 bg-white/5">
-        <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${((current - 1) / total) * 100}%` }} />
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
-
-          {/* Hero */}
-          <div>
-            {word.article && (
-              <p className="text-[#7c6df2] text-sm font-bold uppercase tracking-widest mb-1">{word.article} · {TYPE_LABELS[word.type] ?? word.type}</p>
-            )}
-            <h1 className="text-[2.2rem] font-extrabold text-[#e8e6f0] leading-tight">{word.word}</h1>
-            {word.plural && (
-              <p className="text-[#9b98b0] text-sm mt-1">Plural: <span className="text-[#e8e6f0]">die {word.plural}</span></p>
-            )}
-            <p className="text-[#9b98b0] text-base mt-2">🇬🇧 {word.translation_en}</p>
-            <div className="flex items-center gap-2 flex-wrap mt-3">
-              <span className="text-[0.72rem] font-bold tracking-widest uppercase bg-[#7c6df2]/15 text-[#9b8cf5] px-3 py-1 rounded-full">{word.level}</span>
-              {word.frequency_rank && (
-                <span className="text-[0.72rem] font-bold tracking-widest uppercase bg-[#3bd395]/10 text-[#3bd395] px-3 py-1 rounded-full">⚡ Rank #{word.frequency_rank}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Meaning & Explanation */}
-          <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-            <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Meaning & Explanation</p>
-            <p className="text-[#e8e6f0] text-sm leading-relaxed">{word.explanation_en}</p>
-            {word.usage_notes && (
-              <p className="text-[#9b98b0] text-xs leading-relaxed mt-3 pt-3 border-t border-white/5">
-                💡 <strong className="text-[#e8e6f0]">Usage:</strong> {word.usage_notes}
-              </p>
-            )}
-          </div>
-
-          {/* Declension table for nouns */}
-          {isNoun && (word.nom_sg || word.akk_sg || word.dat_sg || word.gen_sg) && (
-            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Declension</p>
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr>
-                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Case</th>
-                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Singular</th>
-                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3">Plural</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { label: 'Nominative', sg: word.nom_sg, pl: word.nom_pl },
-                    { label: 'Accusative', sg: word.akk_sg, pl: word.akk_pl },
-                    { label: 'Dative',     sg: word.dat_sg, pl: word.dat_pl },
-                    { label: 'Genitive',   sg: word.gen_sg, pl: word.gen_pl },
-                  ].map(({ label, sg, pl }) => (
-                    <tr key={label} className="border-t border-white/5">
-                      <td className="py-2.5 pr-4 font-bold text-[#7c6df2] text-xs">{label}</td>
-                      <td className="py-2.5 pr-4 text-[#e8e6f0]">{sg || '—'}</td>
-                      <td className="py-2.5 text-[#e8e6f0]">{pl || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Fun Fact */}
-          {word.fun_fact && (
-            <div className="bg-gradient-to-br from-[#7c6df2]/10 to-[#7c6df2]/5 border border-[#7c6df2]/20 rounded-2xl p-5">
-              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#7c6df2] mb-2">Fun Fact</p>
-              <p className="text-[#c8c5d8] text-sm leading-relaxed">{word.fun_fact}</p>
-            </div>
-          )}
-
-          {/* Synonyms + Related */}
-          {(word.synonyms || word.related_words) && (
-            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Related Words</p>
-              {word.synonyms && (
-                <>
-                  <p className="text-[#e8e6f0] text-xs mb-2">Synonyms</p>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {word.synonyms.split(',').map(s => (
-                      <span key={s} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{s.trim()}</span>
-                    ))}
-                  </div>
-                </>
-              )}
-              {word.related_words && (
-                <>
-                  <p className="text-[#e8e6f0] text-xs mb-2">Related forms</p>
-                  <div className="flex flex-wrap gap-2">
-                    {word.related_words.split(',').map(r => (
-                      <span key={r} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{r.trim()}</span>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* All sentences */}
-          {sentences.length > 0 && (
-            <div className="space-y-4">
-              {isNoun && sentencesByCase ? (
-                caseOrder.map(cas => {
-                  const grp = sentencesByCase[cas]
-                  if (!grp || grp.length === 0) return null
-                  return (
-                    <div key={cas}>
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`text-[0.68rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full ${CASE_COLORS[cas]}`}>
-                          {CASE_LABEL[cas]}
-                        </span>
-                        <div className="flex-1 h-px bg-white/6" />
-                      </div>
-                      <div className="space-y-2">
-                        {grp.map(s => (
-                          <div key={s.id} className="bg-[#1a1830] border border-white/5 rounded-2xl px-5 py-4">
-                            <p className="text-[#e8e6f0] text-[0.95rem] font-medium leading-snug">
-                              {highlightCloze(s.sentence_de, s.cloze_word)}
-                            </p>
-                            <p className="text-[#9b98b0] text-[0.8rem] mt-1">{s.sentence_en}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })
-              ) : (
-                <div>
-                  <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Example Sentences</p>
-                  <div className="space-y-2">
-                    {sentences.map(s => (
-                      <div key={s.id} className="bg-[#1a1830] border border-white/5 rounded-2xl px-5 py-4">
-                        <p className="text-[#e8e6f0] text-[0.95rem] font-medium leading-snug">
-                          {highlightCloze(s.sentence_de, s.cloze_word)}
-                        </p>
-                        <p className="text-[#9b98b0] text-[0.8rem] mt-1">{s.sentence_en}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Continue button */}
-      <div className="px-6 py-4 border-t border-white/5">
-        <button
-          onClick={onContinue}
-          className="w-full max-w-2xl mx-auto block py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
-        >
-          Continue →
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Grammar Study Slide ──────────────────────────────────────────────────────
-// Shown in the study phase (before the cloze quiz) for each unique grammar topic
-// in the batch. Highlights which person/form(s) are being learned.
-
-const GRAMMAR_CATEGORY_LABELS: Record<string, string> = {
-  verb_conjugation:   'Verb Conjugation',
-  adjective_usage:    'Adjective Usage',
-  preposition:        'Preposition',
-  sentence_structure: 'Word Order',
-  case_system:        'Case System',
-}
-
-function highlightStructure(text: string) {
-  const parts = text.split(/(\[[^\]]+\])/g)
-  return parts.map((part, i) =>
-    part.startsWith('[') && part.endsWith(']')
-      ? <span key={i} className="text-[#9b8cf5] font-semibold">{part}</span>
-      : <span key={i} className="text-[#e8e6f0]">{part}</span>
-  )
-}
-
-function RegisterDots({ level }: { level: number }) {
-  return (
-    <div className="flex gap-1">
-      {[1, 2, 3].map(i => (
-        <div key={i} className={`w-2.5 h-2.5 rounded-full ${i <= level ? 'bg-[#7c6df2]' : 'bg-white/10'}`} />
-      ))}
-    </div>
-  )
-}
-
-function GrammarStudySlide({
-  topic,
-  personsInBatch,
-  sentences,
-  onContinue,
-  onExit,
-  current,
-  total,
-}: {
-  topic: GrammarTopic
-  personsInBatch: (string | null)[]
-  sentences: GrammarSentence[]
-  onContinue: () => void
-  onExit: () => void
-  current: number
-  total: number
-}) {
-  const hasPersons = personsInBatch.some(p => p !== null)
-  const hasRegister = topic.register_formal != null || topic.register_standard != null || topic.register_casual != null
-
-  return (
-    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
-        <button onClick={onExit} className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">← Exit</button>
-        <span className="text-[#9b98b0] text-sm">{current} / {total}</span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-0.5 bg-white/5">
-        <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${((current - 1) / total) * 100}%` }} />
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
-
-          {/* Title */}
-          <div>
-            <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-wider mb-1">Grammar</p>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#e8e6f0]">{topic.title}</h1>
-            {(topic as any).translation_en && (
-              <p className="text-[#9b98b0] mt-1">{(topic as any).translation_en}</p>
-            )}
-          </div>
-
-          {/* Person badges for conjugation topics */}
-          {hasPersons && (
-            <div className="flex gap-2 flex-wrap">
-              {personsInBatch.filter((p): p is string => p !== null).map(p => (
-                <span key={p} className="px-3 py-1.5 rounded-xl text-sm font-bold bg-[#7c6df2]/30 text-[#9b8cf5] border border-[#7c6df2]/50">{p}</span>
-              ))}
-            </div>
-          )}
-
-          {/* Structure + Register */}
-          {(topic.structure || hasRegister) && (
-            <div className={`grid gap-4 ${hasRegister && topic.structure ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-              {topic.structure && (
-                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
-                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Structure</p>
-                  <div className="bg-[#0f0e17] rounded-xl p-4 border border-white/5 font-mono text-sm leading-relaxed">
-                    {highlightStructure(topic.structure)}
-                  </div>
-                </div>
-              )}
-              {hasRegister && (
-                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
-                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Register</p>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#c5c3d4]">Formal</span>
-                      <RegisterDots level={topic.register_formal ?? 0} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#c5c3d4]">Standard</span>
-                      <RegisterDots level={topic.register_standard ?? 0} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#c5c3d4]">Casual</span>
-                      <RegisterDots level={topic.register_casual ?? 0} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* About */}
-          <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
-            <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-4">About</p>
-            <div className="text-[#c5c3d4] text-sm leading-relaxed whitespace-pre-line">{topic.explanation_en}</div>
-          </div>
-
-          {/* Fun Fact */}
-          {(topic as any).fun_fact && (
-            <div className="bg-[#7c6df2]/8 rounded-2xl p-5 border border-[#7c6df2]/25">
-              <div className="flex gap-3">
-                <span className="text-xl flex-shrink-0">💡</span>
-                <div>
-                  <p className="text-xs font-bold text-[#9b8cf5] uppercase tracking-wider mb-2">Fun Fact</p>
-                  <p className="text-[#c5c3d4] text-sm leading-relaxed">{(topic as any).fun_fact}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Synonyms + Related */}
-          {((topic as any).synonyms || (topic as any).related_forms) && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {(topic as any).synonyms && (
-                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
-                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Synonyms</p>
-                  <p className="text-[#c5c3d4] text-sm">{(topic as any).synonyms}</p>
-                </div>
-              )}
-              {(topic as any).related_forms && (
-                <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
-                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Related</p>
-                  <p className="text-[#c5c3d4] text-sm">{(topic as any).related_forms}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* All sentences */}
-          {sentences.length > 0 && (
-            <div>
-              <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Example Sentences</p>
-              <div className="space-y-2">
-                {sentences.map(s => (
-                  <div key={s.id} className="bg-[#1a1830] border border-white/5 rounded-2xl px-5 py-4">
-                    <p className="text-[#e8e6f0] text-[0.95rem] font-medium leading-snug">
-                      {highlightCloze(s.sentence_de, s.cloze_word)}
-                    </p>
-                    {s.sentence_en && <p className="text-[#9b98b0] text-[0.8rem] mt-1">{s.sentence_en}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Continue button */}
-      <div className="px-6 py-4 border-t border-white/5">
-        <button
-          onClick={onContinue}
-          className="w-full max-w-2xl mx-auto block py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
-        >
-          Continue →
-        </button>
-      </div>
-    </div>
-  )
+  return result
 }
 
 // ─── Quiz Time Modal ──────────────────────────────────────────────────────────
-// Shown after the study phase, before the cloze quiz.
-// X button and → Review both start the quiz.
-// "Don't show again" saves preference to localStorage.
 
-function QuizTimeModal({ count, pathName, pathBadge, onStart }: {
-  count: number
-  pathName: string
-  pathBadge: string
-  onStart: () => void
+function QuizTimeModal({ count, pathName, onStart }: {
+  count: number; pathName: string; onStart: () => void
 }) {
-  const [dontShow, setDontShow] = useState(false)
-
-  function handleStart() {
-    if (dontShow) localStorage.setItem('gwc_skip_quiz_modal', 'true')
-    onStart()
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div className="relative bg-[#1a1830] rounded-2xl border border-white/10 w-full max-w-md shadow-2xl overflow-hidden">
-        {/* Header row */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-[#e8e6f0]">Quiz Time!</h2>
-            <p className="text-[#9b98b0] text-sm mt-0.5">
-              {pathName} {pathBadge}{' '}
-              <span className="text-[#9b8cf5] font-bold">+{count} item{count !== 1 ? 's' : ''}</span>
-            </p>
-          </div>
-          {/* X closes and starts quiz (same as → Review) */}
-          <button
-            onClick={handleStart}
-            className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-xl leading-none p-1 mt-0.5"
-            aria-label="Start quiz"
-          >
-            ✕
-          </button>
+        <div className="px-6 pt-6 pb-4">
+          <h2 className="text-2xl font-bold text-[#e8e6f0]">Quiz Time!</h2>
+          <p className="text-[#9b98b0] text-sm mt-1">{pathName}</p>
         </div>
-
-        {/* Progress dots */}
-        <div className="mx-6 mb-4 bg-[#7c6df2]/20 rounded-xl px-4 py-3 border border-[#7c6df2]/30">
+        <div className="mx-6 mb-6 bg-[#7c6df2]/20 rounded-xl px-4 py-3 border border-[#7c6df2]/30">
           <div className="flex gap-1 flex-wrap">
-            {Array.from({ length: Math.max(count, 5) }).map((_, i) => (
+            {Array.from({ length: Math.max(count * 2, 10) }).map((_, i) => (
               <div key={i} className={`h-1.5 flex-1 rounded-full min-w-[12px] ${i < count ? 'bg-[#7c6df2]' : 'bg-white/15'}`} />
             ))}
           </div>
         </div>
-
         <p className="text-center text-[#9b98b0] text-sm px-8 mb-6 leading-relaxed">
-          Complete a quiz on the items you just studied to add them to your Review Queue and clear your Daily Goal!
+          Practice the {count} word{count !== 1 ? 's' : ''} you just studied to add them to your Review Queue!
         </p>
-
-        <div className="px-6 pb-6 space-y-4">
+        <div className="px-6 pb-6">
           <button
-            onClick={handleStart}
+            onClick={onStart}
             className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
           >
-            → Review
-          </button>
-          {/* "Don't show again" preference */}
-          <label className="flex items-center justify-center gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={dontShow}
-              onChange={e => setDontShow(e.target.checked)}
-              className="w-4 h-4 rounded accent-[#7c6df2]"
-            />
-            <span className="text-[#9b98b0] text-sm">Don&apos;t show this message again</span>
-          </label>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Good Job Modal (early exit mid-session) ──────────────────────────────────
-
-function GoodJobModal({
-  itemsDone,
-  xpSoFar,
-  pathName,
-  onContinue,
-  onExit,
-}: {
-  itemsDone: number
-  xpSoFar: number
-  pathName: string
-  onContinue: () => void
-  onExit: () => void
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative bg-[#1a1830] rounded-2xl border border-white/10 w-full max-w-sm shadow-2xl overflow-hidden p-6">
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">💪</div>
-          <h2 className="text-2xl font-bold text-[#e8e6f0] mb-1">Good Job!</h2>
-          <p className="text-[#9b98b0] text-sm">{itemsDone} items saved to your Review Queue</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-[#252340] rounded-xl p-3 border border-white/5 text-center">
-            <p className="text-xs text-[#9b98b0] mb-1">Items Done</p>
-            <p className="text-xl font-bold text-[#e8e6f0]">{itemsDone}</p>
-          </div>
-          <div className="bg-[#252340] rounded-xl p-3 border border-white/5 text-center">
-            <p className="text-xs text-[#9b98b0] mb-1">XP Earned</p>
-            <p className="text-xl font-bold text-[#9b8cf5]">+{xpSoFar}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={onContinue}
-            className="w-full py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors"
-          >
-            Continue with {pathName}
-          </button>
-          <button
-            onClick={onExit}
-            className="w-full py-3.5 rounded-xl bg-white/5 text-[#9b98b0] font-bold hover:bg-white/10 transition-colors border border-white/10"
-          >
-            Exit to Summary
+            Start Quiz →
           </button>
         </div>
       </div>
@@ -827,394 +350,190 @@ function GoodJobModal({
   )
 }
 
-// ─── Path End Screen ──────────────────────────────────────────────────────────
-// Shown after completing one path's batch. Offers "5 more", "Continue", or "Done".
+// ─── Slide: Word Overview ─────────────────────────────────────────────────────
 
-function PathEndScreen({
-  currentPathName,
-  nextPathName,
-  batchSize,
-  itemsDone,
-  onMore,
-  onContinue,
-  onDone,
-}: {
-  currentPathName: string
-  nextPathName: string | null
-  batchSize: number
-  itemsDone: number
-  onMore: () => void
-  onContinue: () => void
-  onDone: () => void
-}) {
+function WordOverviewSlide({ word }: { word: VocabWord }) {
+  const isNoun = word.typ === 'NOMEN' && word.artikel
+  const declension = isNoun ? getDeclension(word.artikel!, word.word, word.genitiv) : null
+
   return (
-    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
-      <div className="text-center max-w-sm w-full">
-        <div className="text-5xl mb-4">✅</div>
-        <h2 className="text-2xl font-bold text-[#e8e6f0] mb-2">Batch complete!</h2>
-        <p className="text-[#9b98b0] mb-8">
-          You finished <span className="text-[#9b8cf5] font-bold">{itemsDone}</span> cards from <span className="text-[#e8e6f0] font-bold">{currentPathName}</span>.
-        </p>
-
-        <div className="flex flex-col gap-3">
-          {/* Learn more from current path */}
-          <button
-            onClick={onMore}
-            className="w-full py-3.5 rounded-xl bg-[#7c6df2]/20 text-[#9b8cf5] font-bold border border-[#7c6df2]/40 hover:bg-[#7c6df2]/30 transition-colors"
-          >
-            Learn {batchSize} more from {currentPathName} →
-          </button>
-
-          {/* Move to next path (if exists) */}
-          {nextPathName && (
-            <button
-              onClick={onContinue}
-              className="w-full py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors"
-            >
-              Continue → {nextPathName}
-            </button>
+    <div className="flex flex-col items-center justify-center px-6 py-8 text-center">
+      <div className="flex gap-2 mb-6 flex-wrap justify-center">
+        <span className={`px-3 py-1 rounded-md text-xs font-bold border ${typColor(word.typ)}`}>{word.typ}</span>
+        <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">{word.level}</span>
+        {word.frequenz_rang && (
+          <span className="px-3 py-1 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">#{word.frequenz_rang}</span>
+        )}
+        {word.verwendung && (
+          <span className="px-3 py-1 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">{word.verwendung}</span>
+        )}
+      </div>
+      <h1 className="text-5xl sm:text-6xl font-bold text-[#9b8cf5] mb-3 leading-tight">
+        {word.artikel ? `${word.artikel} ${word.word}` : word.word}
+      </h1>
+      {word.plural && (
+        <p className="text-[#9b98b0] text-base mb-4">Pl. <span className="text-[#e8e6f0] font-medium">{word.plural}</span></p>
+      )}
+      {word.erklaerung && (
+        <div className="w-full max-w-sm mt-4 bg-[#252340] rounded-xl p-4 border border-white/5 text-left">
+          <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1.5">Explanation</p>
+          <p className="text-[#e8e6f0] text-sm leading-relaxed">{word.erklaerung}</p>
+        </div>
+      )}
+      {declension && (
+        <div className="w-full max-w-sm mt-4 bg-[#252340] rounded-xl border border-white/5 overflow-hidden text-left">
+          <p className="text-xs text-[#9b98b0] uppercase tracking-wider px-4 pt-3 pb-2">Declension (Singular)</p>
+          {declension.map(({ label, art, noun }) => (
+            <div key={label} className="flex items-center gap-3 px-4 py-2 border-t border-white/5">
+              <span className="text-xs text-[#9b98b0] w-20 shrink-0">{label}</span>
+              <span className="text-[#7c6df2] font-medium text-sm">{art}</span>
+              <span className="text-[#e8e6f0] text-sm">{noun}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {!declension && (
+        <div className="mt-6 grid grid-cols-2 gap-3 w-full max-w-sm text-left">
+          <div className="bg-[#252340] rounded-xl p-4 border border-white/5">
+            <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1">Type</p>
+            <p className="text-[#e8e6f0] font-bold">{word.typ}</p>
+          </div>
+          {word.frequenz_rang && (
+            <div className="bg-[#252340] rounded-xl p-4 border border-white/5">
+              <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1">Frequenz</p>
+              <p className="text-[#e8e6f0] font-bold">#{word.frequenz_rang}</p>
+            </div>
           )}
-
-          {/* Done for today */}
-          <button
-            onClick={onDone}
-            className="w-full py-3.5 rounded-xl bg-white/5 text-[#9b98b0] font-bold hover:bg-white/10 transition-colors border border-white/10"
-          >
-            Done for Today
-          </button>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Slide: Example Sentences ─────────────────────────────────────────────────
+
+function SentencesSlide({ word, sentences }: { word: VocabWord; sentences: VocabSentence[] }) {
+  const [showEN, setShowEN] = useState(false)
+  return (
+    <div className="flex flex-col min-h-[440px] px-6 py-6">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-0.5">Examples</p>
+          <p className="font-bold text-[#e8e6f0]">
+            <span className="text-[#9b8cf5]">{word.word}</span> — {sentences.length} sentences
+          </p>
+        </div>
+        <button
+          onClick={() => setShowEN(v => !v)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+            showEN ? 'bg-[#7c6df2]/20 text-[#9b8cf5] border-[#7c6df2]/30' : 'bg-white/5 text-[#9b98b0] border-white/10 hover:border-white/20'
+          }`}
+        >
+          {showEN ? '🙈 Hide EN' : '👁 Show EN'}
+        </button>
+      </div>
+      <div className="space-y-2.5 overflow-y-auto flex-1 pr-1">
+        {sentences.map((s, i) => (
+          <div key={s.id} className="bg-[#252340] rounded-xl p-4 border border-white/5">
+            <div className="flex gap-3">
+              <span className="text-xs text-[#9b98b0] shrink-0 mt-1 w-4 text-right">{i + 1}.</span>
+              <div>
+                <p className="text-[#e8e6f0] leading-relaxed">{highlightWord(s.sentence_de, s.cloze_word)}</p>
+                {showEN && s.sentence_en && (
+                  <p className="text-[#9b98b0] text-sm mt-1 leading-relaxed">{s.sentence_en}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
-// ─── Results Screen ───────────────────────────────────────────────────────────
-// Full results after every session: accuracy, XP, sentence list with tabs/filters.
+// ─── Grammar Topic Explanation (shown inline before first sentence of a topic) ─
 
-interface Results24hItem {
-  sentence_de: string
-  sentence_en: string | null
-  cloze_word: string
-  label: string
-  correct: boolean
-}
-
-function ResultsScreen({
-  results,
-  xpGained,
-  newStreak,
-  dailyTotal,
-}: {
-  results: ClozeResult[]
-  xpGained: number
-  newStreak: number
-  dailyTotal: number
-}) {
-  const [tab, setTab] = useState<'session' | '24h'>('session')
-  const [filter, setFilter] = useState<'all' | 'correct' | 'missed'>('all')
-  const [items24h, setItems24h] = useState<Results24hItem[]>([])
-  const [loading24h, setLoading24h] = useState(false)
-
-  const correct = results.filter(r => r.correct).length
-  const pct = results.length > 0 ? Math.round((correct / results.length) * 100) : 0
-
-  // Load 24h results when that tab is selected
-  useEffect(() => {
-    if (tab !== '24h' || items24h.length > 0) return
-    async function load() {
-      setLoading24h(true)
-      try {
-        const sessionId = getOrCreateSessionId()
-        const since = new Date(Date.now() - 86400000).toISOString()
-        const { data } = await supabase
-          .from('gwc_user_reviews')
-          .select('correct, reviewed_at, word_sentence_id, grammar_sentence_id, item_type')
-          .eq('session_id', sessionId)
-          .gte('reviewed_at', since)
-          .order('reviewed_at', { ascending: false })
-          .limit(200)
-        // We just show them as a list of sentence IDs; fetch sentence text separately
-        const rows = (data || []) as { correct: boolean; word_sentence_id: string | null; grammar_sentence_id: string | null; item_type: string }[]
-        const vocabIds = rows.filter(r => r.item_type === 'vocab' && r.word_sentence_id).map(r => r.word_sentence_id!)
-        const grammarIds = rows.filter(r => r.item_type === 'grammar' && r.grammar_sentence_id).map(r => r.grammar_sentence_id!)
-
-        const [vocabSents, grammarSents] = await Promise.all([
-          vocabIds.length > 0
-            ? supabase.from('gwc_word_sentences').select('id, sentence_de, sentence_en, cloze_word, word_id').in('id', vocabIds)
-            : { data: [] },
-          grammarIds.length > 0
-            ? supabase.from('gwc_grammar_sentences').select('id, sentence_de, sentence_en, cloze_word, topic_id').in('id', grammarIds)
-            : { data: [] },
-        ])
-
-        // Get word labels
-        const wordIds = (vocabSents.data || []).map((s: { word_id: string }) => s.word_id)
-        const topicIds = (grammarSents.data || []).map((s: { topic_id: string }) => s.topic_id)
-        const [wordsData, topicsData] = await Promise.all([
-          wordIds.length > 0 ? supabase.from('gwc_words').select('id, word').in('id', wordIds) : { data: [] },
-          topicIds.length > 0 ? supabase.from('gwc_grammar_topics').select('id, title').in('id', topicIds) : { data: [] },
-        ])
-
-        const wordMap: Record<string, string> = Object.fromEntries((wordsData.data || []).map((w: { id: string; word: string }) => [w.id, w.word]))
-        const topicMap: Record<string, string> = Object.fromEntries((topicsData.data || []).map((t: { id: string; title: string }) => [t.id, t.title]))
-        const vocabSentMap: Record<string, { sentence_de: string; sentence_en: string | null; cloze_word: string; word_id: string }> = Object.fromEntries(
-          (vocabSents.data || []).map((s: { id: string; sentence_de: string; sentence_en: string | null; cloze_word: string; word_id: string }) => [s.id, s])
-        )
-        const grammarSentMap: Record<string, { sentence_de: string; sentence_en: string | null; cloze_word: string; topic_id: string }> = Object.fromEntries(
-          (grammarSents.data || []).map((s: { id: string; sentence_de: string; sentence_en: string | null; cloze_word: string; topic_id: string }) => [s.id, s])
-        )
-
-        const built: Results24hItem[] = rows.map(r => {
-          if (r.item_type === 'vocab' && r.word_sentence_id) {
-            const s = vocabSentMap[r.word_sentence_id]
-            return s ? { sentence_de: s.sentence_de, sentence_en: s.sentence_en, cloze_word: s.cloze_word, label: wordMap[s.word_id] ?? '', correct: r.correct } : null
-          } else if (r.grammar_sentence_id) {
-            const s = grammarSentMap[r.grammar_sentence_id]
-            return s ? { sentence_de: s.sentence_de, sentence_en: s.sentence_en, cloze_word: s.cloze_word, label: topicMap[s.topic_id] ?? '', correct: r.correct } : null
-          }
-          return null
-        }).filter(Boolean) as Results24hItem[]
-
-        setItems24h(built)
-      } catch (e) {
-        console.error('24h results load error:', e)
-      }
-      setLoading24h(false)
-    }
-    load()
-  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const displayItems: { sentence_de: string; sentence_en: string | null; cloze_word: string; label: string; correct: boolean }[] =
-    tab === 'session' ? results : items24h
-
-  const filtered = displayItems.filter(r =>
-    filter === 'all' ? true : filter === 'correct' ? r.correct : !r.correct
-  )
-
-  const correctCount24h = items24h.filter(r => r.correct).length
-  const pct24h = items24h.length > 0 ? Math.round((correctCount24h / items24h.length) * 100) : 0
-
+function GrammarExplainer({ topic, onContinue }: { topic: GrammarTopic; onContinue: () => void }) {
   return (
-    <div className="min-h-screen bg-[#0f0e17]">
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-5">
-
-        {/* Header */}
-        <div className="text-center">
-          <div className="text-5xl mb-3">{pct >= 70 ? '🎉' : '📚'}</div>
-          <h2 className="text-2xl font-bold text-[#e8e6f0]">Session Complete</h2>
-          <p className="text-[#9b98b0] text-sm mt-1">{dailyTotal} cards learned today</p>
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#1a1830] rounded-xl p-4 border border-white/5 text-center">
-            <p className="text-2xl font-bold text-[#4ade80]">{pct}%</p>
-            <p className="text-xs text-[#9b98b0] mt-1">Accuracy</p>
-          </div>
-          <div className="bg-[#1a1830] rounded-xl p-4 border border-white/5 text-center">
-            <p className="text-2xl font-bold text-[#9b8cf5]">+{xpGained}</p>
-            <p className="text-xs text-[#9b98b0] mt-1">XP Earned</p>
-          </div>
-          <div className="bg-[#1a1830] rounded-xl p-4 border border-white/5 text-center">
-            <p className="text-2xl font-bold text-orange-400">🔥 {newStreak}</p>
-            <p className="text-xs text-[#9b98b0] mt-1">Streak</p>
-          </div>
-        </div>
-
-        {/* Correct / Incorrect bars */}
-        <div className="bg-[#1a1830] rounded-xl p-4 border border-white/5 space-y-2">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[#4ade80] w-16 shrink-0">Correct</span>
-            <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-[#4ade80]/70 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="text-xs font-bold text-[#4ade80] w-8 text-right shrink-0">{correct}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[#f87171] w-16 shrink-0">Missed</span>
-            <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-[#f87171]/70 rounded-full transition-all duration-700" style={{ width: `${100 - pct}%` }} />
-            </div>
-            <span className="text-xs font-bold text-[#f87171] w-8 text-right shrink-0">{results.length - correct}</span>
-          </div>
-        </div>
-
-        {/* Tab selector */}
-        <div className="flex gap-1 bg-[#1a1830] rounded-xl p-1 border border-white/5">
-          {(['session', '24h'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
-                tab === t ? 'bg-[#7c6df2] text-white' : 'text-[#9b98b0] hover:text-[#e8e6f0]'
-              }`}
-            >
-              {t === 'session' ? 'This Session' : 'Last 24 Hours'}
-            </button>
-          ))}
-        </div>
-
-        {/* Filter tabs for sentence list */}
-        <div className="flex gap-1">
-          {(['all', 'correct', 'missed'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors capitalize ${
-                filter === f
-                  ? f === 'correct' ? 'bg-[#4ade80]/20 text-[#4ade80] border border-[#4ade80]/30'
-                  : f === 'missed'  ? 'bg-[#f87171]/20 text-[#f87171] border border-[#f87171]/30'
-                  : 'bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30'
-                  : 'bg-white/5 text-[#9b98b0] border border-white/10 hover:text-[#e8e6f0]'
-              }`}
-            >
-              {f === 'all' ? `All (${displayItems.length})` : f === 'correct' ? `Correct (${displayItems.filter(r => r.correct).length})` : `Missed (${displayItems.filter(r => !r.correct).length})`}
-            </button>
-          ))}
-        </div>
-
-        {/* Sentence list */}
-        {tab === '24h' && loading24h ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-[#9b98b0] text-sm py-6">
-            {tab === '24h' && items24h.length === 0 ? 'No reviews in the last 24 hours.' : 'Nothing to show.'}
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {filtered.map((r, i) => {
-              // Replace cloze_word with highlighted version
-              const parts = r.sentence_de.split(new RegExp(`(${r.cloze_word})`, 'i'))
-              return (
-                <div key={i} className={`bg-[#1a1830] rounded-xl p-4 border ${r.correct ? 'border-[#4ade80]/20' : 'border-[#f87171]/20'}`}>
-                  <div className="flex items-start gap-2">
-                    <span className={`text-sm font-bold shrink-0 mt-0.5 ${r.correct ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
-                      {r.correct ? '✓' : '✗'}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-[#9b98b0] uppercase tracking-wider mb-1">{r.label}</p>
-                      <p className="text-[#e8e6f0] text-sm leading-relaxed">
-                        {parts.map((part, j) =>
-                          new RegExp(`^${r.cloze_word}$`, 'i').test(part)
-                            ? <span key={j} className={`font-bold ${r.correct ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>{part}</span>
-                            : <span key={j}>{part}</span>
-                        )}
-                      </p>
-                      {r.sentence_en && (
-                        <p className="text-[#9b98b0] text-xs mt-1 leading-relaxed">{r.sentence_en}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* 24h stats summary if on that tab */}
-        {tab === '24h' && !loading24h && items24h.length > 0 && (
-          <div className="bg-[#1a1830] rounded-xl p-3 border border-white/5 text-center">
-            <p className="text-sm text-[#9b98b0]">
-              {items24h.length} reviews · <span className="text-[#4ade80] font-bold">{pct24h}%</span> accuracy
-            </p>
-          </div>
-        )}
-
-        {/* Return to Dashboard */}
-        <Link
-          href="/dashboard"
-          className="w-full block py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-center hover:bg-[#9b8cf5] transition-colors"
-        >
-          Return to Dashboard
+    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
+      <div className="flex items-center px-5 py-3 border-b border-white/5">
+        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+          ← Dashboard
         </Link>
       </div>
-    </div>
-  )
-}
 
-// ─── Daily Goal Screen ────────────────────────────────────────────────────────
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <div className="max-w-lg w-full">
+          {/* Badge */}
+          <div className="flex items-center gap-2 mb-4 justify-center">
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
+              Grammar
+            </span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
+              {topic.level}
+            </span>
+          </div>
 
-function DailyGoalScreen({ data, onExtend, onDone }: {
-  data: CompletionData
-  onExtend: () => void
-  onDone: () => void
-}) {
-  const pct = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
-  return (
-    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
-      <div className="text-center max-w-sm w-full">
-        <div className="text-6xl mb-4">🎉</div>
-        <h2 className="text-3xl font-bold text-[#e8e6f0] mb-2">Daily Goal Reached!</h2>
-        <p className="text-[#9b98b0] mb-8">
-          You&apos;ve learned <span className="text-[#9b8cf5] font-bold">{data.dailyTotal}</span> new cards today.
-        </p>
-        <div className="grid grid-cols-3 gap-3 mb-8">
-          <div className="bg-[#1a1830] rounded-xl p-3 border border-white/5">
-            <p className="text-xs text-[#9b98b0] mb-1">Accuracy</p>
-            <p className="text-xl font-bold text-[#4ade80]">{pct}%</p>
+          {/* Title */}
+          <h2 className="text-3xl font-bold text-[#e8e6f0] text-center mb-6">{topic.title}</h2>
+
+          {/* Explanation */}
+          <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5 mb-8">
+            <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-4">How it works</p>
+            <div
+              className="text-[#c5c3d4] text-sm leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: renderMd(topic.explanation_en) }}
+            />
           </div>
-          <div className="bg-[#1a1830] rounded-xl p-3 border border-white/5">
-            <p className="text-xs text-[#9b98b0] mb-1">XP</p>
-            <p className="text-xl font-bold text-[#9b8cf5]">+{data.xpGained}</p>
-          </div>
-          <div className="bg-[#1a1830] rounded-xl p-3 border border-white/5">
-            <p className="text-xs text-[#9b98b0] mb-1">Streak</p>
-            <p className="text-xl font-bold text-orange-400">🔥 {data.newStreak}</p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3">
+
           <button
-            onClick={onExtend}
-            className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2]/20 text-[#9b8cf5] font-bold border border-[#7c6df2]/40 hover:bg-[#7c6df2]/30 transition-colors"
+            onClick={onContinue}
+            className="w-full py-4 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all hover:-translate-y-0.5 shadow-lg shadow-[#7c6df2]/30 text-lg"
           >
-            Learn 5 More Cards →
+            Practice →
           </button>
-          <button
-            onClick={onDone}
-            className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors"
-          >
-            Done for Today
-          </button>
-          <Link href="/review" className="text-[#9b98b0] text-sm hover:text-[#e8e6f0] transition-colors py-1">
-            Go to Reviews →
-          </Link>
         </div>
       </div>
     </div>
   )
 }
 
-// ─── Cloze Session ────────────────────────────────────────────────────────────
-// Handles the actual cloze quiz. Shows one card at a time.
+// ─── Unified Cloze Session ────────────────────────────────────────────────────
 
 function ClozeSession({
   items,
+  hasVocab,
   onComplete,
-  onEarlyExit,
 }: {
   items: ClozeItem[]
+  hasVocab: boolean
   onComplete: (results: ClozeResult[]) => void
-  onEarlyExit: (partialResults: ClozeResult[]) => void
 }) {
-  const [index, setIndex]                       = useState(0)
-  const [input, setInput]                       = useState('')
-  const [answered, setAnswered]                 = useState(false)
-  const [showTranslation, setShowTranslation]   = useState(false)
-  const [results, setResults]                   = useState<ClozeResult[]>([])
+  const [index, setIndex]                 = useState(0)
+  const [input, setInput]                 = useState('')
+  const [answered, setAnswered]           = useState(false)
+  const [showingExplainer, setShowingExplainer] = useState(false)
+  const [results, setResults]             = useState<ClozeResult[]>([])
+  const seenTopicsRef                     = useRef<Set<string>>(new Set())
 
   const current = items[index]
 
-  // Reset state when card changes (grammar explanations are now in the study phase before cloze)
+  // When index changes: reset state, and check if we need to show a grammar explainer first
   useEffect(() => {
     setInput('')
     setAnswered(false)
-    setShowTranslation(false)
-  }, [index])
+    if (current?.kind === 'grammar' && !seenTopicsRef.current.has(current.topic.id)) {
+      seenTopicsRef.current.add(current.topic.id)
+      setShowingExplainer(true)
+    } else {
+      setShowingExplainer(false)
+    }
+  }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sentence  = current?.kind === 'vocab' ? current.sentence : current?.sentence
-  const clozeWord = sentence?.cloze_word ?? ''
+  const sentence   = current?.kind === 'vocab' ? current.sentence
+                   : current?.kind === 'grammar' ? current.sentence
+                   : current?.sentence
+  const clozeWord  = sentence?.cloze_word ?? ''
   const clozeParts = createCloze(sentence?.sentence_de ?? '', clozeWord).split('___')
 
   const isCorrect =
@@ -1235,61 +554,107 @@ function ClozeSession({
   }
 
   const handleNext = useCallback(() => {
-    if (!sentence || !current) return
+    if (!sentence) return
     const r: ClozeResult = {
-      id:          sentence.id,
-      type:        current.kind === 'vocab' ? 'vocab' : 'grammar',
-      correct:     isCorrect,
-      sentence_de: sentence.sentence_de,
-      sentence_en: sentence.sentence_en ?? null,
-      cloze_word:  clozeWord,
-      label:       current.kind === 'vocab' ? current.word.word : current.topic.title,
-      // Carry the form key so saveBatchResults can store it for form-level SRS
-      formKey:     current.kind === 'grammar' ? current.formKey : undefined,
+      id:        sentence.id,
+      type:      current.kind === 'vocab' ? 'vocab' : current.kind === 'grammar' ? 'grammar' : 'verb',
+      correct:   isCorrect,
+      verbId:    current.kind === 'verb' ? current.verb.id : undefined,
+      verbTense: current.kind === 'verb' ? current.tense  : undefined,
     }
     const newResults = [...results, r]
     setResults(newResults)
     advance(newResults)
-  }, [results, sentence, current, isCorrect, clozeWord, index, items.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [results, sentence, current, isCorrect, index, items.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keyboard shortcut: Enter to check/advance
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (showingExplainer) return
       if (e.key === 'Enter') answered ? handleNext() : handleCheck()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [answered, handleCheck, handleNext])
+  }, [answered, handleCheck, handleNext, showingExplainer])
+
+  // Show grammar topic explainer before first cloze of that topic
+  if (showingExplainer && current?.kind === 'grammar') {
+    return (
+      <GrammarExplainer
+        topic={current.topic}
+        onContinue={() => setShowingExplainer(false)}
+      />
+    )
+  }
 
   if (!current || !sentence) return null
 
   const progress = results.length / items.length
 
-  // Hint 1: vocab → English translation of the word (always visible); grammar → person form
-  const hint1Vocab = current.kind === 'vocab' ? current.word.translation_en : null
-  const hint1Grammar = current.kind === 'grammar' ? current.topic.translation_en : null
+  // Badge shown in top-right of card
+  const cardBadge = current.kind === 'vocab'   ? current.word.word
+                  : current.kind === 'grammar' ? current.topic.title
+                  : current.verb.word
+
+  // Small context badges: grammar → person, verb → tense + person
+  const personBadge = current.kind === 'grammar' ? (current.sentence.person || null)
+                    : current.kind === 'verb'    ? (current.sentence.person || null)
+                    : null
+  const tenseBadge  = current.kind === 'verb' ? current.tense : null
+
+  // Hint 1 (big box translation): for vocab use sentence_en is shown inline;
+  // for grammar/verb show translation in card label area
+  const hint1 = current.kind === 'vocab'   ? null
+              : current.kind === 'grammar' ? current.topic.translation_en
+              : current.verb.translation_en
+
+  // EN translation display (with cloze_word_en highlight for vocab)
+  function renderEN() {
+    if (!sentence?.sentence_en) return null
+    if (current.kind === 'vocab' && current.sentence.cloze_word_en) {
+      const regex = new RegExp(`(${current.sentence.cloze_word_en})`, 'gi')
+      const parts = (current.sentence.sentence_en ?? '').split(regex)
+      return (
+        <p className="text-[#9b98b0] text-xl leading-relaxed">
+          {parts.map((part, i) =>
+            regex.test(part)
+              ? <span key={i} className="text-[#9b8cf5] font-bold">{part}</span>
+              : <span key={i}>{part}</span>
+          )}
+        </p>
+      )
+    }
+    return <p className="text-[#9b98b0] text-xl leading-relaxed italic">{sentence.sentence_en}</p>
+  }
 
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
-        {/* Exit button → triggers good-job modal */}
-        <button
-          onClick={() => onEarlyExit(results)}
-          className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm"
-        >
-          ← Exit
-        </button>
+        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+          ← Dashboard
+        </Link>
         <div className="flex items-center gap-3 text-sm">
+          {/* Kind badge */}
           {current.kind === 'grammar' && (
             <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
               Grammar
             </span>
           )}
-          {hint1Grammar && (
+          {current.kind === 'verb' && (
+            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">
+              Verb
+            </span>
+          )}
+          {/* Tense badge (verb only) */}
+          {tenseBadge && (
+            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/20">
+              {tenseBadge}
+            </span>
+          )}
+          {personBadge && (
             <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
-              {hint1Grammar}
+              {personBadge}
             </span>
           )}
           <span className="text-[#9b98b0]">{results.length + 1} / {items.length}</span>
@@ -1301,40 +666,25 @@ function ClozeSession({
         <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${progress * 100}%` }} />
       </div>
 
-      {/* Card content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-6 sm:py-12">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="max-w-2xl w-full text-center space-y-6">
 
           {/* Word/topic label */}
-          <p className="text-[#9b8cf5] font-bold text-lg">
-            {current.kind === 'vocab' ? current.word.word : current.topic.title}
-          </p>
+          <p className="text-[#9b8cf5] font-bold text-lg">{cardBadge}</p>
 
-          {/* Hint 1: English equivalent word — always visible above the sentence */}
-          {hint1Vocab && (
-            <div className="inline-block px-4 py-2 rounded-xl bg-[#7c6df2]/10 border border-[#7c6df2]/20">
-              <span className="text-[#9b8cf5] font-bold text-base">"{hint1Vocab}"</span>
+          {/* Hint 1: grammar/verb show big English translation box */}
+          {hint1 && (
+            <div className="w-full max-w-md mx-auto bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
+              <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
             </div>
           )}
 
-          {/* Hint 2: Show Translation button (only before answering) */}
-          {!answered && sentence.sentence_en && (
-            <div>
-              {!showTranslation ? (
-                <button
-                  onClick={() => setShowTranslation(true)}
-                  className="text-xs text-[#9b98b0] hover:text-[#e8e6f0] border border-white/10 rounded-lg px-3 py-1.5 transition-colors min-h-[36px]"
-                >
-                  Show Translation
-                </button>
-              ) : (
-                <p className="text-[#9b98b0] text-base sm:text-lg leading-relaxed italic">{sentence.sentence_en}</p>
-              )}
-            </div>
-          )}
+          {/* English translation shown for vocab */}
+          {!hint1 && renderEN()}
 
-          {/* German sentence with gap */}
-          <p className="text-[#e8e6f0] text-xl sm:text-3xl md:text-4xl leading-relaxed font-light">
+          {/* German sentence with gap — user types the missing word */}
+          <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
             {clozeParts[0]}
             <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
               !answered
@@ -1343,25 +693,21 @@ function ClozeSession({
                   ? 'border-[#4ade80] text-[#4ade80]'
                   : 'border-[#f87171] text-[#f87171]'
             }`}>
-              {/* Never show the cloze word before user submits */}
               {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
             </span>
             {clozeParts[1]}
           </p>
 
-          {/* After answering: show wrong-answer feedback and full translation */}
+          {/* Wrong answer feedback */}
           {answered && !isCorrect && (
-            <div className="inline-block px-4 py-2 rounded-xl bg-[#f87171]/10 border border-[#f87171]/20 text-[#f87171] text-sm break-words max-w-full">
+            <div className="inline-block px-4 py-2 rounded-xl bg-[#f87171]/10 border border-[#f87171]/20 text-[#f87171] text-sm">
               You typed: <span className="font-bold">"{input}"</span>
             </div>
-          )}
-          {answered && sentence.sentence_en && (
-            <p className="text-[#9b98b0] text-base sm:text-lg leading-relaxed italic">{sentence.sentence_en}</p>
           )}
         </div>
       </div>
 
-      {/* Bottom input / next button */}
+      {/* Bottom input area */}
       <div className="bg-[#0f0e17] border-t border-white/5">
         {!answered ? (
           <div className="px-5 py-4 flex gap-3 max-w-xl mx-auto w-full">
@@ -1411,145 +757,131 @@ function ClozeSession({
   )
 }
 
-// ─── Main Learn Page ──────────────────────────────────────────────────────────
+// ─── Completion Screens ───────────────────────────────────────────────────────
+
+function DailyGoalScreen({ data, onExtend }: { data: CompletionData; onExtend: () => void }) {
+  const pct = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
+  return (
+    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+      <div className="text-center max-w-sm w-full">
+        <div className="text-6xl mb-4">🎉</div>
+        <h2 className="text-3xl font-bold text-[#e8e6f0] mb-2">Daily goal reached!</h2>
+        <p className="text-[#9b98b0] mb-8">
+          You've learned <span className="text-[#9b8cf5] font-bold">{data.dailyTotal}</span> new cards today.
+        </p>
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <div className="bg-[#1a1830] rounded-xl p-3 border border-white/5">
+            <p className="text-xs text-[#9b98b0] mb-1">Correct</p>
+            <p className="text-xl font-bold text-[#4ade80]">{pct}%</p>
+          </div>
+          <div className="bg-[#1a1830] rounded-xl p-3 border border-white/5">
+            <p className="text-xs text-[#9b98b0] mb-1">XP</p>
+            <p className="text-xl font-bold text-[#9b8cf5]">+{data.xpGained}</p>
+          </div>
+          <div className="bg-[#1a1830] rounded-xl p-3 border border-white/5">
+            <p className="text-xs text-[#9b98b0] mb-1">Streak</p>
+            <p className="text-xl font-bold text-orange-400">🔥 {data.newStreak}</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={onExtend}
+            className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2]/20 text-[#9b8cf5] font-bold border border-[#7c6df2]/40 hover:bg-[#7c6df2]/30 transition-colors"
+          >
+            Learn 5 more →
+          </button>
+          <Link
+            href="/dashboard"
+            className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors text-center"
+          >
+            Done for today
+          </Link>
+          <Link href="/review" className="text-[#9b98b0] text-sm hover:text-[#e8e6f0] transition-colors py-1">
+            Go to Reviews →
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CompletionScreen({ data }: { data: CompletionData }) {
+  const pct = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
+  return (
+    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+      <div className="text-center max-w-sm">
+        <div className="text-6xl mb-6">{pct >= 70 ? '🎉' : '📚'}</div>
+        <h2 className="text-3xl font-bold text-[#e8e6f0] mb-2">{pct >= 70 ? 'Great job!' : 'Keep practicing!'}</h2>
+        <p className="text-[#9b98b0] mb-1">{data.correct}/{data.total} correct — {pct}%</p>
+        <p className="text-[#9b8cf5] font-bold mb-1">+{data.xpGained} XP</p>
+        {data.newStreak > 0 && <p className="text-orange-400 text-sm mb-4">🔥 {data.newStreak} day streak</p>}
+        <p className="text-[#9b98b0] text-sm mb-8">
+          These cards are now in your <span className="text-[#9b8cf5] font-semibold">Review Queue</span>.
+        </p>
+        <div className="flex gap-3 justify-center">
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
+            Dashboard
+          </Link>
+          <Link href="/learn" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">
+            Learn More
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function LearnPage() {
-  const searchParams = useSearchParams()
-  const targetPathId = searchParams.get('path') // optional: single-path mode from dashboard
+  const [appPhase, setAppPhase]       = useState<AppPhase>('loading')
+  const [error, setError]             = useState<string | null>(null)
 
-  const [appPhase, setAppPhase]             = useState<AppPhase>('loading')
-  const [error, setError]                   = useState<string | null>(null)
+  // Vocab study queue (browse slides)
+  const [vocabQueue, setVocabQueue]   = useState<VocabLearnItem[]>([])
+  const [wordIndex, setWordIndex]     = useState(0)
+  const [slideIndex, setSlideIndex]   = useState(0)
 
-  // All active paths (sorted by queue_position)
-  const [activePaths, setActivePaths]       = useState<UserPath[]>([])
-  // Which path in activePaths we're currently serving
-  const [currentPathIdx, setCurrentPathIdx] = useState(0)
+  // Unified cloze queue (vocab + grammar)
+  const [clozeItems, setClozeItems]   = useState<ClozeItem[]>([])
 
-  // Study phase slides: vocab word overviews + grammar topic explanations (before cloze)
-  const [studyQueue, setStudyQueue]         = useState<StudySlide[]>([])
-  const [slideIndex, setSlideIndex]         = useState(0)
-
-  // Cloze items for current path's batch
-  const [clozeItems, setClozeItems]         = useState<ClozeItem[]>([])
-
-  // Accumulated results across the whole session
-  const [allResults, setAllResults]         = useState<ClozeResult[]>([])
-
-  // Current batch results (to save to DB when a batch is done)
-  const [batchResults, setBatchResults]     = useState<ClozeResult[]>([])
-
-  // Path name for quiz modal
-  const [currentPathName, setCurrentPathName] = useState('German With Caro')
-
-  // Completion/session summary data
-  const [completion, setCompletion]         = useState<CompletionData | null>(null)
+  // Active path name for quiz modal display
+  const [pathName, setPathName]       = useState('German With Caro')
 
   // Daily goal tracking
-  const [currentGoal, setCurrentGoal]       = useState(10)
+  const [currentGoal, setCurrentGoal] = useState(10)
+  const [completion, setCompletion]   = useState<CompletionData | null>(null)
 
-  // Good-job modal state
-  const [showGoodJob, setShowGoodJob]       = useState(false)
-  const [goodJobXP, setGoodJobXP]           = useState(0)
+  // loadKey increments to re-trigger load (used for "learn more" extension)
+  const [loadKey, setLoadKey]         = useState(0)
+  const extensionBatchRef             = useRef<number | null>(null)
 
-  // "learn more" extension: stores batch size to re-load with
-  const extensionBatchRef                   = useRef<number | null>(null)
-  const loadKey                             = useRef(0)
-
-  // ── Load items for a specific path index ─────────────────────────────────
-
-  const loadPath = useCallback(async (
-    pathIdx: number,
-    paths: UserPath[],
-    batchOverride?: number,
-  ) => {
-    setAppPhase('loading')
-    setError(null)
-    try {
-      const sessionId = getOrCreateSessionId()
-      const path = paths[pathIdx]
-      const def  = getPathById(path.path_id)
-      if (!def) { setAppPhase('no-items'); return }
-
-      setCurrentPathName(def.name)
-
-      const batchSize = batchOverride ?? path.batch_size
-
-      const vocab:   VocabLearnItem[]   = []
-      const grammar: GrammarLearnItem[] = []
-
-      if (def.type === 'vocab' || def.type === 'mixed') {
-        vocab.push(...await fetchVocabItems(sessionId, path.lesson_order, batchSize))
-      }
-      if (def.type === 'grammar' || def.type === 'mixed') {
-        grammar.push(...await fetchGrammarItems(sessionId, batchSize))
-      }
-
-      if (vocab.length === 0 && grammar.length === 0) {
-        // No items for this path — try next path
-        if (pathIdx + 1 < paths.length) {
-          await loadPath(pathIdx + 1, paths)
-          return
-        }
-        setAppPhase(allResults.length > 0 ? 'results' : 'no-items')
-        return
-      }
-
-      // Build the study queue: one vocab slide per word + one grammar slide per unique topic
-      // Grammar slides are deduplicated by topic (explanation shown once per topic, not per form)
-      const grammarTopicsSeen = new Set<string>()
-      const slides: StudySlide[] = []
-
-      // Vocab slides first (one per word, all sentences included)
-      for (const v of vocab) {
-        slides.push({ kind: 'vocab', word: v.word, sentences: v.sentences })
-      }
-
-      // Grammar slides: one per unique topic, listing which persons are in this batch
-      for (const g of grammar) {
-        if (!grammarTopicsSeen.has(g.topic.id)) {
-          grammarTopicsSeen.add(g.topic.id)
-          const personsForTopic = grammar
-            .filter(item => item.topic.id === g.topic.id)
-            .map(item => item.person)
-          slides.push({ kind: 'grammar', topic: g.topic, personsInBatch: personsForTopic, sentences: g.topicSentences })
-        }
-      }
-
-      setStudyQueue(slides)
-      setSlideIndex(0)
-
-      // Cloze items carry formKey for grammar so it can be stored in DB
-      const items: ClozeItem[] = [
-        ...vocab.map(v => ({ kind: 'vocab' as const, word: v.word, sentence: v.sentences[0] })),
-        ...grammar.map(g => ({ kind: 'grammar' as const, topic: g.topic, sentence: g.sentence, formKey: g.formKey })),
-      ]
-      setClozeItems(items)
-
-      // Always enter studying phase (shows both vocab and grammar slides)
-      // Skip studying phase only when there are no slides at all
-      if (slides.length > 0) {
-        setAppPhase('studying')
-      } else {
-        setAppPhase('cloze')
-      }
-    } catch (e) {
-      console.error('Load path error:', e)
-      setError('Connection error. Please try again.')
-      setAppPhase('no-items')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allResults.length])
-
-  // ── Initial load ──────────────────────────────────────────────────────────
-
+  // ── Load items ────────────────────────────────────────────────────────────
   useEffect(() => {
-    async function init() {
+    async function load() {
       setAppPhase('loading')
       setError(null)
       try {
         const sessionId = getOrCreateSessionId()
 
-        // Load active paths
+        // Extension batch: skip path loading, fetch 5 more of the same type as last session
+        const extBatch = extensionBatchRef.current
+        extensionBatchRef.current = null
+
+        if (extBatch !== null) {
+          // Simple extension: just load more vocab (most common case)
+          const vocab = await fetchVocabItems(sessionId, 'default', extBatch)
+          setVocabQueue(vocab)
+          const items: ClozeItem[] = vocab.map(v => ({ kind: 'vocab', word: v.word, sentence: v.sentences[0] }))
+          setClozeItems(items)
+          setWordIndex(0)
+          setSlideIndex(0)
+          if (vocab.length > 0) setAppPhase('studying')
+          else setAppPhase('no-items')
+          return
+        }
+
+        // 1. Load active paths
         const { data: pathRows } = await supabase
           .from('gwc_user_paths')
           .select('*')
@@ -1557,57 +889,113 @@ export default function LearnPage() {
           .eq('active', true)
           .order('queue_position', { ascending: true })
 
-        let paths = (pathRows || []) as UserPath[]
+        const activePaths = (pathRows || []) as UserPath[]
 
-        if (paths.length === 0) { setAppPhase('no-paths'); return }
-
-        // If a specific path was requested via URL param, filter to just that one
-        if (targetPathId) {
-          paths = paths.filter(p => p.path_id === targetPathId)
-          if (paths.length === 0) { setAppPhase('no-paths'); return }
+        if (activePaths.length === 0) {
+          setAppPhase('no-paths')
+          return
         }
 
-        setActivePaths(paths)
-        setCurrentPathIdx(0)
+        // Set path name for quiz modal (use first path)
+        const firstDef = getPathById(activePaths[0].path_id)
+        if (firstDef) setPathName(firstDef.name)
 
-        // Load daily goal from user progress
-        const progress = await getOrCreateProgress(sessionId)
-        setCurrentGoal(progress?.daily_goal ?? 10)
+        // 2. Fetch items from each path
+        const allVocab: VocabLearnItem[]     = []
+        const allGrammar: GrammarLearnItem[] = []
+        const allVerbs: VerbLearnItem[]      = []
+        let totalGoal = 0
 
-        await loadPath(0, paths)
+        for (const path of activePaths) {
+          const def = getPathById(path.path_id)
+          if (!def) continue
+
+          totalGoal += path.daily_goal
+
+          if (def.type === 'vocab' || def.type === 'mixed') {
+            const vocab = await fetchVocabItems(sessionId, path.lesson_order, path.batch_size)
+            allVocab.push(...vocab)
+          }
+          if (def.type === 'grammar' || def.type === 'mixed') {
+            const grammar = await fetchGrammarItems(sessionId, path.batch_size)
+            allGrammar.push(...grammar)
+          }
+          // Verbs are fetched for all path types
+          const verbs = await fetchVerbItems(sessionId, Math.ceil(path.batch_size / 2))
+          allVerbs.push(...verbs)
+        }
+
+        setCurrentGoal(totalGoal)
+
+        if (allVocab.length === 0 && allGrammar.length === 0 && allVerbs.length === 0) {
+          setAppPhase('no-items')
+          return
+        }
+
+        // 3. Build cloze sequence: vocab, then verbs (Präsens ich-form), then grammar
+        const items: ClozeItem[] = [
+          ...allVocab.map(v => ({ kind: 'vocab' as const, word: v.word, sentence: v.sentences[0] })),
+          ...allVerbs.flatMap(v => {
+            // For each verb, add one cloze item per tense (using ich-form sentence or first available)
+            const tenses = [...new Set(v.sentences.map(s => s.tense))]
+            return tenses.map(tense => {
+              const s = v.sentences.find(s2 => s2.tense === tense && s2.person === 'ich') ?? v.sentences.find(s2 => s2.tense === tense)!
+              return { kind: 'verb' as const, verb: v.verb, sentence: s, tense }
+            })
+          }),
+          ...allGrammar.map(g => ({ kind: 'grammar' as const, topic: g.topic, sentence: g.sentence })),
+        ]
+
+        setVocabQueue(allVocab)
+        setClozeItems(items)
+        setWordIndex(0)
+        setSlideIndex(0)
+
+        // If there are vocab items, start in study browse phase; otherwise go directly to cloze
+        if (allVocab.length > 0) {
+          setAppPhase('studying')
+        } else {
+          setAppPhase('cloze')
+        }
       } catch (e) {
-        console.error('Init error:', e)
         setError('Connection error.')
+        console.error(e)
         setAppPhase('no-items')
       }
     }
-    init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    load()
+  }, [loadKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Study phase navigation ────────────────────────────────────────────────
+  // ── Vocab study navigation ────────────────────────────────────────────────
+  const SLIDES = ['overview', 'sentences']
+  const currentVocabItem = vocabQueue[wordIndex]
 
-  function goNextSlide() {
-    if (slideIndex + 1 < studyQueue.length) {
+  function goNext() {
+    if (slideIndex < SLIDES.length - 1) {
       setSlideIndex(s => s + 1)
+    } else if (wordIndex + 1 < vocabQueue.length) {
+      setWordIndex(w => w + 1)
+      setSlideIndex(0)
     } else {
-      // All study slides done → check "don't show again" preference before modal
-      const skipModal = typeof window !== 'undefined'
-        && localStorage.getItem('gwc_skip_quiz_modal') === 'true'
-      setAppPhase(skipModal ? 'cloze' : 'quiz-modal')
+      setAppPhase('quiz-modal')
     }
   }
 
-  // ── Save batch results to DB and award XP ─────────────────────────────────
+  function goBack() {
+    if (slideIndex > 0) setSlideIndex(s => s - 1)
+    else if (wordIndex > 0) { setWordIndex(w => w - 1); setSlideIndex(SLIDES.length - 1) }
+  }
 
-  async function saveBatchResults(results: ClozeResult[]): Promise<CompletionData> {
+  // ── Save results and award XP ─────────────────────────────────────────────
+  async function handleClozeComplete(results: ClozeResult[]) {
     const sessionId = getOrCreateSessionId()
     const now = new Date().toISOString()
 
     const vocabResults   = results.filter(r => r.type === 'vocab')
     const grammarResults = results.filter(r => r.type === 'grammar')
+    const verbResults    = results.filter(r => r.type === 'verb')
 
-    // Save vocab reviews (new inserts only — learn page always creates new entries)
+    // Save vocab reviews (always new inserts)
     if (vocabResults.length > 0) {
       await supabase.from('gwc_user_reviews').insert(
         vocabResults.map(r => {
@@ -1628,7 +1016,7 @@ export default function LearnPage() {
       )
     }
 
-    // Save grammar reviews (may already exist from topic page — upsert)
+    // Save grammar reviews — some may already exist (via "Add to Reviews" on topic page)
     if (grammarResults.length > 0) {
       const { data: existing } = await supabase
         .from('gwc_user_reviews')
@@ -1652,8 +1040,6 @@ export default function LearnPage() {
               session_id:          sessionId,
               word_sentence_id:    null,
               grammar_sentence_id: r.id,
-              // Store form key — enables form-level SRS (one card per form, random sentence at review)
-              grammar_form_key:    r.formKey ?? null,
               item_type:           'grammar',
               correct:             r.correct,
               reviewed_at:         now,
@@ -1665,6 +1051,7 @@ export default function LearnPage() {
           })
         )
       }
+
       for (const r of toUpdate) {
         const srs = calculateNextReview(r.correct, 2.5, 1, 0)
         await supabase
@@ -1681,102 +1068,56 @@ export default function LearnPage() {
       }
     }
 
+    // Save verb reviews — upsert one row per (session × verb × tense)
+    if (verbResults.length > 0) {
+      const verbCardMap = new Map<string, ClozeResult>()
+      for (const r of verbResults) {
+        if (r.verbId && r.verbTense) verbCardMap.set(`${r.verbId}__${r.verbTense}`, r)
+      }
+      for (const r of verbCardMap.values()) {
+        const srs = calculateNextReview(r.correct, 2.5, 1, 0)
+        await supabase.from('gwc_verb_reviews').upsert(
+          {
+            session_id:      sessionId,
+            verb_id:         r.verbId,
+            tense:           r.verbTense,
+            correct:         r.correct,
+            interval_days:   srs.nextInterval,
+            ease_factor:     srs.newEaseFactor,
+            repetitions:     srs.newRepetitions,
+            next_review_at:  new Date(Date.now() + srs.nextInterval * 86400000).toISOString(),
+            total_reviews:   1,
+            correct_reviews: r.correct ? 1 : 0,
+          },
+          { onConflict: 'session_id,verb_id,tense', ignoreDuplicates: false }
+        )
+      }
+    }
+
+    // Award XP and update daily cards
     const correctCount = results.filter(r => r.correct).length
     const wrongCount   = results.length - correctCount
     const xpGained     = correctCount * XP_CORRECT_LEARN + wrongCount * XP_WRONG_LEARN
-
     const xpResult     = await awardXPAndUpdateStreak(sessionId, xpGained)
     const { dailyTotal } = await updateDailyCards(sessionId, results.length)
 
-    return {
-      total:      results.length,
-      correct:    correctCount,
-      xpGained,
-      newStreak:  xpResult?.newStreak ?? 0,
-      dailyTotal,
+    const data: CompletionData = {
+      total: results.length, correct: correctCount, xpGained,
+      newStreak: xpResult?.newStreak ?? 0, dailyTotal,
     }
-  }
-
-  // ── After a path's cloze batch is done ───────────────────────────────────
-
-  async function handleBatchComplete(results: ClozeResult[]) {
-    const combined = [...allResults, ...results]
-    setAllResults(combined)
-    setBatchResults(results)
-
-    // Save to DB and get completion data
-    const data = await saveBatchResults(results)
     setCompletion(data)
-
-    // Check daily goal first
-    if (data.dailyTotal >= currentGoal) {
-      setAppPhase('daily-goal-reached')
-      return
-    }
-
-    // If only one path (or single-path mode via URL param), go straight to results
-    if (activePaths.length <= 1) {
-      setAppPhase('results')
-      return
-    }
-
-    // Show path-end screen to ask: more from this path? continue? done?
-    setAppPhase('path-end')
+    setAppPhase(dailyTotal >= currentGoal ? 'daily-goal-reached' : 'done')
   }
 
-  // ── Early exit (Good Job modal) ───────────────────────────────────────────
-
-  async function handleEarlyExit(partialResults: ClozeResult[]) {
-    if (partialResults.length === 0) {
-      // Nothing done — just navigate back
-      window.location.href = '/dashboard'
-      return
-    }
-    // Save partial results
-    const combined = [...allResults, ...partialResults]
-    setAllResults(combined)
-
-    const data = await saveBatchResults(partialResults)
-    setCompletion(data)
-
-    const xp = partialResults.filter(r => r.correct).length * XP_CORRECT_LEARN
-             + partialResults.filter(r => !r.correct).length * XP_WRONG_LEARN
-    setGoodJobXP(xp)
-    setShowGoodJob(true)
-  }
-
-  // ── Path-end: "5 more from current path" ─────────────────────────────────
-
-  async function handleMoreFromCurrentPath() {
-    const path    = activePaths[currentPathIdx]
-    const newBatch = path?.batch_size ?? 5
-    setAllResults(prev => [...prev])  // keep accumulated
-    await loadPath(currentPathIdx, activePaths, newBatch)
-  }
-
-  // ── Path-end: "Continue to next path" ────────────────────────────────────
-
-  async function handleContinueToNextPath() {
-    const nextIdx = currentPathIdx + 1
-    setCurrentPathIdx(nextIdx)
-    await loadPath(nextIdx, activePaths)
-  }
-
-  // ── Path-end: "Done for Today" → results ─────────────────────────────────
-
-  function handleDoneForToday() {
-    setAppPhase('results')
-  }
-
-  // ── Daily goal: extend by 5 more items ───────────────────────────────────
-
-  async function handleExtend() {
+  // ── Extend session by 5 more items ────────────────────────────────────────
+  function handleExtend() {
     setCurrentGoal(g => g + 5)
+    extensionBatchRef.current = 5
     setCompletion(null)
-    await loadPath(currentPathIdx, activePaths, 5)
+    setLoadKey(k => k + 1)
   }
 
-  // ── Render error states ───────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   if (appPhase === 'loading') {
     return (
@@ -1796,14 +1137,13 @@ export default function LearnPage() {
           <p className="text-4xl mb-4">⚠️</p>
           <p className="text-[#e8e6f0] font-bold mb-2">Something went wrong</p>
           <p className="text-[#9b98b0] text-sm mb-6">{error}</p>
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold">
-            Back to Dashboard
-          </Link>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold">Back</Link>
         </div>
       </div>
     )
   }
 
+  // No paths configured → send to learn-settings
   if (appPhase === 'no-paths') {
     return (
       <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
@@ -1811,21 +1151,24 @@ export default function LearnPage() {
           <p className="text-4xl mb-4">📚</p>
           <p className="text-[#e8e6f0] font-bold text-xl mb-2">No decks configured</p>
           <p className="text-[#9b98b0] text-sm mb-8">Add a deck to your Learn Queue to get started.</p>
-          <Link href="/learn-settings" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
-            Set up Learn Queue →
-          </Link>
+          <div className="flex gap-3 justify-center">
+            <Link href="/learn-settings" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
+              Set up Learn Queue →
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
+  // Nothing left to learn (all items reviewed)
   if (appPhase === 'no-items') {
     return (
       <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <p className="text-4xl mb-4">✅</p>
           <p className="text-[#e8e6f0] font-bold text-xl mb-2">All caught up!</p>
-          <p className="text-[#9b98b0] text-sm mb-8">No new items in your queue. Check back tomorrow or review what you&apos;ve learned.</p>
+          <p className="text-[#9b98b0] text-sm mb-8">No new items in your queue. Check back tomorrow or review what you've learned.</p>
           <div className="flex gap-3 justify-center">
             <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
               Dashboard
@@ -1839,131 +1182,116 @@ export default function LearnPage() {
     )
   }
 
-  // ── Results screens ───────────────────────────────────────────────────────
-
   if (appPhase === 'daily-goal-reached' && completion) {
-    return (
-      <DailyGoalScreen
-        data={completion}
-        onExtend={handleExtend}
-        onDone={() => setAppPhase('results')}
-      />
-    )
+    return <DailyGoalScreen data={completion} onExtend={handleExtend} />
   }
 
-  if (appPhase === 'results') {
-    return (
-      <ResultsScreen
-        results={allResults}
-        xpGained={completion?.xpGained ?? 0}
-        newStreak={completion?.newStreak ?? 0}
-        dailyTotal={completion?.dailyTotal ?? 0}
-      />
-    )
+  if (appPhase === 'done' && completion) {
+    return <CompletionScreen data={completion} />
   }
-
-  // ── Path-end screen ───────────────────────────────────────────────────────
-
-  if (appPhase === 'path-end') {
-    const currentPath = activePaths[currentPathIdx]
-    const nextPath    = activePaths[currentPathIdx + 1]
-    const nextDef     = nextPath ? getPathById(nextPath.path_id) : null
-
-    return (
-      <PathEndScreen
-        currentPathName={currentPathName}
-        nextPathName={nextDef?.name ?? null}
-        batchSize={currentPath?.batch_size ?? 5}
-        itemsDone={batchResults.length}
-        onMore={handleMoreFromCurrentPath}
-        onContinue={handleContinueToNextPath}
-        onDone={handleDoneForToday}
-      />
-    )
-  }
-
-  // ── Cloze phase ───────────────────────────────────────────────────────────
 
   if (appPhase === 'cloze') {
     return (
-      <>
-        {showGoodJob && completion && (
-          <GoodJobModal
-            itemsDone={allResults.length + batchResults.length}
-            xpSoFar={goodJobXP}
-            pathName={currentPathName}
-            onContinue={() => setShowGoodJob(false)}
-            onExit={() => { setShowGoodJob(false); setAppPhase('results') }}
-          />
-        )}
-        <ClozeSession
-          items={clozeItems}
-          onComplete={handleBatchComplete}
-          onEarlyExit={handleEarlyExit}
-        />
-      </>
+      <ClozeSession
+        items={clozeItems}
+        hasVocab={vocabQueue.length > 0}
+        onComplete={handleClozeComplete}
+      />
     )
   }
 
-  // ── Quiz Time Modal ───────────────────────────────────────────────────────
-  // Shown after all study slides, before the cloze quiz.
+  // ── Study phase (vocab browse) ──────────────────────────────────────────────
+  if (!currentVocabItem) return null
 
-  if (appPhase === 'quiz-modal') {
-    const pathDef = getPathById(activePaths[currentPathIdx]?.path_id ?? '')
-    return (
-      <div className="min-h-screen bg-[#0f0e17]">
-        <QuizTimeModal
-          count={clozeItems.length}
-          pathName={currentPathName}
-          pathBadge={pathDef?.badge ?? ''}
-          onStart={() => setAppPhase('cloze')}
-        />
-      </div>
-    )
-  }
-
-  // ── Study phase: vocab overviews + grammar topic explanations ─────────────
-
-  const currentSlide = studyQueue[slideIndex]
-  if (!currentSlide) return null
+  const totalSlides        = vocabQueue.length * SLIDES.length
+  const currentSlideGlobal = wordIndex * SLIDES.length + slideIndex
 
   return (
-    <>
-      {/* Good Job modal can appear over the study phase too */}
-      {showGoodJob && completion && (
-        <GoodJobModal
-          itemsDone={allResults.length}
-          xpSoFar={goodJobXP}
-          pathName={currentPathName}
-          onContinue={() => setShowGoodJob(false)}
-          onExit={() => { setShowGoodJob(false); setAppPhase('results') }}
+    <div className="min-h-screen bg-[#0f0e17] relative">
+
+      {/* Quiz Time Modal — appears when all vocab has been browsed */}
+      {appPhase === 'quiz-modal' && (
+        <QuizTimeModal
+          count={vocabQueue.length}
+          pathName={pathName}
+          onStart={() => setAppPhase('cloze')}
         />
       )}
 
-      {/* Vocab word overview slide */}
-      {currentSlide.kind === 'vocab' && (
-        <WordOverviewSlide
-          word={currentSlide.word}
-          sentences={currentSlide.sentences}
-          onContinue={goNextSlide}
-          onExit={() => handleEarlyExit([])}
-          current={slideIndex + 1}
-          total={studyQueue.length}
-        />
-      )}
+      <div className="max-w-2xl mx-auto px-4 py-8">
 
-      {/* Grammar topic explanation slide */}
-      {currentSlide.kind === 'grammar' && (
-        <GrammarStudySlide
-          topic={currentSlide.topic}
-          personsInBatch={currentSlide.personsInBatch}
-          sentences={currentSlide.sentences}
-          onContinue={goNextSlide}
-          onExit={() => handleEarlyExit([])}
-          current={slideIndex + 1}
-          total={studyQueue.length}
-        />
-      )}
-    </>
+        {/* Top bar */}
+        <div className="flex items-center justify-between mb-6">
+          <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] text-sm transition-colors">
+            ← Dashboard
+          </Link>
+          <span className="text-[#9b98b0] text-sm">Word {wordIndex + 1} / {vocabQueue.length}</span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-6">
+          <div
+            className="h-full bg-[#7c6df2] rounded-full transition-all duration-500"
+            style={{ width: `${(currentSlideGlobal / totalSlides) * 100}%` }}
+          />
+        </div>
+
+        {/* Slide tabs */}
+        <div className="flex gap-1 bg-[#1a1830] rounded-xl p-1 mb-6">
+          {['Overview', 'Examples'].map((label, i) => (
+            <button
+              key={label}
+              onClick={() => i <= slideIndex && setSlideIndex(i)}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${
+                slideIndex === i ? 'bg-[#7c6df2] text-white' : 'text-[#9b98b0] hover:text-[#e8e6f0]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Slide content */}
+        <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden">
+          {slideIndex === 0 && <WordOverviewSlide word={currentVocabItem.word} />}
+          {slideIndex === 1 && <SentencesSlide word={currentVocabItem.word} sentences={currentVocabItem.sentences} />}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-6">
+          <button
+            onClick={goBack}
+            disabled={wordIndex === 0 && slideIndex === 0}
+            className="px-5 py-2.5 rounded-xl bg-white/5 text-[#9b98b0] font-bold hover:bg-white/10 transition-colors disabled:opacity-0"
+          >
+            ← Back
+          </button>
+
+          <div className="hidden sm:flex gap-1.5">
+            {vocabQueue.map((_, wi) =>
+              SLIDES.map((_, si) => {
+                const isCurrent = wi === wordIndex && si === slideIndex
+                const isPast    = wi < wordIndex || (wi === wordIndex && si < slideIndex)
+                return (
+                  <div
+                    key={`${wi}-${si}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      isCurrent ? 'w-5 bg-[#7c6df2]' : isPast ? 'w-2 bg-[#7c6df2]/40' : 'w-2 bg-white/15'
+                    }`}
+                  />
+                )
+              })
+            )}
+          </div>
+
+          <button
+            onClick={goNext}
+            className="px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all hover:-translate-y-0.5 shadow-lg shadow-[#7c6df2]/20"
+          >
+            {wordIndex === vocabQueue.length - 1 && slideIndex === SLIDES.length - 1 ? 'Done ✓' : 'Next →'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
