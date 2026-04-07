@@ -355,7 +355,7 @@ function LandingContent() {
               </div>
 
               <p className="text-xs text-text-muted mt-4 opacity-70">
-                Free during beta · No credit card · No nonsense
+                Free during beta · No credit card
               </p>
             </div>
 
@@ -629,7 +629,7 @@ function LandingContent() {
           >
             Start learning free →
           </Link>
-          <p className="text-xs text-text-muted mt-4 opacity-60">No credit card · No nonsense · Free during beta</p>
+          <p className="text-xs text-text-muted mt-4 opacity-60">No credit card · Free during beta</p>
         </div>
       </section>
 
