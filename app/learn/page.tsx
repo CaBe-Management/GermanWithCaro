@@ -108,7 +108,7 @@ interface CompletionData {
   dailyTotal: number
 }
 
-type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'studying' | 'quiz-modal' | 'cloze' | 'done' | 'daily-goal-reached'
+type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'studying' | 'intro-sequence' | 'quiz-modal' | 'cloze' | 'done' | 'daily-goal-reached'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -731,36 +731,19 @@ function ClozeSession({
   const [index, setIndex]                 = useState(0)
   const [input, setInput]                 = useState('')
   const [answered, setAnswered]           = useState(false)
-  const [showingExplainer, setShowingExplainer] = useState(false)
   const [showFormationHint, setShowFormationHint] = useState(false)
   const [showEN, setShowEN]               = useState(false)
   const [results, setResults]             = useState<ClozeResult[]>([])
-  const seenTopicsRef                     = useRef<Set<string>>(new Set())
 
   const current = items[index]
 
-  // When index changes: reset state and check if we need an intro screen
+  // When index changes: just reset card state (no more inline intro interruptions)
   useEffect(() => {
     setInput('')
     setAnswered(false)
     setShowFormationHint(false)
     setShowEN(false)
-    if (current?.kind === 'grammar' && !seenTopicsRef.current.has(current.topic.id)) {
-      seenTopicsRef.current.add(current.topic.id)
-      setShowingExplainer(true)
-    } else if (current?.kind === 'verb') {
-      // Show intro once per (verb × tense) combination
-      const key = `${current.verb.id}__${current.tense}`
-      if (!seenTopicsRef.current.has(key)) {
-        seenTopicsRef.current.add(key)
-        setShowingExplainer(true)
-      } else {
-        setShowingExplainer(false)
-      }
-    } else {
-      setShowingExplainer(false)
-    }
-  }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [index])
 
   const sentence   = current?.kind === 'vocab' ? current.sentence
                    : current?.kind === 'grammar' ? current.sentence
@@ -770,22 +753,27 @@ function ClozeSession({
   // and strip the second component from the visible sentence so it isn't given away.
   // PERFEKT / PLUSQUAMPERFEKT: aux + Partizip II  (e.g. "bin gewesen")
   // FUTUR I:                   werden + Infinitiv (e.g. "werde gehen")
-  const COMPOUND_TENSES = ['PERFEKT', 'PLUSQUAMPERFEKT', 'FUTUR I']
   let effectiveClozeWord = sentence?.cloze_word ?? ''
   let effectiveSentenceDE = sentence?.sentence_de ?? ''
 
-  if (
-    current?.kind === 'verb' &&
-    sentence &&
-    COMPOUND_TENSES.includes(current.tense)
-  ) {
+  if (current?.kind === 'verb' && sentence) {
     const verb = current.verb
-    const second = current.tense === 'FUTUR I' ? verb.word : (verb.partizip_ii ?? null)
-    if (second) {
-      effectiveClozeWord = `${sentence.cloze_word} ${second}`
-      // Strip the second component from the visible sentence
+    // Compute the parts of the answer that go AFTER the aux/werden cloze_word
+    let stripPhrase: string | null = null
+    if (current.tense === 'PERFEKT' || current.tense === 'PLUSQUAMPERFEKT') {
+      stripPhrase = verb.partizip_ii ?? null
+    } else if (current.tense === 'FUTUR I') {
+      stripPhrase = verb.word
+    } else if (current.tense === 'FUTUR II') {
+      // werde + gewesen + sein  (partizip_ii + auxiliary)
+      if (verb.partizip_ii && verb.auxiliary) {
+        stripPhrase = `${verb.partizip_ii} ${verb.auxiliary}`
+      }
+    }
+    if (stripPhrase) {
+      effectiveClozeWord = `${sentence.cloze_word} ${stripPhrase}`
       effectiveSentenceDE = effectiveSentenceDE
-        .replace(new RegExp(`\\b${second}\\b`, 'i'), '')
+        .replace(new RegExp(stripPhrase.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'i'), '')
         .replace(/\s{2,}/g, ' ')
         .replace(/\s([.,!?])/g, '$1')
         .trim()
@@ -1220,8 +1208,12 @@ export default function LearnPage() {
   const [wordIndex, setWordIndex]     = useState(0)
   const [slideIndex, setSlideIndex]   = useState(0)
 
-  // Unified cloze queue (vocab + grammar)
+  // Unified cloze queue (vocab + grammar + verb)
   const [clozeItems, setClozeItems]   = useState<ClozeItem[]>([])
+
+  // Intro sequence: unique grammar topics + verb×tense combos shown before cloze
+  const [introQueue, setIntroQueue]   = useState<ClozeItem[]>([])
+  const [introIndex, setIntroIndex]   = useState(0)
 
   // Active path name for quiz modal display
   const [pathName, setPathName]       = useState('German With Caro')
@@ -1338,11 +1330,33 @@ export default function LearnPage() {
         setWordIndex(0)
         setSlideIndex(0)
 
-        // If there are vocab items, start in study browse phase; otherwise go directly to cloze
+        // Build intro queue: one entry per unique grammar topic + one per unique verb×tense
+        const seenIntros = new Set<string>()
+        const intros: ClozeItem[] = []
+        for (const item of items) {
+          if (item.kind === 'grammar') {
+            if (!seenIntros.has(item.topic.id)) {
+              seenIntros.add(item.topic.id)
+              intros.push(item)
+            }
+          } else if (item.kind === 'verb') {
+            const key = `${item.verb.id}__${item.tense}`
+            if (!seenIntros.has(key)) {
+              seenIntros.add(key)
+              intros.push(item)
+            }
+          }
+        }
+        setIntroQueue(intros)
+        setIntroIndex(0)
+
+        // Flow: studying (vocab browse) → intro-sequence → quiz-modal → cloze
         if (allVocab.length > 0) {
           setAppPhase('studying')
+        } else if (intros.length > 0) {
+          setAppPhase('intro-sequence')
         } else {
-          setAppPhase('cloze')
+          setAppPhase('quiz-modal')
         }
       } catch (e) {
         setError('Connection error.')
@@ -1364,7 +1378,8 @@ export default function LearnPage() {
       setWordIndex(w => w + 1)
       setSlideIndex(0)
     } else {
-      setAppPhase('quiz-modal')
+      // Vocab browse done → go to intro-sequence if there are intros, else quiz-modal
+      setAppPhase(introQueue.length > 0 ? 'intro-sequence' : 'quiz-modal')
     }
   }
 
