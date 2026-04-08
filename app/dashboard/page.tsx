@@ -15,6 +15,7 @@ interface LevelProgress {
   level: string
   vocabTotal: number; vocabLearned: number
   grammarTotal: number; grammarLearned: number
+  verbTotal: number; verbLearned: number
 }
 
 interface ActivePath {
@@ -22,10 +23,10 @@ interface ActivePath {
   daily_goal: number; batch_size: number
 }
 
-interface ForecastDay { date: string; label: string; vocab: number; grammar: number }
-interface ActivityDay { date: string; vocab: number; grammar: number }
+interface ForecastDay { date: string; label: string; vocab: number; grammar: number; verb: number }
+interface ActivityDay { date: string; vocab: number; grammar: number; verb: number }
 type SrsStage = 'Beginner' | 'Seasoned' | 'Adept' | 'Expert' | 'Master'
-type SrsBreakdown = Record<SrsStage, { vocab: number; grammar: number }>
+type SrsBreakdown = Record<SrsStage, { vocab: number; grammar: number; verb: number }>
 
 // ─── SRS config ───────────────────────────────────────────────────────────────
 
@@ -66,14 +67,20 @@ function pastDays(n: number): string[] {
 
 // ─── Level Progress Bar ───────────────────────────────────────────────────────
 
-function LevelBar({ data, view }: { data: LevelProgress; view: 'both' | 'vocab' | 'grammar' }) {
+function LevelBar({ data, view }: { data: LevelProgress; view: 'all' | 'vocab' | 'grammar' | 'verb' }) {
   const colors: Record<string, string> = {
     A1: 'bg-emerald-500', A2: 'bg-green-500', B1: 'bg-blue-500',
     B2: 'bg-purple-500',  C1: 'bg-red-500',
   }
   const bar = colors[data.level] ?? 'bg-[#7c6df2]'
-  const learned = view === 'vocab' ? data.vocabLearned : view === 'grammar' ? data.grammarLearned : data.vocabLearned + data.grammarLearned
-  const total   = view === 'vocab' ? data.vocabTotal   : view === 'grammar' ? data.grammarTotal   : data.vocabTotal + data.grammarTotal
+  const learned = view === 'vocab'   ? data.vocabLearned
+                : view === 'grammar' ? data.grammarLearned
+                : view === 'verb'    ? data.verbLearned
+                : data.vocabLearned + data.grammarLearned + data.verbLearned
+  const total   = view === 'vocab'   ? data.vocabTotal
+                : view === 'grammar' ? data.grammarTotal
+                : view === 'verb'    ? data.verbTotal
+                : data.vocabTotal + data.grammarTotal + data.verbTotal
   const pct = total > 0 ? Math.round((learned / total) * 100) : 0
   return (
     <div className="flex items-center gap-2">
@@ -98,15 +105,15 @@ export default function Dashboard() {
   const [activePaths, setActivePaths]     = useState<ActivePath[]>([])
   const [recentBadges, setRecentBadges]   = useState<{ id: string; name: string; icon: string }[]>([])
   const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([])
-  const [progressView, setProgressView]   = useState<'both' | 'vocab' | 'grammar'>('both')
+  const [progressView, setProgressView]   = useState<'all' | 'vocab' | 'grammar' | 'verb'>('all')
   const [forecast, setForecast]           = useState<ForecastDay[]>([])
   const [activity, setActivity]           = useState<ActivityDay[]>([])
   const [srsBreakdown, setSrsBreakdown]   = useState<SrsBreakdown>({
-    Beginner: { vocab: 0, grammar: 0 }, Seasoned: { vocab: 0, grammar: 0 },
-    Adept: { vocab: 0, grammar: 0 },   Expert: { vocab: 0, grammar: 0 },
-    Master: { vocab: 0, grammar: 0 },
+    Beginner: { vocab: 0, grammar: 0, verb: 0 }, Seasoned: { vocab: 0, grammar: 0, verb: 0 },
+    Adept: { vocab: 0, grammar: 0, verb: 0 },    Expert: { vocab: 0, grammar: 0, verb: 0 },
+    Master: { vocab: 0, grammar: 0, verb: 0 },
   })
-  const [srsView, setSrsView]             = useState<'both' | 'vocab' | 'grammar'>('both')
+  const [srsView, setSrsView]             = useState<'all' | 'vocab' | 'grammar' | 'verb'>('all')
   const [totalItems, setTotalItems]       = useState(0)
   const [accuracy24h, setAccuracy24h]     = useState<number | null>(null)
   const [learnExpanded, setLearnExpanded]   = useState(true)
@@ -143,6 +150,8 @@ export default function Dashboard() {
           { data: vocabReviewRows },
           { data: grammarReviewRows },
           { data: verbReviewRows },
+          { data: verbRows },
+          { data: verbSentRows },
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
@@ -189,9 +198,14 @@ export default function Dashboard() {
           // Grammar review history
           supabase.from('gwc_user_reviews').select('grammar_sentence_id, reviewed_at')
             .eq('session_id', sessionId).eq('item_type', 'grammar').not('grammar_sentence_id', 'is', null),
-          // Verb review history (for done-today count)
-          supabase.from('gwc_verb_reviews').select('reviewed_at')
-            .eq('session_id', sessionId).not('reviewed_at', 'is', null),
+          // Verb review history (activity, forecast, SRS, done-today)
+          supabase.from('gwc_verb_reviews')
+            .select('reviewed_at, interval_days, next_review_at, verb_id')
+            .eq('session_id', sessionId),
+          // All verbs with level (for verb level-progress totals)
+          supabase.from('gwc_verbs').select('id, level'),
+          // All verb sentences (verb_id + tense) for computing total (verb × tense) per level
+          supabase.from('gwc_verb_sentences').select('verb_id, tense'),
           // User XP, streak, daily goal
           getOrCreateProgress(sessionId),
         ])
@@ -213,7 +227,7 @@ export default function Dashboard() {
           (grammarReviewRows || []).filter((r: { reviewed_at: string }) => r.reviewed_at >= todayStart).length
         )
         setVerbDoneToday(
-          (verbReviewRows || []).filter((r: { reviewed_at: string }) => r.reviewed_at >= todayStart).length
+          (verbReviewRows || []).filter((r: { reviewed_at: string | null }) => r.reviewed_at && r.reviewed_at >= todayStart).length
         )
 
         // ── Active paths ─────────────────────────────────────────────────────
@@ -228,9 +242,9 @@ export default function Dashboard() {
           .filter(Boolean) as { id: string; name: string; icon: string }[]
         setRecentBadges(badges)
 
-        // ── Forecast: group upcoming reviews by date + item_type ─────────────
-        const fcMap: Record<string, { vocab: number; grammar: number }> = {}
-        for (let i = 0; i < 7; i++) { const d = offsetDateStr(i); fcMap[d] = { vocab: 0, grammar: 0 } }
+        // ── Forecast: group upcoming reviews by date (vocab/grammar + verb) ──
+        const fcMap: Record<string, { vocab: number; grammar: number; verb: number }> = {}
+        for (let i = 0; i < 7; i++) { const d = offsetDateStr(i); fcMap[d] = { vocab: 0, grammar: 0, verb: 0 } }
         ;(forecastRows || []).forEach((r: { next_review_at: string; item_type: string }) => {
           const d = r.next_review_at.slice(0, 10)
           if (d in fcMap) {
@@ -238,16 +252,21 @@ export default function Dashboard() {
             else fcMap[d].grammar++
           }
         })
+        ;(verbReviewRows || []).forEach((r: { next_review_at: string | null }) => {
+          if (!r.next_review_at) return
+          const d = r.next_review_at.slice(0, 10)
+          if (d in fcMap) fcMap[d].verb++
+        })
         setForecast(
           Object.entries(fcMap).map(([date, counts], i) => ({
             date, label: dayLabel(i, date), ...counts,
           }))
         )
 
-        // ── Activity: past 14 days grouped by date + item_type ───────────────
+        // ── Activity: past 14 days (vocab/grammar + verb) ────────────────────
         const past14 = pastDays(14)
-        const actMap: Record<string, { vocab: number; grammar: number }> = {}
-        past14.forEach(d => { actMap[d] = { vocab: 0, grammar: 0 } })
+        const actMap: Record<string, { vocab: number; grammar: number; verb: number }> = {}
+        past14.forEach(d => { actMap[d] = { vocab: 0, grammar: 0, verb: 0 } })
         ;(activityRows || []).forEach((r: { reviewed_at: string; item_type: string }) => {
           const d = r.reviewed_at.slice(0, 10)
           if (d in actMap) {
@@ -255,21 +274,31 @@ export default function Dashboard() {
             else actMap[d].grammar++
           }
         })
+        ;(verbReviewRows || []).forEach((r: { reviewed_at: string | null }) => {
+          if (!r.reviewed_at) return
+          const d = r.reviewed_at.slice(0, 10)
+          if (d in actMap) actMap[d].verb++
+        })
         setActivity(past14.map(date => ({ date, ...actMap[date] })))
 
-        // ── SRS breakdown: classify each item by interval_days ───────────────
+        // ── SRS breakdown: vocab/grammar (gwc_user_reviews) + verb ──────────
         const srs: SrsBreakdown = {
-          Beginner: { vocab: 0, grammar: 0 }, Seasoned: { vocab: 0, grammar: 0 },
-          Adept: { vocab: 0, grammar: 0 },   Expert: { vocab: 0, grammar: 0 },
-          Master: { vocab: 0, grammar: 0 },
+          Beginner: { vocab: 0, grammar: 0, verb: 0 }, Seasoned: { vocab: 0, grammar: 0, verb: 0 },
+          Adept: { vocab: 0, grammar: 0, verb: 0 },    Expert: { vocab: 0, grammar: 0, verb: 0 },
+          Master: { vocab: 0, grammar: 0, verb: 0 },
         }
         ;(srsRows || []).forEach((r: { interval_days: number; item_type: string }) => {
           const stage = classifySrs(r.interval_days ?? 0)
           if (r.item_type === 'vocab') srs[stage].vocab++
           else srs[stage].grammar++
         })
+        ;(verbReviewRows || []).forEach((r: { interval_days: number | null }) => {
+          if (r.interval_days == null) return
+          srs[classifySrs(r.interval_days)].verb++
+        })
         setSrsBreakdown(srs)
-        setTotalItems((srsRows || []).length)
+        const verbSrsCount = (verbReviewRows || []).length
+        setTotalItems((srsRows || []).length + verbSrsCount)
 
         // ── Accuracy: % correct in last 24h ──────────────────────────────────
         if (accuracyRows && accuracyRows.length > 0) {
@@ -318,10 +347,33 @@ export default function Dashboard() {
           if (level) grammarLearnedByLevel[level] = (grammarLearnedByLevel[level] || 0) + 1
         }
 
+        // ── Verb level progress ───────────────────────────────────────────────
+        const verbLevelMap: Record<string, string> = {}
+        for (const v of (verbRows || [])) verbLevelMap[v.id] = v.level
+
+        // Total = unique (verb_id × tense) pairs, grouped by verb level
+        const verbTotalByLevel: Record<string, number> = {}
+        const seenVerbTense = new Set<string>()
+        for (const s of (verbSentRows || []) as { verb_id: string; tense: string }[]) {
+          const key = `${s.verb_id}__${s.tense}`
+          if (seenVerbTense.has(key)) continue
+          seenVerbTense.add(key)
+          const level = verbLevelMap[s.verb_id]
+          if (level) verbTotalByLevel[level] = (verbTotalByLevel[level] || 0) + 1
+        }
+
+        // Learned = unique (verb_id × tense) pairs in gwc_verb_reviews, by verb level
+        const verbLearnedByLevel: Record<string, number> = {}
+        for (const r of (verbReviewRows || []) as { verb_id: string }[]) {
+          const level = verbLevelMap[r.verb_id]
+          if (level) verbLearnedByLevel[level] = (verbLearnedByLevel[level] || 0) + 1
+        }
+
         // ── Merge into LevelProgress[] ────────────────────────────────────────
         const allLevels = [...new Set([
           ...Object.keys(vocabTotalByLevel),
           ...Object.keys(grammarTotalByLevel),
+          ...Object.keys(verbTotalByLevel),
         ])].sort()
         setLevelProgress(allLevels.map(level => ({
           level,
@@ -329,6 +381,8 @@ export default function Dashboard() {
           vocabLearned:   vocabLearnedByLevel[level]   ?? 0,
           grammarTotal:   grammarTotalByLevel[level]   ?? 0,
           grammarLearned: grammarLearnedByLevel[level] ?? 0,
+          verbTotal:      verbTotalByLevel[level]      ?? 0,
+          verbLearned:    verbLearnedByLevel[level]    ?? 0,
         })))
 
         setUserProgress(progressData)
@@ -370,12 +424,15 @@ export default function Dashboard() {
   }
 
   // Max values for chart scaling
-  const forecastMax  = Math.max(...forecast.map(d => d.vocab + d.grammar), 1)
-  const activityMax  = Math.max(...activity.map(d => d.vocab + d.grammar), 1)
+  const forecastMax  = Math.max(...forecast.map(d => d.vocab + d.grammar + d.verb), 1)
+  const activityMax  = Math.max(...activity.map(d => d.vocab + d.grammar + d.verb), 1)
   const srsTotalMax  = Math.max(
     ...SRS_STAGES.map(s => {
       const c = srsBreakdown[s.name]
-      return srsView === 'vocab' ? c.vocab : srsView === 'grammar' ? c.grammar : c.vocab + c.grammar
+      if (srsView === 'vocab') return c.vocab
+      if (srsView === 'grammar') return c.grammar
+      if (srsView === 'verb') return c.verb
+      return c.vocab + c.grammar + c.verb
     }), 1
   )
 
@@ -626,7 +683,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider">Level Progress</p>
                 <div className="flex gap-0.5 bg-white/5 p-0.5 rounded-lg">
-                  {(['both','vocab','grammar'] as const).map(v => (
+                  {(['all','vocab','grammar','verb'] as const).map(v => (
                     <button
                       key={v}
                       onClick={() => setProgressView(v)}
@@ -634,7 +691,7 @@ export default function Dashboard() {
                         progressView === v ? 'bg-[#7c6df2] text-white' : 'text-[#9b98b0] hover:text-[#e8e6f0]'
                       }`}
                     >
-                      {v === 'both' ? 'All' : v === 'vocab' ? 'Vocab' : 'Grammar'}
+                      {v === 'all' ? 'All' : v === 'vocab' ? 'Vocab' : v === 'grammar' ? 'Grammar' : 'Verbs'}
                     </button>
                   ))}
                 </div>
@@ -715,6 +772,10 @@ export default function Dashboard() {
                 <span className="w-2 h-2 rounded-full bg-blue-500/70 inline-block" />
                 Grammar
               </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#10b981]/70 inline-block" />
+                Verbs
+              </span>
             </div>
           </div>
 
@@ -731,28 +792,26 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-2">
               {forecast.map((day, i) => {
-                const total      = day.vocab + day.grammar
+                const total      = day.vocab + day.grammar + day.verb
                 const vocabPct   = forecastMax > 0 ? (day.vocab   / forecastMax) * 100 : 0
                 const grammarPct = forecastMax > 0 ? (day.grammar / forecastMax) * 100 : 0
+                const verbPct    = forecastMax > 0 ? (day.verb    / forecastMax) * 100 : 0
                 const isToday    = i === 0
                 return (
                   <div key={day.date} className="flex items-center gap-3">
                     <div className={`text-xs w-24 shrink-0 ${isToday ? 'text-[#9b8cf5] font-bold' : 'text-[#9b98b0]'}`}>
                       {day.label}
                     </div>
-                    {/* Stacked vocab (green) + grammar (blue) bar */}
+                    {/* Stacked vocab (green) + grammar (blue) + verb (emerald) bar */}
                     <div className="flex-1 h-5 bg-white/5 rounded-lg overflow-hidden flex">
                       {vocabPct > 0 && (
-                        <div
-                          className="h-full bg-green-500/60 transition-all duration-700"
-                          style={{ width: `${vocabPct}%` }}
-                        />
+                        <div className="h-full bg-green-500/60 transition-all duration-700" style={{ width: `${vocabPct}%` }} />
                       )}
                       {grammarPct > 0 && (
-                        <div
-                          className="h-full bg-blue-500/60 transition-all duration-700"
-                          style={{ width: `${grammarPct}%` }}
-                        />
+                        <div className="h-full bg-blue-500/60 transition-all duration-700" style={{ width: `${grammarPct}%` }} />
+                      )}
+                      {verbPct > 0 && (
+                        <div className="h-full bg-[#10b981]/60 transition-all duration-700" style={{ width: `${verbPct}%` }} />
                       )}
                     </div>
                     <div className={`text-xs font-bold w-8 text-right shrink-0 ${
@@ -780,6 +839,10 @@ export default function Dashboard() {
                 <span className="w-2 h-2 rounded-full bg-blue-500/70 inline-block" />
                 Grammar
               </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#10b981]/70 inline-block" />
+                Verbs
+              </span>
             </div>
           </div>
 
@@ -794,33 +857,29 @@ export default function Dashboard() {
               {/* Vertical bar chart, bars grow from bottom */}
               <div className="flex items-end gap-1 h-20 mb-2">
                 {activity.map((day, i) => {
-                  const total    = day.vocab + day.grammar
+                  const total    = day.vocab + day.grammar + day.verb
                   const isToday  = i === activity.length - 1
                   const heightPct = activityMax > 0
                     ? Math.max(total > 0 ? 6 : 0, Math.round((total / activityMax) * 100))
                     : 0
                   const vocabH   = total > 0 ? Math.round((day.vocab   / total) * heightPct) : 0
-                  const grammarH = heightPct - vocabH
+                  const verbH    = total > 0 ? Math.round((day.verb    / total) * heightPct) : 0
+                  const grammarH = heightPct - vocabH - verbH
                   return (
                     <div
                       key={day.date}
                       className="flex-1 flex flex-col justify-end overflow-hidden rounded-sm"
                       style={{ height: `${heightPct}%` }}
-                      title={`${day.date}: ${day.vocab} vocab, ${day.grammar} grammar`}
+                      title={`${day.date}: ${day.vocab} vocab, ${day.grammar} grammar, ${day.verb} verbs`}
                     >
-                      {/* Vocab (top portion of bar) */}
                       {vocabH > 0 && (
-                        <div
-                          className={`w-full ${isToday ? 'bg-green-400' : 'bg-green-500/60'}`}
-                          style={{ height: `${vocabH}%` }}
-                        />
+                        <div className={`w-full ${isToday ? 'bg-green-400' : 'bg-green-500/60'}`} style={{ height: `${vocabH}%` }} />
                       )}
-                      {/* Grammar (bottom portion of bar) */}
+                      {verbH > 0 && (
+                        <div className={`w-full ${isToday ? 'bg-emerald-400' : 'bg-[#10b981]/60'}`} style={{ height: `${verbH}%` }} />
+                      )}
                       {grammarH > 0 && (
-                        <div
-                          className={`w-full ${isToday ? 'bg-blue-400' : 'bg-blue-500/60'}`}
-                          style={{ height: `${grammarH}%` }}
-                        />
+                        <div className={`w-full ${isToday ? 'bg-blue-400' : 'bg-blue-500/60'}`} style={{ height: `${grammarH}%` }} />
                       )}
                     </div>
                   )
@@ -844,7 +903,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-[#e8e6f0]">SRS Level Breakdown</h2>
             <div className="flex gap-0.5 bg-white/5 p-0.5 rounded-lg">
-              {(['both','vocab','grammar'] as const).map(v => (
+              {(['all','vocab','grammar','verb'] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setSrsView(v)}
@@ -852,7 +911,7 @@ export default function Dashboard() {
                     srsView === v ? 'bg-[#7c6df2] text-white' : 'text-[#9b98b0] hover:text-[#e8e6f0]'
                   }`}
                 >
-                  {v === 'both' ? 'All' : v === 'vocab' ? 'Vocab' : 'Grammar'}
+                  {v === 'all' ? 'All' : v === 'vocab' ? 'Vocab' : v === 'grammar' ? 'Grammar' : 'Verbs'}
                 </button>
               ))}
             </div>
@@ -875,7 +934,8 @@ export default function Dashboard() {
                 const counts = srsBreakdown[stage.name]
                 const count  = srsView === 'vocab'   ? counts.vocab
                              : srsView === 'grammar' ? counts.grammar
-                             : counts.vocab + counts.grammar
+                             : srsView === 'verb'    ? counts.verb
+                             : counts.vocab + counts.grammar + counts.verb
                 const pct = srsTotalMax > 0 ? Math.round((count / srsTotalMax) * 100) : 0
                 return (
                   <div key={stage.name} className="flex items-center gap-3">

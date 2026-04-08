@@ -765,8 +765,35 @@ function ClozeSession({
   const sentence   = current?.kind === 'vocab' ? current.sentence
                    : current?.kind === 'grammar' ? current.sentence
                    : current?.sentence
-  const clozeWord  = sentence?.cloze_word ?? ''
-  const clozeParts = createCloze(sentence?.sentence_de ?? '', clozeWord).split('___')
+
+  // For compound verb tenses, expand the expected answer to the full compound
+  // and strip the second component from the visible sentence so it isn't given away.
+  // PERFEKT / PLUSQUAMPERFEKT: aux + Partizip II  (e.g. "bin gewesen")
+  // FUTUR I:                   werden + Infinitiv (e.g. "werde gehen")
+  const COMPOUND_TENSES = ['PERFEKT', 'PLUSQUAMPERFEKT', 'FUTUR I']
+  let effectiveClozeWord = sentence?.cloze_word ?? ''
+  let effectiveSentenceDE = sentence?.sentence_de ?? ''
+
+  if (
+    current?.kind === 'verb' &&
+    sentence &&
+    COMPOUND_TENSES.includes(current.tense)
+  ) {
+    const verb = current.verb
+    const second = current.tense === 'FUTUR I' ? verb.word : (verb.partizip_ii ?? null)
+    if (second) {
+      effectiveClozeWord = `${sentence.cloze_word} ${second}`
+      // Strip the second component from the visible sentence
+      effectiveSentenceDE = effectiveSentenceDE
+        .replace(new RegExp(`\\b${second}\\b`, 'i'), '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\s([.,!?])/g, '$1')
+        .trim()
+    }
+  }
+
+  const clozeWord  = effectiveClozeWord
+  const clozeParts = createCloze(effectiveSentenceDE, sentence?.cloze_word ?? '').split('___')
 
   const isCorrect =
     normalize(input) === normalize(clozeWord) ||
@@ -848,17 +875,44 @@ function ClozeSession({
               : current.kind === 'grammar' ? current.topic.translation_en
               : current.verb.translation_en
 
-  // Formation hint: shown behind a reveal button for complex verb tenses
-  const FORMATION_HINTS: Partial<Record<string, string>> = {
-    'PERFEKT':          'haben / sein  +  Partizip II',
-    'FUTUR I':          'werden  +  Infinitiv',
-    'KONJUNKTIV II':    'Konj. II-Form  oder  würde + Infinitiv',
-    'PLUSQUAMPERFEKT':  'hatte / war  +  Partizip II',
-    'FUTUR II':         'werden  +  Partizip II  +  haben / sein',
+  // Formation hint: specific forms for compound tenses, generic for others
+  const PERSONS_LIST  = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie']
+  const HABEN_CONJ    = ['habe', 'hast', 'hat', 'haben', 'habt', 'haben']
+  const SEIN_CONJ     = ['bin',  'bist', 'ist', 'sind',  'seid', 'sind']
+  const HATTEN_CONJ   = ['hatte','hattest','hatte','hatten','hattet','hatten']
+  const WAREN_CONJ    = ['war',  'warst', 'war', 'waren', 'wart',  'waren']
+
+  function auxFormForPerson(conj: string[], person: string): string {
+    const idx = PERSONS_LIST.indexOf(person)
+    return idx === -1 ? conj[2] : conj[idx]
   }
-  const formationHint = current.kind === 'verb'
-    ? (FORMATION_HINTS[current.tense] ?? null)
-    : null
+
+  // formationHint: string to show below hint box
+  // For PERFEKT / PLUSQUAMPERFEKT — show the concrete form (e.g. "bin + gewesen")
+  // so the learner knows WHICH auxiliary and WHERE the Partizip II goes
+  let formationHint: string | null = null
+  if (current.kind === 'verb') {
+    const verb    = current.verb
+    const person  = current.sentence.person ?? 'er/sie/es'
+    const partII  = verb.partizip_ii ?? '…'
+    if (current.tense === 'PERFEKT') {
+      const auxConj = verb.auxiliary === 'sein'
+        ? auxFormForPerson(SEIN_CONJ,   person)
+        : auxFormForPerson(HABEN_CONJ,  person)
+      formationHint = `${auxConj}  +  ${partII}`
+    } else if (current.tense === 'PLUSQUAMPERFEKT') {
+      const auxConj = verb.auxiliary === 'sein'
+        ? auxFormForPerson(WAREN_CONJ,  person)
+        : auxFormForPerson(HATTEN_CONJ, person)
+      formationHint = `${auxConj}  +  ${partII}`
+    } else if (current.tense === 'FUTUR I') {
+      formationHint = 'werden  +  Infinitiv'
+    } else if (current.tense === 'KONJUNKTIV II') {
+      formationHint = 'Konj. II-Form  oder  würde + Infinitiv'
+    } else if (current.tense === 'FUTUR II') {
+      formationHint = `werden  +  ${partII}  +  ${verb.auxiliary ?? 'haben'}`
+    }
+  }
 
   // EN translation display (with cloze_word_en highlight for vocab)
   function renderEN() {
