@@ -816,31 +816,11 @@ function ClozeSession({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (showingExplainer) return
       if (e.key === 'Enter') answered ? handleNext() : handleCheck()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [answered, handleCheck, handleNext, showingExplainer])
-
-  // Show intro screen before first cloze of a grammar topic or verb × tense
-  if (showingExplainer && current?.kind === 'grammar') {
-    return (
-      <GrammarExplainer
-        topic={current.topic}
-        onContinue={() => setShowingExplainer(false)}
-      />
-    )
-  }
-  if (showingExplainer && current?.kind === 'verb') {
-    return (
-      <VerbIntroScreen
-        verb={current.verb}
-        tense={current.tense}
-        onContinue={() => setShowingExplainer(false)}
-      />
-    )
-  }
+  }, [answered, handleCheck, handleNext])
 
   if (!current || !sentence) return null
 
@@ -1591,6 +1571,28 @@ export default function LearnPage() {
 
   if (appPhase === 'done' && completion) {
     return <CompletionScreen data={completion} />
+  }
+
+  if (appPhase === 'intro-sequence') {
+    const item = introQueue[introIndex]
+    const isLast = !item || introIndex >= introQueue.length - 1
+
+    const advanceIntro = () => {
+      if (isLast) {
+        setAppPhase('quiz-modal')
+      } else {
+        setIntroIndex(i => i + 1)
+      }
+    }
+
+    if (!item || item.kind === 'vocab') return null
+
+    if (item.kind === 'grammar') {
+      return <GrammarExplainer topic={item.topic} onContinue={advanceIntro} />
+    }
+    if (item.kind === 'verb') {
+      return <VerbIntroScreen verb={item.verb} tense={item.tense} onContinue={advanceIntro} />
+    }
   }
 
   if (appPhase === 'cloze') {
