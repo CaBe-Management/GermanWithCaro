@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getPathById, LEVEL_COLORS, TYPE_COLORS } from '@/lib/paths'
+import { getOrCreateSessionId } from '@/lib/session'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,64 @@ export default function PathPage() {
   const [filtered, setFiltered] = useState<PathItem[]>([])
   const [search,   setSearch]   = useState('')
   const [loading,  setLoading]  = useState(true)
+  const [inQueue,  setInQueue]  = useState(false)
+  const [queueBusy, setQueueBusy] = useState(false)
+
+  // Check if this path is already in the learn queue
+  useEffect(() => {
+    const sessionId = getOrCreateSessionId()
+    supabase
+      .from('gwc_user_paths')
+      .select('id')
+      .eq('session_id', sessionId)
+      .eq('path_id', pathId)
+      .eq('active', true)
+      .maybeSingle()
+      .then(({ data }) => setInQueue(!!data))
+  }, [pathId])
+
+  async function handleQueueToggle() {
+    setQueueBusy(true)
+    const sessionId = getOrCreateSessionId()
+    if (inQueue) {
+      await supabase
+        .from('gwc_user_paths')
+        .update({ active: false })
+        .eq('session_id', sessionId)
+        .eq('path_id', pathId)
+      setInQueue(false)
+    } else {
+      const { data: existing } = await supabase
+        .from('gwc_user_paths')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('path_id', pathId)
+        .maybeSingle()
+      if (existing) {
+        await supabase
+          .from('gwc_user_paths')
+          .update({ active: true })
+          .eq('session_id', sessionId)
+          .eq('path_id', pathId)
+      } else {
+        const { count } = await supabase
+          .from('gwc_user_paths')
+          .select('id', { count: 'exact', head: true })
+          .eq('session_id', sessionId)
+          .eq('active', true)
+        await supabase.from('gwc_user_paths').insert({
+          session_id:     sessionId,
+          path_id:        pathId,
+          active:         true,
+          queue_position: (count ?? 0) + 1,
+          daily_goal:     5,
+          batch_size:     5,
+        })
+      }
+      setInQueue(true)
+    }
+    setQueueBusy(false)
+  }
 
   useEffect(() => {
     if (!path) { setLoading(false); return }
@@ -303,12 +362,32 @@ export default function PathPage() {
           )}
 
           {/* Action */}
-          <Link
-            href={`/learn?path=${pathId}`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-semibold hover:bg-[#9b8cf5] transition-colors"
-          >
-            Learn this path →
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleQueueToggle}
+              disabled={queueBusy}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 ${
+                inQueue
+                  ? 'bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                  : 'bg-[#7c6df2] text-white hover:bg-[#9b8cf5]'
+              }`}
+            >
+              {queueBusy
+                ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : inQueue
+                  ? '✓ In learn queue'
+                  : '+ Add to learn queue'
+              }
+            </button>
+            {inQueue && (
+              <Link
+                href="/learn"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-semibold text-sm hover:bg-[#9b8cf5] transition-colors"
+              >
+                Go to Learn →
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Search */}

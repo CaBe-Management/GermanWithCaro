@@ -98,6 +98,13 @@ interface CompletionData {
 
 type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'intro-sequence' | 'quiz-time' | 'cloze' | 'batch-done' | 'done' | 'daily-goal-reached'
 
+// One path's worth of items to learn
+interface PathBatch {
+  name: string
+  clozeItems: ClozeItem[]
+  introItems: ClozeItem[]
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function typColor(typ: string) {
@@ -699,6 +706,120 @@ function getConjRows(verb: VerbWord, tense: string): { person: string; form: str
     default:
       return []
   }
+}
+
+// ─── Vocab Intro Screen ───────────────────────────────────────────────────────
+
+function VocabIntroScreen({ vocab, sentence, onContinue, onBack, current: idx, total }: {
+  vocab: GwcVocab
+  sentence: GwcVocabSentence
+  onContinue: () => void
+  onBack?: () => void
+  current: number
+  total: number
+}) {
+  const isLast = idx === total - 1
+  const articleMap: Record<string, string> = { der: 'der', die: 'die', das: 'das' }
+  const article = vocab.article ? (articleMap[vocab.article] ?? vocab.article) : null
+
+  // Declension table for Nomen
+  const cases = [
+    { label: 'NOM', sg: vocab.nom_sg, pl: vocab.nom_pl },
+    { label: 'AKK', sg: vocab.akk_sg, pl: vocab.akk_pl },
+    { label: 'DAT', sg: vocab.dat_sg, pl: vocab.dat_pl },
+    { label: 'GEN', sg: vocab.gen_sg, pl: vocab.gen_pl },
+  ].filter(r => r.sg || r.pl)
+
+  return (
+    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
+      <div className="flex items-center px-5 py-3 border-b border-white/5">
+        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+          ← Dashboard
+        </Link>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-lg mx-auto px-6 py-10">
+
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-4 justify-center flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/10 text-[#9b8cf5] border border-[#7c6df2]/20">Vocab</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{vocab.level}</span>
+            {vocab.type && (
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10 capitalize">{vocab.type}</span>
+            )}
+          </div>
+
+          {/* Word + article */}
+          <h2 className="text-4xl font-bold text-[#7c6df2] text-center mb-1">
+            {article ? <span className="text-[#9b98b0] font-normal">{article} </span> : null}{vocab.word}
+          </h2>
+          <p className="text-[#9b98b0] text-center italic mb-6">{vocab.translation_en}</p>
+
+          {/* Explanation */}
+          {vocab.explanation_en && (
+            <div className="bg-[#1a1830] rounded-2xl border border-[#7c6df2]/15 px-5 py-4 mb-4">
+              <p className="text-xs text-[#9b8cf5] uppercase tracking-wider font-bold mb-2">About</p>
+              <p className="text-[#c5c3d4] text-sm leading-relaxed">{vocab.explanation_en}</p>
+            </div>
+          )}
+
+          {/* Declension table for Nomen */}
+          {cases.length > 0 && (
+            <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden mb-4">
+              <div className="px-5 py-3 border-b border-white/5">
+                <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold">Declension</p>
+              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <td className="py-2 px-5 text-[#9b98b0] text-xs font-bold uppercase" />
+                    <td className="py-2 px-5 text-[#9b98b0] text-xs font-bold uppercase">Singular</td>
+                    <td className="py-2 px-5 text-[#9b98b0] text-xs font-bold uppercase">Plural</td>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cases.map(r => (
+                    <tr key={r.label} className="border-t border-white/5">
+                      <td className="py-2.5 px-5 text-[#9b98b0] text-sm font-bold w-16">{r.label}</td>
+                      <td className="py-2.5 px-5 text-[#e8e6f0] font-semibold text-sm">{r.sg ?? '—'}</td>
+                      <td className="py-2.5 px-5 text-[#e8e6f0] text-sm">{r.pl ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Example sentence */}
+          <div className="bg-[#1a1830] rounded-2xl border border-white/5 px-5 py-4 mb-6">
+            <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold mb-2">Example</p>
+            <p className="text-[#e8e6f0] text-sm">{sentence.sentence_de}</p>
+            <p className="text-[#9b98b0] text-xs mt-1 italic">{sentence.sentence_en}</p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Bottom nav */}
+      <div className="px-6 py-5 border-t border-white/5 flex flex-col gap-3 max-w-lg mx-auto w-full">
+        <div className="flex gap-2">
+          {onBack && (
+            <button onClick={onBack} className="flex-1 py-3.5 rounded-xl border border-white/10 text-[#9b98b0] font-semibold hover:bg-white/5 transition-colors">
+              ← Back
+            </button>
+          )}
+          <button
+            onClick={onContinue}
+            className="flex-1 py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all"
+          >
+            {isLast ? 'Start Quiz →' : 'Next →'}
+          </button>
+        </div>
+        <p className="text-center text-[#9b98b0] text-xs">{idx + 1} of {total}</p>
+      </div>
+    </div>
+  )
 }
 
 function VerbIntroScreen({ verb, tense, onContinue, onBack, current: idx, total }: {
@@ -1386,10 +1507,12 @@ export default function LearnPage() {
   const [appPhase, setAppPhase]       = useState<AppPhase>('loading')
   const [error, setError]             = useState<string | null>(null)
 
-  // Unified cloze queue (vocab + grammar + verb)
-  const [clozeItems, setClozeItems]   = useState<ClozeItem[]>([])
+  // Per-path batches — one entry per active path, processed sequentially
+  const [pathBatches, setPathBatches] = useState<PathBatch[]>([])
+  const [batchIdx, setBatchIdx]       = useState(0)
 
-  // Intro sequence: unique grammar topics + verb×tense combos shown before cloze
+  // Current batch's cloze queue + intro sequence
+  const [clozeItems, setClozeItems]   = useState<ClozeItem[]>([])
   const [introQueue, setIntroQueue]   = useState<ClozeItem[]>([])
   const [introIndex, setIntroIndex]   = useState(0)
 
@@ -1399,6 +1522,9 @@ export default function LearnPage() {
   // Daily goal tracking
   const [currentGoal, setCurrentGoal] = useState(10)
   const [completion, setCompletion]   = useState<CompletionData | null>(null)
+
+  // Accumulate results across all batches for the final summary
+  const accResultsRef = useRef<ClozeResult[]>([])
 
   // loadKey increments to re-trigger load (used for "learn more" extension)
   const [loadKey, setLoadKey]         = useState(0)
@@ -1448,10 +1574,8 @@ export default function LearnPage() {
         const firstDef = getPathById(activePaths[0].path_id)
         if (firstDef) setPathName(firstDef.name)
 
-        // 3. Fetch items from each path
-        const allGrammar: GrammarLearnItem[] = []
-        const allVerbs: VerbLearnItem[]      = []
-        const allNewVocab: { vocab: GwcVocab; sentences: GwcVocabSentence[] }[] = []
+        // 3. Build one PathBatch per active path
+        const batches: PathBatch[] = []
         let totalGoal = 0
 
         for (const path of activePaths) {
@@ -1460,74 +1584,75 @@ export default function LearnPage() {
 
           totalGoal += path.daily_goal
 
+          const pathGrammar: GrammarLearnItem[] = []
+          const pathVerbs: VerbLearnItem[]      = []
+          const pathVocab: { vocab: GwcVocab; sentences: GwcVocabSentence[] }[] = []
+
           if (def.type === 'grammar' || def.type === 'mixed') {
-            const grammar = await fetchGrammarItems(sessionId, path.batch_size)
-            allGrammar.push(...grammar)
+            const g = await fetchGrammarItems(sessionId, path.batch_size)
+            pathGrammar.push(...g)
           }
           if (def.type === 'verb' || def.type === 'mixed') {
-            const verbs = await fetchVerbItems(sessionId, path.batch_size, userLevel, path.path_id)
-            allVerbs.push(...verbs)
+            const v = await fetchVerbItems(sessionId, path.batch_size, userLevel, path.path_id)
+            pathVerbs.push(...v)
           }
           if (def.type === 'vocab' || def.type === 'mixed') {
-            // Include new-system vocab (gwc_vocab) not yet reviewed
-            const newVocabItems = await fetchNewVocabItems(sessionId)
-            allNewVocab.push(...newVocabItems)
+            const voc = await fetchNewVocabItems(sessionId)
+            pathVocab.push(...voc)
           }
+
+          if (pathGrammar.length === 0 && pathVerbs.length === 0 && pathVocab.length === 0) continue
+
+          // Build cloze items for this path: grammar → verbs → vocab
+          const clozeItems: ClozeItem[] = [
+            ...pathGrammar.map(g => ({ kind: 'grammar' as const, topic: g.topic, sentence: g.sentence })),
+            ...pathVerbs.flatMap(v => {
+              const tenses = [...new Set(v.sentences.map(s => s.tense))]
+              return tenses.map(tense => {
+                const s = v.sentences.find(s2 => s2.tense === tense && s2.person === 'ich') ?? v.sentences.find(s2 => s2.tense === tense)!
+                return { kind: 'verb' as const, verb: v.verb, sentence: s, tense }
+              })
+            }),
+            ...pathVocab.map(item => {
+              const nomSent = item.sentences.find(s => s.grammatical_case === 'NOMINATIV') ?? item.sentences[0]
+              return { kind: 'vocab_new' as const, vocab: item.vocab, sentence: nomSent }
+            }),
+          ]
+
+          // Build intro items (one per unique topic/verb×tense/vocab)
+          const seenIntros = new Set<string>()
+          const introItems: ClozeItem[] = []
+          for (const item of clozeItems) {
+            if (item.kind === 'grammar' && !seenIntros.has(item.topic.id)) {
+              seenIntros.add(item.topic.id); introItems.push(item)
+            } else if (item.kind === 'verb') {
+              const key = `${item.verb.id}__${item.tense}`
+              if (!seenIntros.has(key)) { seenIntros.add(key); introItems.push(item) }
+            } else if (item.kind === 'vocab_new' && !seenIntros.has(item.vocab.id)) {
+              seenIntros.add(item.vocab.id); introItems.push(item)
+            }
+          }
+
+          batches.push({ name: def.name, clozeItems, introItems })
         }
 
         setCurrentGoal(totalGoal)
 
-        if (allGrammar.length === 0 && allVerbs.length === 0 && allNewVocab.length === 0) {
+        if (batches.length === 0) {
           setAppPhase('no-items')
           return
         }
 
-        // 3. Build cloze sequence: vocab_new, then verbs, then grammar
-        const items: ClozeItem[] = [
-          // New vocab system (gwc_vocab) — show NOM sentence first (sort_order 1), or first available
-          ...allNewVocab.map(item => {
-            const nomSent = item.sentences.find(s => s.grammatical_case === 'NOMINATIV') ?? item.sentences[0]
-            return { kind: 'vocab_new' as const, vocab: item.vocab, sentence: nomSent }
-          }),
-          ...allVerbs.flatMap(v => {
-            // For each verb, add one cloze item per tense (using ich-form sentence or first available)
-            const tenses = [...new Set(v.sentences.map(s => s.tense))]
-            return tenses.map(tense => {
-              const s = v.sentences.find(s2 => s2.tense === tense && s2.person === 'ich') ?? v.sentences.find(s2 => s2.tense === tense)!
-              return { kind: 'verb' as const, verb: v.verb, sentence: s, tense }
-            })
-          }),
-          ...allGrammar.map(g => ({ kind: 'grammar' as const, topic: g.topic, sentence: g.sentence })),
-        ]
-
-        setClozeItems(items)
-
-        // Build intro queue: one entry per unique grammar topic + one per unique verb×tense
-        const seenIntros = new Set<string>()
-        const intros: ClozeItem[] = []
-        for (const item of items) {
-          if (item.kind === 'grammar') {
-            if (!seenIntros.has(item.topic.id)) {
-              seenIntros.add(item.topic.id)
-              intros.push(item)
-            }
-          } else if (item.kind === 'verb') {
-            const key = `${item.verb.id}__${item.tense}`
-            if (!seenIntros.has(key)) {
-              seenIntros.add(key)
-              intros.push(item)
-            }
-          }
-        }
-        setIntroQueue(intros)
+        // Reset accumulated results for this session
+        accResultsRef.current = []
+        setPathBatches(batches)
+        setBatchIdx(0)
+        setPathName(batches[0].name)
+        setClozeItems(batches[0].clozeItems)
+        setIntroQueue(batches[0].introItems)
         setIntroIndex(0)
 
-        // Flow: intro-sequence → quiz-time → cloze
-        if (intros.length > 0) {
-          setAppPhase('intro-sequence')
-        } else {
-          setAppPhase('quiz-time')
-        }
+        setAppPhase(batches[0].introItems.length > 0 ? 'intro-sequence' : 'quiz-time')
       } catch (e) {
         setError('Connection error.')
         console.error(e)
@@ -1692,19 +1817,44 @@ export default function LearnPage() {
       }
     }
 
-    // Award XP and update daily cards
+    // Award XP and update daily cards for this batch
     const correctCount = results.filter(r => r.correct).length
     const wrongCount   = results.length - correctCount
     const xpGained     = correctCount * XP_CORRECT_LEARN + wrongCount * XP_WRONG_LEARN
-    const xpResult     = await awardXPAndUpdateStreak(sessionId, xpGained)
-    const { dailyTotal } = await updateDailyCards(sessionId, results.length)
+    await awardXPAndUpdateStreak(sessionId, xpGained)
+    await updateDailyCards(sessionId, results.length)
 
-    const data: CompletionData = {
-      total: results.length, correct: correctCount, xpGained,
-      newStreak: xpResult?.newStreak ?? 0, dailyTotal,
+    // Accumulate results across all batches
+    accResultsRef.current = [...accResultsRef.current, ...results]
+
+    // Advance to next path batch, or show the combined summary
+    const nextIdx = batchIdx + 1
+    if (nextIdx < pathBatches.length) {
+      const next = pathBatches[nextIdx]
+      setBatchIdx(nextIdx)
+      setPathName(next.name)
+      setClozeItems(next.clozeItems)
+      setIntroQueue(next.introItems)
+      setIntroIndex(0)
+      setAppPhase(next.introItems.length > 0 ? 'intro-sequence' : 'quiz-time')
+    } else {
+      // All paths done — build combined summary from all accumulated results
+      const allResults   = accResultsRef.current
+      const allCorrect   = allResults.filter(r => r.correct).length
+      const allXp        = allResults.filter(r => r.correct).length * XP_CORRECT_LEARN
+                         + allResults.filter(r => !r.correct).length * XP_WRONG_LEARN
+      const xpResult     = await awardXPAndUpdateStreak(sessionId, 0) // just get streak, XP already awarded
+      const { dailyTotal } = await updateDailyCards(sessionId, 0)    // already counted above
+
+      setCompletion({
+        total:     allResults.length,
+        correct:   allCorrect,
+        xpGained:  allXp,
+        newStreak: xpResult?.newStreak ?? 0,
+        dailyTotal,
+      })
+      setAppPhase('batch-done')
     }
-    setCompletion(data)
-    setAppPhase('batch-done')
   }
 
   // ── Extend session by 5 more items ────────────────────────────────────────
@@ -1825,6 +1975,18 @@ export default function LearnPage() {
         <VerbIntroScreen
           verb={item.verb}
           tense={item.tense}
+          onContinue={advanceIntro}
+          onBack={introIndex > 0 ? goBackIntro : undefined}
+          current={introIndex}
+          total={introQueue.length}
+        />
+      )
+    }
+    if (item.kind === 'vocab_new') {
+      return (
+        <VocabIntroScreen
+          vocab={item.vocab}
+          sentence={item.sentence}
           onContinue={advanceIntro}
           onBack={introIndex > 0 ? goBackIntro : undefined}
           current={introIndex}
