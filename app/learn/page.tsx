@@ -141,6 +141,25 @@ function createCloze(sentence: string, clozeWord: string): string {
   return sentence.replace(new RegExp(clozeWord, 'i'), '___')
 }
 
+// For compound tenses: splits the ORIGINAL sentence into 3 parts
+// so we can show TWO blanks — one for the auxiliary, one for the participle/infinitive.
+// Returns [beforeAux, betweenAuxAndStrip, afterStrip] or null if positions not found.
+function createCompoundCloze(
+  sentence: string,
+  auxWord: string,
+  stripPhrase: string
+): [string, string, string] | null {
+  const lc       = sentence.toLowerCase()
+  const auxIdx   = lc.indexOf(auxWord.toLowerCase())
+  const stripIdx = lc.indexOf(stripPhrase.toLowerCase())
+  if (auxIdx === -1 || stripIdx === -1 || stripIdx <= auxIdx) return null
+  return [
+    sentence.slice(0, auxIdx),
+    sentence.slice(auxIdx + auxWord.length, stripIdx),
+    sentence.slice(stripIdx + stripPhrase.length),
+  ]
+}
+
 function getDeclension(artikel: string, word: string, genitiv: string | null) {
   const art = artikel.toLowerCase()
   let akkArt = artikel, datArt = artikel, genArt = artikel
@@ -547,11 +566,32 @@ function AudioButton({ filename, size = 'md' }: { filename?: string | null; size
 
 // ─── Grammar Topic Explanation (shown inline before first sentence of a topic) ─
 
-function GrammarExplainer({ topic, onContinue, onBack, current: idx, total }: {
-  topic: GrammarTopic; onContinue: () => void
+function GrammarExplainer({ topic, sentence, onContinue, onBack, current: idx, total }: {
+  topic: GrammarTopic; sentence?: GrammarSentence; onContinue: () => void
   onBack?: () => void; current: number; total: number
 }) {
-  const isLast = idx >= total - 1
+  const isLast      = idx >= total - 1
+  const hasRegister = topic.register_formal != null || topic.register_standard != null || topic.register_casual != null
+
+  function highlightStructure(text: string) {
+    const parts = text.split(/(\[[^\]]+\])/g)
+    return parts.map((part, i) =>
+      part.startsWith('[') && part.endsWith(']')
+        ? <span key={i} className="text-[#9b8cf5] font-semibold">{part}</span>
+        : <span key={i} className="text-[#e8e6f0]">{part}</span>
+    )
+  }
+
+  function RegisterDots({ level }: { level: number }) {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3].map(i => (
+          <div key={i} className={`w-2.5 h-2.5 rounded-full ${i <= level ? 'bg-[#7c6df2]' : 'bg-white/10'}`} />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
       <div className="flex items-center px-5 py-3 border-b border-white/5">
@@ -560,34 +600,109 @@ function GrammarExplainer({ topic, onContinue, onBack, current: idx, total }: {
         </Link>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-y-auto">
-        <div className="max-w-lg w-full">
-          {/* Badge */}
-          <div className="flex items-center gap-2 mb-4 justify-center">
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
-              Grammar
-            </span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
-              {topic.level}
-            </span>
+      <div className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="max-w-lg w-full mx-auto space-y-4">
+
+          {/* Badges + Title */}
+          <div className="text-center mb-2">
+            <div className="flex items-center gap-2 mb-3 justify-center">
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
+                Grammar
+              </span>
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
+                {topic.level}
+              </span>
+            </div>
+            <h2 className="text-3xl font-bold text-[#e8e6f0]">{topic.title}</h2>
+            {topic.translation_en && (
+              <p className="text-[#9b98b0] text-base mt-1">{topic.translation_en}</p>
+            )}
           </div>
 
-          {/* Title */}
-          <h2 className="text-3xl font-bold text-[#e8e6f0] text-center mb-6">{topic.title}</h2>
+          {/* Structure + Register */}
+          {(topic.structure || hasRegister) && (
+            <div className={`grid gap-3 ${topic.structure && hasRegister ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {topic.structure && (
+                <div className="bg-[#1a1830] rounded-2xl p-4 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-2">Structure</p>
+                  <div className="bg-[#0f0e17] rounded-xl px-4 py-3 border border-white/5 font-mono text-sm leading-relaxed">
+                    {highlightStructure(topic.structure)}
+                  </div>
+                </div>
+              )}
+              {hasRegister && (
+                <div className="bg-[#1a1830] rounded-2xl p-4 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">Register</p>
+                  <div className="space-y-2.5">
+                    {[['Formal', topic.register_formal], ['Standard', topic.register_standard], ['Casual', topic.register_casual]].map(([label, val]) =>
+                      val != null ? (
+                        <div key={label as string} className="flex items-center justify-between">
+                          <span className="text-sm text-[#c5c3d4]">{label as string}</span>
+                          <RegisterDots level={val as number} />
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Explanation */}
-          <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5 mb-8">
-            <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-4">How it works</p>
+          <div className="bg-[#1a1830] rounded-2xl p-5 border border-white/5">
+            <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">How it works</p>
             <div
               className="text-[#c5c3d4] text-sm leading-relaxed"
               dangerouslySetInnerHTML={{ __html: renderMd(topic.explanation_en) }}
             />
+
+            {/* Inline example sentence */}
+            {sentence && (
+              <div className="mt-4 bg-[#252340] rounded-xl px-4 py-3 border border-white/5">
+                <p className="text-[#e8e6f0] text-sm">{sentence.sentence_de}</p>
+                {sentence.sentence_en && (
+                  <p className="text-[#9b98b0] text-xs mt-1">{sentence.sentence_en}</p>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Fun Fact */}
+          {topic.fun_fact && (
+            <div className="bg-[#7c6df2]/8 rounded-2xl p-5 border border-[#7c6df2]/25">
+              <div className="flex gap-3">
+                <span className="text-xl flex-shrink-0">💡</span>
+                <div>
+                  <p className="text-xs font-bold text-[#9b8cf5] uppercase tracking-wider mb-1.5">Fun Fact</p>
+                  <p className="text-[#c5c3d4] text-sm leading-relaxed">{topic.fun_fact}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Synonyms + Related */}
+          {(topic.synonyms || topic.related_forms) && (
+            <div className={`grid gap-3 ${topic.synonyms && topic.related_forms ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {topic.synonyms && (
+                <div className="bg-[#1a1830] rounded-2xl p-4 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-2">Synonyms</p>
+                  <p className="text-[#c5c3d4] text-sm leading-relaxed">{topic.synonyms}</p>
+                </div>
+              )}
+              {topic.related_forms && (
+                <div className="bg-[#1a1830] rounded-2xl p-4 border border-white/5">
+                  <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-2">Related</p>
+                  <p className="text-[#c5c3d4] text-sm leading-relaxed">{topic.related_forms}</p>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
 
       {/* Bottom nav — progress dots + Previous / Next */}
-      <div className="px-6 pb-8 pt-4 border-t border-white/5">
+      <div className="px-6 pb-8 pt-4 border-t border-white/5 bg-[#0f0e17]">
         <div className="flex justify-center gap-2 mb-5">
           {Array.from({ length: total }).map((_, i) => (
             <div key={i} className={`rounded-full transition-all duration-300 ${
@@ -855,39 +970,40 @@ function ClozeSession({
                    : current?.kind === 'grammar' ? current.sentence
                    : current?.sentence
 
-  // For compound verb tenses, expand the expected answer to the full compound
-  // and strip the second component from the visible sentence so it isn't given away.
-  // PERFEKT / PLUSQUAMPERFEKT: aux + Partizip II  (e.g. "bin gewesen")
-  // FUTUR I:                   werden + Infinitiv (e.g. "werde gehen")
-  let effectiveClozeWord = sentence?.cloze_word ?? ''
-  let effectiveSentenceDE = sentence?.sentence_de ?? ''
+  // For compound verb tenses:
+  //   PERFEKT / PLUSQUAMPERFEKT : aux + Partizip II  (e.g. "bin gewesen")
+  //   FUTUR I                   : werden + Infinitiv  (e.g. "werde gehen")
+  //   FUTUR II                  : werden + Partizip II + aux (e.g. "werde gewesen sein")
+  //
+  // Strategy: show TWO blanks in the original sentence — one at the auxiliary position,
+  // one at the participle/infinitive position. User types the full compound into one field.
+  let clozeWord  = sentence?.cloze_word ?? ''
+  let stripPhrase: string | null = null
 
   if (current?.kind === 'verb' && sentence) {
     const verb = current.verb
-    // Compute the parts of the answer that go AFTER the aux/werden cloze_word
-    let stripPhrase: string | null = null
     if (current.tense === 'PERFEKT' || current.tense === 'PLUSQUAMPERFEKT') {
       stripPhrase = verb.partizip_ii ?? null
     } else if (current.tense === 'FUTUR I') {
       stripPhrase = verb.word
     } else if (current.tense === 'FUTUR II') {
-      // werde + gewesen + sein  (partizip_ii + auxiliary)
       if (verb.partizip_ii && verb.auxiliary) {
         stripPhrase = `${verb.partizip_ii} ${verb.auxiliary}`
       }
     }
     if (stripPhrase) {
-      effectiveClozeWord = `${sentence.cloze_word} ${stripPhrase}`
-      effectiveSentenceDE = effectiveSentenceDE
-        .replace(new RegExp(stripPhrase.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'i'), '')
-        .replace(/\s{2,}/g, ' ')
-        .replace(/\s([.,!?])/g, '$1')
-        .trim()
+      clozeWord = `${sentence.cloze_word} ${stripPhrase}`
     }
   }
 
-  const clozeWord  = effectiveClozeWord
-  const clozeParts = createCloze(effectiveSentenceDE, sentence?.cloze_word ?? '').split('___')
+  // compoundParts = [beforeAux, betweenAuxAndStrip, afterStrip] — two blanks
+  // clozeParts    = [before, after] — single blank (simple tenses / fallback)
+  const compoundParts = (stripPhrase && sentence)
+    ? createCompoundCloze(sentence.sentence_de, sentence.cloze_word, stripPhrase)
+    : null
+  const clozeParts = compoundParts
+    ? null
+    : createCloze(sentence?.sentence_de ?? '', sentence?.cloze_word ?? '').split('___')
 
   const isCorrect =
     normalize(input) === normalize(clozeWord) ||
@@ -1099,20 +1215,41 @@ function ClozeSession({
             </div>
           ) : null}
 
-          {/* German sentence with gap */}
+          {/* German sentence with gap(s) */}
           <div className="flex items-center justify-center gap-3">
             <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
-              {clozeParts[0]}
-              <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
-                !answered
-                  ? 'border-[#7c6df2] text-[#9b8cf5]'
-                  : isCorrect
-                    ? 'border-[#4ade80] text-[#4ade80]'
-                    : 'border-[#f87171] text-[#f87171]'
-              }`}>
-                {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
-              </span>
-              {clozeParts[1]}
+              {compoundParts ? (() => {
+                // Compound tense: two blanks — aux at position 2, participle/infinitive at end
+                const color  = !answered ? 'border-[#7c6df2] text-[#9b8cf5]'
+                             : isCorrect  ? 'border-[#4ade80] text-[#4ade80]'
+                             :              'border-[#f87171] text-[#f87171]'
+                const spanCls = `inline-block min-w-[80px] border-b-2 px-1 font-bold text-center transition-colors ${color}`
+                const [pre, mid, post] = compoundParts
+                const auxWord   = sentence!.cloze_word
+                const stripWord = stripPhrase!
+                return <>
+                  {pre}
+                  <span className={spanCls}>{answered ? auxWord   : '\u00a0\u00a0\u00a0\u00a0\u00a0'}</span>
+                  {mid}
+                  <span className={spanCls}>{answered ? stripWord : '\u00a0\u00a0\u00a0\u00a0\u00a0'}</span>
+                  {post}
+                </>
+              })() : (
+                // Simple tense: single blank
+                <>
+                  {clozeParts![0]}
+                  <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
+                    !answered
+                      ? 'border-[#7c6df2] text-[#9b8cf5]'
+                      : isCorrect
+                        ? 'border-[#4ade80] text-[#4ade80]'
+                        : 'border-[#f87171] text-[#f87171]'
+                  }`}>
+                    {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
+                  </span>
+                  {clozeParts![1]}
+                </>
+              )}
             </p>
           </div>
 
@@ -1813,6 +1950,7 @@ export default function LearnPage() {
       return (
         <GrammarExplainer
           topic={item.topic}
+          sentence={item.sentence}
           onContinue={advanceIntro}
           onBack={introIndex > 0 || vocabQueue.length > 0 ? goBackIntro : undefined}
           current={introIndex}
