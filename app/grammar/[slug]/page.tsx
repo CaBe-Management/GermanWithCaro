@@ -297,26 +297,20 @@ export default function GrammarTopicPage() {
           const uniquePersons = [...new Set(sents.map(s => s.person ?? 'null'))]
           setTotalForms(uniquePersons.length)
 
-          const sentIds = sents.map(s => s.id)
-          const { data: reviewedSentRows } = await supabase
-            .from('gwc_user_reviews')
-            .select('grammar_sentence_id')
+          // Check if this topic has a review record
+          const { data: reviewRecord } = await supabase
+            .from('gwc_grammar_reviews')
+            .select('id')
             .eq('session_id', sessionId)
-            .eq('item_type', 'grammar')
-            .in('grammar_sentence_id', sentIds)
+            .eq('topic_id', topicData.id)
+            .maybeSingle()
 
-          const reviewedSet = new Set(
-            (reviewedSentRows || []).map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id)
-          )
-
-          let formsDone = 0
-          for (const person of uniquePersons) {
-            const ids = sents.filter(s => (s.person ?? 'null') === person).map(s => s.id)
-            if (ids.some(id => reviewedSet.has(id))) formsDone++
+          if (reviewRecord) {
+            setReviewedForms(uniquePersons.length)
+            setAddState('all_added')
+          } else {
+            setReviewedForms(0)
           }
-
-          setReviewedForms(formsDone)
-          if (formsDone >= uniquePersons.length) setAddState('all_added')
         }
       } catch (e) {
         setError('Could not load this topic.')
@@ -329,44 +323,38 @@ export default function GrammarTopicPage() {
   }, [slug])
 
   async function handleAddToReviews() {
-    if (!topic || sentences.length === 0) return
+    if (!topic) return
     setAddState('adding')
 
     const sessionId = getOrCreateSessionId()
-    const sentIds = sentences.map(s => s.id)
+
+    // Check if this topic already has a review record
     const { data: existing } = await supabase
-      .from('gwc_user_reviews')
-      .select('grammar_sentence_id')
+      .from('gwc_grammar_reviews')
+      .select('id')
       .eq('session_id', sessionId)
-      .eq('item_type', 'grammar')
-      .in('grammar_sentence_id', sentIds)
+      .eq('topic_id', topic.id)
+      .maybeSingle()
 
-    const existingSet = new Set((existing || []).map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id))
-    const newSents = sentences.filter(s => !existingSet.has(s.id))
-
-    if (newSents.length === 0) {
+    if (existing) {
       setAddState('all_added')
       return
     }
 
-    const now = new Date().toISOString()
-    await supabase.from('gwc_user_reviews').insert(
-      newSents.map(s => {
-        const srs = calculateNextReview(false, 2.5, 1, 0)
-        return {
-          session_id:          sessionId,
-          word_sentence_id:    null,
-          grammar_sentence_id: s.id,
-          item_type:           'grammar',
-          correct:             false,
-          reviewed_at:         now,
-          next_review_at:      now,
-          ease_factor:         srs.newEaseFactor,
-          interval_days:       srs.nextInterval,
-          repetitions:         0,
-        }
-      })
-    )
+    // Insert new topic review record
+    const srs = calculateNextReview(false, 2.5, 1, 0)
+    await supabase.from('gwc_grammar_reviews').insert({
+      session_id:      sessionId,
+      topic_id:        topic.id,
+      next_review_at:  new Date().toISOString(),
+      last_sentence_idx: 0,
+      repetitions:     0,
+      ease_factor:     2.5,
+      interval_days:   1,
+      correct_streak:  0,
+      total_reviews:   0,
+      correct_reviews: 0,
+    })
 
     setReviewedForms(totalForms)
     setAddState('added')

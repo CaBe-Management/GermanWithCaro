@@ -482,20 +482,18 @@ export default function GrammarLearnPage() {
         if (sentences.length > 0) {
           const sentIds = sentences.map(s => s.id)
           const { data: reviewed } = await supabase
-            .from('gwc_user_reviews')
-            .select('grammar_sentence_id')
+            .from('gwc_grammar_reviews')
+            .select('id')
             .eq('session_id', sessionId)
-            .eq('item_type', 'grammar')
-            .in('grammar_sentence_id', sentIds)
+            .eq('topic_id', topicData.id)
 
-          const reviewedSet = new Set((reviewed || []).map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id))
+          const reviewedSet = new Set((reviewed || []).map((r: { id: string }) => r.id))
 
           // For this session: all sentences (both new and already-reviewed)
           // so user can always practice even if everything is in queue
           // But prioritise new sentences first (unreviewed)
-          const newSentences    = sentences.filter(s => !reviewedSet.has(s.id))
-          const reviewedSents   = sentences.filter(s => reviewedSet.has(s.id))
-          const orderedSentences = [...newSentences, ...reviewedSents]
+          const hasReviewRecord = reviewedSet.size > 0
+          const orderedSentences = sentences
 
           setItems(orderedSentences.map(s => ({
             sentenceId:  s.id,
@@ -535,56 +533,45 @@ export default function GrammarLearnPage() {
     const correctCount = finalResults.filter(r => r.correct).length
     const wrongCount   = finalResults.length - correctCount
 
-    // Find which sentence IDs are new (not yet in user's reviews)
-    const sentIds = finalResults.map(r => r.sentenceId)
+    // Check if the topic already has a review record
     const { data: existing } = await supabase
-      .from('gwc_user_reviews')
-      .select('grammar_sentence_id')
+      .from('gwc_grammar_reviews')
+      .select('id, ease_factor, interval_days, repetitions, correct_streak, total_reviews, correct_reviews')
       .eq('session_id', sessionId)
-      .eq('item_type', 'grammar')
-      .in('grammar_sentence_id', sentIds)
+      .eq('topic_id', topic?.id)
+      .maybeSingle()
 
-    const existingSet  = new Set((existing || []).map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id))
-    const newResults   = finalResults.filter(r => !existingSet.has(r.sentenceId))
-    const newSentCount = newResults.length
-
-    // Insert review rows for NEW sentences
-    if (newResults.length > 0) {
-      await supabase.from('gwc_user_reviews').insert(
-        newResults.map(r => {
-          const srs = calculateNextReview(r.correct, 2.5, 1, 0)
-          return {
-            session_id:          sessionId,
-            word_sentence_id:    null,
-            grammar_sentence_id: r.sentenceId,
-            item_type:           'grammar',
-            correct:             r.correct,
-            reviewed_at:         new Date().toISOString(),
-            next_review_at:      new Date(Date.now() + srs.nextInterval * 86400000).toISOString(),
-            ease_factor:         srs.newEaseFactor,
-            interval_days:       srs.nextInterval,
-            repetitions:         srs.newRepetitions,
-          }
-        })
-      )
-    }
-
-    // Update existing review rows for already-known sentences (rescheduling)
-    const reviewedResults = finalResults.filter(r => existingSet.has(r.sentenceId))
-    for (const r of reviewedResults) {
-      const srs = calculateNextReview(r.correct, 2.5, 1, 0)
+    // Insert or update topic review record
+    if (!existing) {
+      // Insert new topic review
+      await supabase.from('gwc_grammar_reviews').insert({
+        session_id:    sessionId,
+        topic_id:      topic?.id,
+        next_review_at: new Date().toISOString(),
+        last_sentence_idx: 0,
+        repetitions:   0,
+        ease_factor:   2.5,
+        interval_days: 1,
+        correct_streak: correctCount === finalResults.length ? 1 : 0,
+        total_reviews: 1,
+        correct_reviews: correctCount > 0 ? 1 : 0,
+      })
+    } else {
+      // Update existing topic review
+      const srs = calculateNextReview(correctCount === finalResults.length, existing.ease_factor || 2.5, existing.interval_days || 1, existing.repetitions || 0)
       await supabase
-        .from('gwc_user_reviews')
+        .from('gwc_grammar_reviews')
         .update({
-          correct:       r.correct,
-          reviewed_at:   new Date().toISOString(),
           next_review_at: new Date(Date.now() + srs.nextInterval * 86400000).toISOString(),
-          ease_factor:   srs.newEaseFactor,
-          interval_days: srs.nextInterval,
-          repetitions:   srs.newRepetitions,
+          ease_factor:    srs.newEaseFactor,
+          interval_days:  srs.nextInterval,
+          repetitions:    srs.newRepetitions,
+          correct_streak: correctCount === finalResults.length ? (existing.correct_streak || 0) + 1 : 0,
+          total_reviews:  (existing.total_reviews || 0) + 1,
+          correct_reviews: (existing.correct_reviews || 0) + (correctCount > 0 ? 1 : 0),
         })
         .eq('session_id', sessionId)
-        .eq('grammar_sentence_id', r.sentenceId)
+        .eq('topic_id', topic?.id)
     }
 
     // Award XP + update streak + daily cards
@@ -597,7 +584,7 @@ export default function GrammarLearnPage() {
       correct:     correctCount,
       xpGained,
       newStreak:   xpResult?.newStreak ?? 0,
-      newSentences: newSentCount,
+      newSentences: existing ? 0 : finalResults.length,
     })
     setPhase('done')
   }

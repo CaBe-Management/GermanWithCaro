@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
-import type { GrammarTopic, Word } from '@/lib/supabase'
+import type { GrammarTopic, VocabWord } from '@/lib/supabase'
 import WordRow from '@/components/WordRow'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface WordWithReviewCount extends Word {
+interface WordWithReviewCount extends VocabWord {
   reviewCount: number
 }
 
@@ -74,32 +74,26 @@ export default function SearchPage() {
         // ── Vocab words — match German OR English ─────────────────────────────
         if (filter === 'all' || filter === 'vocab') {
           const [{ data: byDE }, { data: byEN }] = await Promise.all([
-            supabase.from('gwc_words').select('*').ilike('word', `%${q}%`).limit(30),
-            supabase.from('gwc_words').select('*').ilike('translation_en', `%${q}%`).limit(30),
+            supabase.from('gwc_vocab').select('*').ilike('word', `%${q}%`).limit(30),
+            supabase.from('gwc_vocab').select('*').ilike('translation_en', `%${q}%`).limit(30),
           ])
 
           // Merge + deduplicate by id
-          const merged: Word[] = []
+          const merged: VocabWord[] = []
           const seen = new Set<string>()
           for (const w of [...(byDE || []), ...(byEN || [])]) {
             if (!seen.has(w.id)) { seen.add(w.id); merged.push(w) }
           }
-          merged.sort((a, b) => (a.frequenz_rang ?? 999) - (b.frequenz_rang ?? 999))
+          merged.sort((a, b) => (a.frequency_rank ?? 999) - (b.frequency_rank ?? 999))
 
           if (merged.length > 0) {
-            const wordIds = merged.map((w: Word) => w.id)
-            const [{ data: sentences }, { data: reviews }] = await Promise.all([
-              supabase.from('gwc_word_sentences').select('id, word_id').in('word_id', wordIds),
-              supabase.from('gwc_user_reviews').select('word_sentence_id').eq('session_id', sessionId).eq('item_type', 'vocab'),
-            ])
-            const sentenceToWord: Record<string, string> = {}
-            ;(sentences || []).forEach((s: { id: string; word_id: string }) => { sentenceToWord[s.id] = s.word_id })
-            const reviewsPerWord: Record<string, number> = {}
-            ;(reviews || []).forEach((r: { word_sentence_id: string }) => {
-              const wid = sentenceToWord[r.word_sentence_id]
-              if (wid) reviewsPerWord[wid] = (reviewsPerWord[wid] || 0) + 1
+            const { data: reviews } = await supabase
+              .from('gwc_vocab_reviews').select('vocab_id').eq('session_id', sessionId)
+            const reviewsPerVocab: Record<string, number> = {}
+            ;(reviews || []).forEach((r: { vocab_id: string }) => {
+              reviewsPerVocab[r.vocab_id] = (reviewsPerVocab[r.vocab_id] || 0) + 1
             })
-            setWordResults(merged.map((w: Word) => ({ ...w, reviewCount: reviewsPerWord[w.id] || 0 })))
+            setWordResults(merged.map((w: VocabWord) => ({ ...w, reviewCount: reviewsPerVocab[w.id] || 0 })))
           } else {
             setWordResults([])
           }

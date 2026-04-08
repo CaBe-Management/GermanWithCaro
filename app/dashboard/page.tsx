@@ -144,7 +144,7 @@ export default function Dashboard() {
           { data: activityRows },
           { data: srsRows },
           { data: accuracyRows },
-          { data: words },
+          { data: vocab },
           { data: grammarSentences },
           { data: grammarTopics },
           { data: vocabReviewRows },
@@ -155,15 +155,15 @@ export default function Dashboard() {
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
-          // Total reviews due now
-          supabase.from('gwc_user_reviews').select('*', { count: 'exact', head: true })
+          // Total reviews due now (vocab + grammar)
+          supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true })
             .eq('session_id', sessionId).lte('next_review_at', nowISO),
           // Vocab reviews due now
-          supabase.from('gwc_user_reviews').select('*', { count: 'exact', head: true })
-            .eq('session_id', sessionId).eq('item_type', 'vocab').lte('next_review_at', nowISO),
+          supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true })
+            .eq('session_id', sessionId).lte('next_review_at', nowISO),
           // Grammar reviews due now
-          supabase.from('gwc_user_reviews').select('*', { count: 'exact', head: true })
-            .eq('session_id', sessionId).eq('item_type', 'grammar').lte('next_review_at', nowISO),
+          supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true })
+            .eq('session_id', sessionId).lte('next_review_at', nowISO),
           // Active paths
           supabase.from('gwc_user_paths').select('*')
             .eq('session_id', sessionId).eq('active', true).order('queue_position'),
@@ -171,33 +171,33 @@ export default function Dashboard() {
           supabase.from('gwc_user_badges').select('badge_id, created_at')
             .eq('session_id', sessionId).order('created_at', { ascending: false }).limit(3),
           // Upcoming reviews (next 7 days) for forecast chart
-          supabase.from('gwc_user_reviews').select('next_review_at, item_type')
+          supabase.from('gwc_vocab_reviews').select('next_review_at')
             .eq('session_id', sessionId)
             .gte('next_review_at', nowISO)
             .lte('next_review_at', sevenDaysLater.toISOString()),
           // Past 14 days reviews for activity chart
-          supabase.from('gwc_user_reviews').select('reviewed_at, item_type')
+          supabase.from('gwc_vocab_reviews').select('reviewed_at')
             .eq('session_id', sessionId)
             .gte('reviewed_at', past14Start + 'T00:00:00')
             .lte('reviewed_at', nowISO),
           // All reviewed items for SRS breakdown (interval_days tells us the stage)
-          supabase.from('gwc_user_reviews').select('interval_days, item_type')
+          supabase.from('gwc_vocab_reviews').select('interval_days')
             .eq('session_id', sessionId).not('next_review_at', 'is', null),
           // Last 24h reviews for accuracy stat
           supabase.from('gwc_user_reviews').select('correct')
             .eq('session_id', sessionId).gte('reviewed_at', yesterday.toISOString()),
-          // All vocab words with their CEFR level (for level progress bars)
-          supabase.from('gwc_words').select('id, level'),
+          // All vocab with their CEFR level (for level progress bars)
+          supabase.from('gwc_vocab').select('id, level'),
           // All grammar sentences (to count totals per level)
           supabase.from('gwc_grammar_sentences').select('id, topic_id'),
           // Grammar topics (maps topic_id → level)
           supabase.from('gwc_grammar_topics').select('id, level'),
-          // Vocab review history (word_sentence_id → used to compute unique words learned per level)
-          supabase.from('gwc_user_reviews').select('word_sentence_id, reviewed_at')
-            .eq('session_id', sessionId).eq('item_type', 'vocab').not('word_sentence_id', 'is', null),
+          // Vocab review history (vocab_id → used to compute unique vocab learned per level)
+          supabase.from('gwc_vocab_reviews').select('vocab_id, reviewed_at')
+            .eq('session_id', sessionId),
           // Grammar review history
-          supabase.from('gwc_user_reviews').select('grammar_sentence_id, reviewed_at')
-            .eq('session_id', sessionId).eq('item_type', 'grammar').not('grammar_sentence_id', 'is', null),
+          supabase.from('gwc_grammar_reviews').select('topic_id, updated_at, interval_days')
+            .eq('session_id', sessionId),
           // Verb review history (activity, forecast, SRS, done-today)
           supabase.from('gwc_verb_reviews')
             .select('reviewed_at, interval_days, next_review_at, verb_id')
@@ -221,10 +221,10 @@ export default function Dashboard() {
         // ── Done today per type (for per-path progress in Learn box) ─────────
         const todayStart = offsetDateStr(0) + 'T00:00:00'
         setVocabDoneToday(
-          (vocabReviewRows || []).filter((r: { reviewed_at: string }) => r.reviewed_at >= todayStart).length
+          (vocabReviewRows || []).filter((r: { reviewed_at: string }) => r.reviewed_at && r.reviewed_at >= todayStart).length
         )
         setGrammarDoneToday(
-          (grammarReviewRows || []).filter((r: { reviewed_at: string }) => r.reviewed_at >= todayStart).length
+          (grammarReviewRows || []).filter((r: { updated_at: string }) => r.updated_at && r.updated_at >= todayStart).length
         )
         setVerbDoneToday(
           (verbReviewRows || []).filter((r: { reviewed_at: string | null }) => r.reviewed_at && r.reviewed_at >= todayStart).length
@@ -245,12 +245,9 @@ export default function Dashboard() {
         // ── Forecast: group upcoming reviews by date (vocab/grammar + verb) ──
         const fcMap: Record<string, { vocab: number; grammar: number; verb: number }> = {}
         for (let i = 0; i < 7; i++) { const d = offsetDateStr(i); fcMap[d] = { vocab: 0, grammar: 0, verb: 0 } }
-        ;(forecastRows || []).forEach((r: { next_review_at: string; item_type: string }) => {
+        ;(forecastRows || []).forEach((r: { next_review_at: string }) => {
           const d = r.next_review_at.slice(0, 10)
-          if (d in fcMap) {
-            if (r.item_type === 'vocab') fcMap[d].vocab++
-            else fcMap[d].grammar++
-          }
+          if (d in fcMap) fcMap[d].vocab++
         })
         ;(verbReviewRows || []).forEach((r: { next_review_at: string | null }) => {
           if (!r.next_review_at) return
@@ -267,12 +264,13 @@ export default function Dashboard() {
         const past14 = pastDays(14)
         const actMap: Record<string, { vocab: number; grammar: number; verb: number }> = {}
         past14.forEach(d => { actMap[d] = { vocab: 0, grammar: 0, verb: 0 } })
-        ;(activityRows || []).forEach((r: { reviewed_at: string; item_type: string }) => {
+        ;(activityRows || []).forEach((r: { reviewed_at: string }) => {
           const d = r.reviewed_at.slice(0, 10)
-          if (d in actMap) {
-            if (r.item_type === 'vocab') actMap[d].vocab++
-            else actMap[d].grammar++
-          }
+          if (d in actMap) actMap[d].vocab++
+        })
+        ;(grammarReviewRows || []).forEach((r: { updated_at: string }) => {
+          const d = r.updated_at.slice(0, 10)
+          if (d in actMap) actMap[d].grammar++
         })
         ;(verbReviewRows || []).forEach((r: { reviewed_at: string | null }) => {
           if (!r.reviewed_at) return
@@ -281,26 +279,32 @@ export default function Dashboard() {
         })
         setActivity(past14.map(date => ({ date, ...actMap[date] })))
 
-        // ── SRS breakdown: vocab/grammar (gwc_user_reviews) + verb ──────────
+        // ── SRS breakdown: vocab/grammar + verb ──────────
         const srs: SrsBreakdown = {
           Beginner: { vocab: 0, grammar: 0, verb: 0 }, Seasoned: { vocab: 0, grammar: 0, verb: 0 },
           Adept: { vocab: 0, grammar: 0, verb: 0 },    Expert: { vocab: 0, grammar: 0, verb: 0 },
           Master: { vocab: 0, grammar: 0, verb: 0 },
         }
-        ;(srsRows || []).forEach((r: { interval_days: number; item_type: string }) => {
+        ;(srsRows || []).forEach((r: { interval_days: number }) => {
           const stage = classifySrs(r.interval_days ?? 0)
-          if (r.item_type === 'vocab') srs[stage].vocab++
-          else srs[stage].grammar++
+          srs[stage].vocab++
+        })
+        ;(grammarReviewRows || []).forEach((r: { interval_days: number }) => {
+          const stage = classifySrs(r.interval_days ?? 0)
+          srs[stage].grammar++
         })
         ;(verbReviewRows || []).forEach((r: { interval_days: number | null }) => {
           if (r.interval_days == null) return
           srs[classifySrs(r.interval_days)].verb++
         })
         setSrsBreakdown(srs)
+        const vocabSrsCount = (srsRows || []).length
+        const grammarSrsCount = (grammarReviewRows || []).length
         const verbSrsCount = (verbReviewRows || []).length
-        setTotalItems((srsRows || []).length + verbSrsCount)
+        setTotalItems(vocabSrsCount + grammarSrsCount + verbSrsCount)
 
         // ── Accuracy: % correct in last 24h ──────────────────────────────────
+        // Accuracy from gwc_user_reviews (vocab only, since grammar_reviews stores interval/repetitions not individual correct/incorrect)
         if (accuracyRows && accuracyRows.length > 0) {
           const correct = accuracyRows.filter((r: { correct: boolean }) => r.correct).length
           setAccuracy24h(Math.round((correct / accuracyRows.length) * 100))
@@ -308,42 +312,37 @@ export default function Dashboard() {
 
         // ── Vocab level progress ──────────────────────────────────────────────
         const vocabTotalByLevel: Record<string, number> = {}
-        const wordLevelMap: Record<string, string> = {}
-        for (const w of (words || [])) {
-          vocabTotalByLevel[w.level] = (vocabTotalByLevel[w.level] || 0) + 1
-          wordLevelMap[w.id] = w.level
+        const vocabLevelMap: Record<string, string> = {}
+        for (const v of (vocab || [])) {
+          vocabTotalByLevel[v.level] = (vocabTotalByLevel[v.level] || 0) + 1
+          vocabLevelMap[v.id] = v.level
         }
 
-        // Secondary query: map reviewed sentence IDs → word IDs → levels
+        // Compute learned: distinct vocab_id per level from gwc_vocab_reviews
         const vocabLearnedByLevel: Record<string, number> = {}
-        const reviewedSentIds = (vocabReviewRows || []).map((r: { word_sentence_id: string }) => r.word_sentence_id)
-        if (reviewedSentIds.length > 0) {
-          const { data: sentWords } = await supabase
-            .from('gwc_word_sentences').select('id, word_id').in('id', reviewedSentIds)
-          const seenWords = new Set<string>()
-          for (const s of (sentWords || [])) {
-            if (seenWords.has(s.word_id)) continue
-            seenWords.add(s.word_id)
-            const level = wordLevelMap[s.word_id]
-            if (level) vocabLearnedByLevel[level] = (vocabLearnedByLevel[level] || 0) + 1
-          }
+        const seenVocabIds = new Set<string>()
+        for (const r of (vocabReviewRows || []) as { vocab_id: string }[]) {
+          if (seenVocabIds.has(r.vocab_id)) continue
+          seenVocabIds.add(r.vocab_id)
+          const level = vocabLevelMap[r.vocab_id]
+          if (level) vocabLearnedByLevel[level] = (vocabLearnedByLevel[level] || 0) + 1
         }
 
         // ── Grammar level progress ────────────────────────────────────────────
         const topicLevelMap: Record<string, string> = {}
         for (const t of (grammarTopics as GrammarTopic[] || [])) topicLevelMap[t.id] = t.level
 
-        const grammarSentLevelMap: Record<string, string> = {}
         const grammarTotalByLevel: Record<string, number> = {}
-        for (const s of (grammarSentences as GrammarSentence[] || [])) {
-          const level = topicLevelMap[s.topic_id] ?? ''
-          grammarSentLevelMap[s.id] = level
-          if (level) grammarTotalByLevel[level] = (grammarTotalByLevel[level] || 0) + 1
+        for (const t of (grammarTopics as GrammarTopic[] || [])) {
+          if (t.level) grammarTotalByLevel[t.level] = (grammarTotalByLevel[t.level] || 0) + 1
         }
 
         const grammarLearnedByLevel: Record<string, number> = {}
-        for (const r of (grammarReviewRows || []) as { grammar_sentence_id: string }[]) {
-          const level = grammarSentLevelMap[r.grammar_sentence_id]
+        const seenTopicIds = new Set<string>()
+        for (const r of (grammarReviewRows || []) as { topic_id: string }[]) {
+          if (seenTopicIds.has(r.topic_id)) continue
+          seenTopicIds.add(r.topic_id)
+          const level = topicLevelMap[r.topic_id]
           if (level) grammarLearnedByLevel[level] = (grammarLearnedByLevel[level] || 0) + 1
         }
 

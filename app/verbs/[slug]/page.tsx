@@ -280,7 +280,7 @@ export default function VerbDetailPage() {
               href={`/verbs/${slug}/learn`}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-semibold hover:bg-[#9b8cf5] transition-colors text-sm"
             >
-              Learn this verb →
+              + Add to review queue
             </Link>
           </div>
         </div>

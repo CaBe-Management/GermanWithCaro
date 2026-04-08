@@ -153,7 +153,7 @@ export default function ForecastPage() {
         // ── Upcoming reviews: next 7 days ────────────────────────────────────
         const sevenDaysLater = new Date(now.getTime() + 7 * 86400000)
         const { data: upcomingRows } = await supabase
-          .from('gwc_user_reviews')
+          .from('gwc_grammar_reviews')
           .select('next_review_at')
           .eq('session_id', sessionId)
           .gte('next_review_at', now.toISOString())
@@ -161,7 +161,7 @@ export default function ForecastPage() {
 
         // Also count reviews due NOW (already overdue / due today)
         const { count: dueNow } = await supabase
-          .from('gwc_user_reviews')
+          .from('gwc_grammar_reviews')
           .select('*', { count: 'exact', head: true })
           .eq('session_id', sessionId)
           .lte('next_review_at', now.toISOString())
@@ -193,17 +193,17 @@ export default function ForecastPage() {
         const oldestDate = past21[0]
 
         const { data: pastRows } = await supabase
-          .from('gwc_user_reviews')
-          .select('reviewed_at')
+          .from('gwc_grammar_reviews')
+          .select('updated_at')
           .eq('session_id', sessionId)
-          .gte('reviewed_at', oldestDate + 'T00:00:00')
-          .lte('reviewed_at', now.toISOString())
+          .gte('updated_at', oldestDate + 'T00:00:00')
+          .lte('updated_at', now.toISOString())
 
         // Count by date
         const activityMap: Record<string, number> = {}
         past21.forEach(d => { activityMap[d] = 0 })
         ;(pastRows || []).forEach(r => {
-          const d = (r.reviewed_at as string).slice(0, 10)
+          const d = (r.updated_at as string).slice(0, 10)
           if (d in activityMap) activityMap[d]++
         })
 

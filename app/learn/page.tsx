@@ -18,35 +18,6 @@ import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface VocabWord {
-  id: string
-  word: string
-  typ: string
-  artikel: string | null
-  plural: string | null
-  level: string
-  frequenz_rang: number | null
-  erklaerung: string | null
-  verwendung: string | null
-  genitiv: string | null
-}
-
-interface VocabSentence {
-  id: string
-  word_id: string
-  sentence_de: string
-  sentence_en: string | null
-  cloze_word: string
-  cloze_word_en: string | null
-  sort_order: number
-  audio_file: string | null
-}
-
-interface VocabLearnItem {
-  type: 'vocab'
-  word: VocabWord
-  sentences: VocabSentence[]
-}
 
 interface GrammarLearnItem {
   type: 'grammar'
@@ -77,10 +48,26 @@ interface VerbLearnItem {
 }
 
 // Unified cloze item
+// New vocab system (gwc_vocab + gwc_vocab_sentences)
+interface GwcVocab {
+  id: string; slug: string; word: string; type: string; article: string | null
+  plural: string | null; level: string; frequency_rank: number | null
+  translation_en: string; explanation_en: string
+  nom_sg: string | null; nom_pl: string | null
+  akk_sg: string | null; akk_pl: string | null
+  dat_sg: string | null; dat_pl: string | null
+  gen_sg: string | null; gen_pl: string | null
+}
+interface GwcVocabSentence {
+  id: string; vocab_id: string; sentence_de: string; sentence_en: string
+  cloze_word: string; grammatical_case: string | null; min_level: string; sort_order: number
+  audio_file?: string | null
+}
+
 type ClozeItem =
-  | { kind: 'vocab';   word: VocabWord;   sentence: VocabSentence }
-  | { kind: 'grammar'; topic: GrammarTopic; sentence: GrammarSentence }
-  | { kind: 'verb';    verb: VerbWord;    sentence: VerbSentence; tense: string }
+  | { kind: 'vocab_new'; vocab: GwcVocab;   sentence: GwcVocabSentence }
+  | { kind: 'grammar';   topic: GrammarTopic; sentence: GrammarSentence }
+  | { kind: 'verb';      verb: VerbWord;    sentence: VerbSentence; tense: string }
 
 interface UserPath {
   id: string
@@ -94,8 +81,9 @@ interface UserPath {
 
 interface ClozeResult {
   id: string           // sentence ID
-  type: 'vocab' | 'grammar' | 'verb'
+  type: 'vocab_new' | 'grammar' | 'verb'
   correct: boolean
+  vocabId?: string     // vocab_new only — uuid of gwc_vocab row
   verbId?: string      // verb only — uuid of gwc_verbs row
   verbTense?: string   // verb only — tense string
 }
@@ -108,7 +96,7 @@ interface CompletionData {
   dailyTotal: number
 }
 
-type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'studying' | 'intro-sequence' | 'quiz-time' | 'cloze' | 'batch-done' | 'done' | 'daily-goal-reached'
+type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'intro-sequence' | 'quiz-time' | 'cloze' | 'batch-done' | 'done' | 'daily-goal-reached'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -184,73 +172,54 @@ function renderMd(text: string): string {
 
 // ─── Data Fetching ────────────────────────────────────────────────────────────
 
-async function fetchVocabItems(
-  sessionId: string,
-  lessonOrder: string,
-  batchSize: number
-): Promise<VocabLearnItem[]> {
-  // Get sentence IDs that are already in the vocab review queue
-  const { data: reviewRows } = await supabase
-    .from('gwc_user_reviews')
-    .select('word_sentence_id')
+// ─── New vocab system fetch (gwc_vocab) ──────────────────────────────────────
+
+async function fetchNewVocabItems(
+  sessionId: string
+): Promise<{ vocab: GwcVocab; sentences: GwcVocabSentence[] }[]> {
+  // Words that already have ANY review row are considered "learned" — skip them
+  const { data: existingRows } = await supabase
+    .from('gwc_vocab_reviews')
+    .select('vocab_id')
     .eq('session_id', sessionId)
-    .eq('item_type', 'vocab')
-    .not('word_sentence_id', 'is', null)
 
-  const reviewedSentenceIds = (reviewRows || []).map((r: { word_sentence_id: string }) => r.word_sentence_id)
+  const learnedIds = new Set((existingRows || []).map((r: { vocab_id: string }) => r.vocab_id))
 
-  // Resolve those sentence IDs to word IDs
-  let reviewedWordIds = new Set<string>()
-  if (reviewedSentenceIds.length > 0) {
-    const { data: reviewed } = await supabase
-      .from('gwc_word_sentences')
-      .select('word_id')
-      .in('id', reviewedSentenceIds)
-    reviewedWordIds = new Set((reviewed || []).map((s: { word_id: string }) => s.word_id))
-  }
-
-  // Fetch words in the order set by lessonOrder
-  const orderCol = lessonOrder === 'alphabetical' ? 'word' : 'frequenz_rang'
-  const { data: words } = await supabase
-    .from('gwc_words')
+  const { data: vocabs } = await supabase
+    .from('gwc_vocab')
     .select('*')
-    .order(orderCol, { ascending: true, nullsFirst: false })
-    .limit(500)
+    .order('frequency_rank', { ascending: true, nullsFirst: false })
 
-  const newWords = (words || []).filter((w: VocabWord) => !reviewedWordIds.has(w.id))
-  const wordIds  = newWords.slice(0, batchSize * 3).map((w: VocabWord) => w.id)
-  if (wordIds.length === 0) return []
+  const newVocabs = (vocabs as GwcVocab[] || []).filter(v => !learnedIds.has(v.id))
+  if (newVocabs.length === 0) return []
 
+  const vocabIds = newVocabs.map(v => v.id)
   const { data: sentences } = await supabase
-    .from('gwc_word_sentences')
+    .from('gwc_vocab_sentences')
     .select('*')
-    .in('word_id', wordIds)
+    .in('vocab_id', vocabIds)
     .order('sort_order', { ascending: true })
 
-  const result: VocabLearnItem[] = []
-  for (const word of newWords) {
-    const wordSentences = (sentences || []).filter((s: VocabSentence) => s.word_id === word.id)
-    if (wordSentences.length > 0) {
-      result.push({ type: 'vocab', word, sentences: wordSentences })
-    }
-    if (result.length >= batchSize) break
-  }
-  return result
+  return newVocabs
+    .map(vocab => ({
+      vocab,
+      sentences: (sentences as GwcVocabSentence[] || []).filter(s => s.vocab_id === vocab.id),
+    }))
+    .filter(item => item.sentences.length > 0)
 }
+
 
 async function fetchGrammarItems(
   sessionId: string,
   batchSize: number
 ): Promise<GrammarLearnItem[]> {
-  // Get already-reviewed grammar sentence IDs
+  // Get already-reviewed grammar topic IDs
   const { data: reviewRows } = await supabase
-    .from('gwc_user_reviews')
-    .select('grammar_sentence_id')
+    .from('gwc_grammar_reviews')
+    .select('topic_id')
     .eq('session_id', sessionId)
-    .eq('item_type', 'grammar')
-    .not('grammar_sentence_id', 'is', null)
 
-  const reviewedIds = new Set((reviewRows || []).map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id))
+  const reviewedTopicIds = new Set((reviewRows || []).map((r: { topic_id: string }) => r.topic_id))
 
   // Fetch topics sorted by their sort_order (so we teach topics in order)
   const { data: topics } = await supabase
@@ -273,7 +242,7 @@ async function fetchGrammarItems(
 
   // Filter unreviewed, sort by (topicOrder, sentenceSortOrder), take batchSize
   const unreviewed = (sentences as GrammarSentence[] || [])
-    .filter(s => !reviewedIds.has(s.id))
+    .filter(s => !reviewedTopicIds.has(s.topic_id))
     .sort((a, b) => {
       const tDiff = (topicOrder[a.topic_id] ?? 999) - (topicOrder[b.topic_id] ?? 999)
       return tDiff !== 0 ? tDiff : a.sort_order - b.sort_order
@@ -405,106 +374,7 @@ function QuizTimeScreen({ count, pathName, onStart, onBack }: {
   )
 }
 
-// ─── Slide: Word Overview ─────────────────────────────────────────────────────
 
-function WordOverviewSlide({ word }: { word: VocabWord }) {
-  const isNoun = word.typ === 'NOMEN' && word.artikel
-  const declension = isNoun ? getDeclension(word.artikel!, word.word, word.genitiv) : null
-
-  return (
-    <div className="flex flex-col items-center justify-center px-6 py-8 text-center">
-      <div className="flex gap-2 mb-6 flex-wrap justify-center">
-        <span className={`px-3 py-1 rounded-md text-xs font-bold border ${typColor(word.typ)}`}>{word.typ}</span>
-        <span className="px-3 py-1 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">{word.level}</span>
-        {word.frequenz_rang && (
-          <span className="px-3 py-1 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">#{word.frequenz_rang}</span>
-        )}
-        {word.verwendung && (
-          <span className="px-3 py-1 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">{word.verwendung}</span>
-        )}
-      </div>
-      <h1 className="text-5xl sm:text-6xl font-bold text-[#9b8cf5] mb-3 leading-tight">
-        {word.artikel ? `${word.artikel} ${word.word}` : word.word}
-      </h1>
-      {word.plural && (
-        <p className="text-[#9b98b0] text-base mb-4">Pl. <span className="text-[#e8e6f0] font-medium">{word.plural}</span></p>
-      )}
-      {word.erklaerung && (
-        <div className="w-full max-w-sm mt-4 bg-[#252340] rounded-xl p-4 border border-white/5 text-left">
-          <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1.5">Explanation</p>
-          <p className="text-[#e8e6f0] text-sm leading-relaxed">{word.erklaerung}</p>
-        </div>
-      )}
-      {declension && (
-        <div className="w-full max-w-sm mt-4 bg-[#252340] rounded-xl border border-white/5 overflow-hidden text-left">
-          <p className="text-xs text-[#9b98b0] uppercase tracking-wider px-4 pt-3 pb-2">Declension (Singular)</p>
-          {declension.map(({ label, art, noun }) => (
-            <div key={label} className="flex items-center gap-3 px-4 py-2 border-t border-white/5">
-              <span className="text-xs text-[#9b98b0] w-20 shrink-0">{label}</span>
-              <span className="text-[#7c6df2] font-medium text-sm">{art}</span>
-              <span className="text-[#e8e6f0] text-sm">{noun}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {!declension && (
-        <div className="mt-6 grid grid-cols-2 gap-3 w-full max-w-sm text-left">
-          <div className="bg-[#252340] rounded-xl p-4 border border-white/5">
-            <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1">Type</p>
-            <p className="text-[#e8e6f0] font-bold">{word.typ}</p>
-          </div>
-          {word.frequenz_rang && (
-            <div className="bg-[#252340] rounded-xl p-4 border border-white/5">
-              <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1">Frequenz</p>
-              <p className="text-[#e8e6f0] font-bold">#{word.frequenz_rang}</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Slide: Example Sentences ─────────────────────────────────────────────────
-
-function SentencesSlide({ word, sentences }: { word: VocabWord; sentences: VocabSentence[] }) {
-  const [showEN, setShowEN] = useState(false)
-  return (
-    <div className="flex flex-col min-h-[440px] px-6 py-6">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-0.5">Examples</p>
-          <p className="font-bold text-[#e8e6f0]">
-            <span className="text-[#9b8cf5]">{word.word}</span> — {sentences.length} sentences
-          </p>
-        </div>
-        <button
-          onClick={() => setShowEN(v => !v)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-            showEN ? 'bg-[#7c6df2]/20 text-[#9b8cf5] border-[#7c6df2]/30' : 'bg-white/5 text-[#9b98b0] border-white/10 hover:border-white/20'
-          }`}
-        >
-          {showEN ? '🙈 Hide EN' : '👁 Show EN'}
-        </button>
-      </div>
-      <div className="space-y-2.5 overflow-y-auto flex-1 pr-1">
-        {sentences.map((s, i) => (
-          <div key={s.id} className="bg-[#252340] rounded-xl p-4 border border-white/5">
-            <div className="flex gap-3">
-              <span className="text-xs text-[#9b98b0] shrink-0 mt-1 w-4 text-right">{i + 1}.</span>
-              <div>
-                <p className="text-[#e8e6f0] leading-relaxed">{highlightWord(s.sentence_de, s.cloze_word)}</p>
-                {showEN && s.sentence_en && (
-                  <p className="text-[#9b98b0] text-sm mt-1 leading-relaxed">{s.sentence_en}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // ─── Audio Button ─────────────────────────────────────────────────────────────
 
@@ -942,11 +812,9 @@ function VerbIntroScreen({ verb, tense, onContinue, onBack, current: idx, total 
 
 function ClozeSession({
   items,
-  hasVocab,
   onComplete,
 }: {
   items: ClozeItem[]
-  hasVocab: boolean
   onComplete: (results: ClozeResult[]) => void
 }) {
   const [index, setIndex]                 = useState(0)
@@ -966,8 +834,7 @@ function ClozeSession({
     setShowEN(false)
   }, [index])
 
-  const sentence   = current?.kind === 'vocab' ? current.sentence
-                   : current?.kind === 'grammar' ? current.sentence
+  const sentence   = current?.kind === 'grammar' ? current.sentence
                    : current?.sentence
 
   // For compound verb tenses:
@@ -1032,10 +899,13 @@ function ClozeSession({
     if (!sentence) return
     const r: ClozeResult = {
       id:        sentence.id,
-      type:      current.kind === 'vocab' ? 'vocab' : current.kind === 'grammar' ? 'grammar' : 'verb',
+      type:      current.kind === 'vocab_new' ? 'vocab_new'
+               : current.kind === 'grammar'   ? 'grammar'
+               : 'verb',
       correct:   isCorrect,
-      verbId:    current.kind === 'verb' ? current.verb.id : undefined,
-      verbTense: current.kind === 'verb' ? current.tense  : undefined,
+      vocabId:   current.kind === 'vocab_new' ? current.vocab.id : undefined,
+      verbId:    current.kind === 'verb'       ? current.verb.id : undefined,
+      verbTense: current.kind === 'verb'       ? current.tense   : undefined,
     }
     const newResults = [...results, r]
     setResults(newResults)
@@ -1055,8 +925,8 @@ function ClozeSession({
   const progress = results.length / items.length
 
   // Badge shown in top-right of card
-  const cardBadge = current.kind === 'vocab'   ? current.word.word
-                  : current.kind === 'grammar' ? current.topic.title
+  const cardBadge = current.kind === 'vocab_new' ? current.vocab.word
+                  : current.kind === 'grammar'   ? current.topic.title
                   : current.verb.word
 
   // Small context badges: grammar → person, verb → tense + person
@@ -1065,10 +935,9 @@ function ClozeSession({
                     : null
   const tenseBadge  = current.kind === 'verb' ? current.tense : null
 
-  // Hint 1 (big box translation): for vocab use sentence_en is shown inline;
-  // for grammar/verb show translation in card label area
-  const hint1 = current.kind === 'vocab'   ? null
-              : current.kind === 'grammar' ? current.topic.translation_en
+  // Hint 1 (big box translation): for vocab_new/grammar/verb show translation in card label area
+  const hint1 = current.kind === 'vocab_new' ? current.vocab.translation_en
+              : current.kind === 'grammar'   ? current.topic.translation_en
               : current.verb.translation_en
 
   // Formation hint: specific forms for compound tenses, generic for others
@@ -1110,22 +979,9 @@ function ClozeSession({
     }
   }
 
-  // EN translation display (with cloze_word_en highlight for vocab)
+  // EN translation display
   function renderEN() {
     if (!sentence?.sentence_en) return null
-    if (current.kind === 'vocab' && current.sentence.cloze_word_en) {
-      const regex = new RegExp(`(${current.sentence.cloze_word_en})`, 'gi')
-      const parts = (current.sentence.sentence_en ?? '').split(regex)
-      return (
-        <p className="text-[#9b98b0] text-xl leading-relaxed">
-          {parts.map((part, i) =>
-            regex.test(part)
-              ? <span key={i} className="text-[#9b8cf5] font-bold">{part}</span>
-              : <span key={i}>{part}</span>
-          )}
-        </p>
-      )
-    }
     return <p className="text-[#9b98b0] text-xl leading-relaxed italic">{sentence.sentence_en}</p>
   }
 
@@ -1173,10 +1029,6 @@ function ClozeSession({
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="max-w-2xl w-full text-center space-y-6">
 
-          {/* Word label — only shown for vocab; verb/grammar show their info inside the hint box */}
-          {current.kind === 'vocab' && (
-            <p className="text-[#9b8cf5] font-bold text-lg">{cardBadge}</p>
-          )}
 
           {/* Hint box — verb: show tense + translation in structured card */}
           {current.kind === 'verb' ? (
@@ -1262,16 +1114,10 @@ function ClozeSession({
           {/* English translation: collapsible on front, always shown on back */}
           {sentence?.sentence_en && (
             answered ? (
-              current.kind === 'vocab' ? renderEN() : (
-                <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
-              )
+              <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
             ) : (
               showEN ? (
-                <div className="space-y-1">
-                  {current.kind === 'vocab' ? renderEN() : (
-                    <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
-                  )}
-                </div>
+                <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
               ) : (
                 <button
                   onClick={() => setShowEN(true)}
@@ -1540,11 +1386,6 @@ export default function LearnPage() {
   const [appPhase, setAppPhase]       = useState<AppPhase>('loading')
   const [error, setError]             = useState<string | null>(null)
 
-  // Vocab study queue (browse slides)
-  const [vocabQueue, setVocabQueue]   = useState<VocabLearnItem[]>([])
-  const [wordIndex, setWordIndex]     = useState(0)
-  const [slideIndex, setSlideIndex]   = useState(0)
-
   // Unified cloze queue (vocab + grammar + verb)
   const [clozeItems, setClozeItems]   = useState<ClozeItem[]>([])
 
@@ -1571,21 +1412,13 @@ export default function LearnPage() {
       try {
         const sessionId = getOrCreateSessionId()
 
-        // Extension batch: skip path loading, fetch 5 more of the same type as last session
+        // Extension batch: skip path loading, will refetch all items for next batch
         const extBatch = extensionBatchRef.current
         extensionBatchRef.current = null
 
         if (extBatch !== null) {
-          // Simple extension: just load more vocab (most common case)
-          const vocab = await fetchVocabItems(sessionId, 'default', extBatch)
-          setVocabQueue(vocab)
-          const items: ClozeItem[] = vocab.map(v => ({ kind: 'vocab', word: v.word, sentence: v.sentences[0] }))
-          setClozeItems(items)
-          setWordIndex(0)
-          setSlideIndex(0)
-          if (vocab.length > 0) setAppPhase('studying')
-          else setAppPhase('no-items')
-          return
+          // Extension: refetch items with same loading logic
+          // (no special handling needed — just fall through to normal load)
         }
 
         // 1. Load user level from profile
@@ -1616,9 +1449,9 @@ export default function LearnPage() {
         if (firstDef) setPathName(firstDef.name)
 
         // 3. Fetch items from each path
-        const allVocab: VocabLearnItem[]     = []
         const allGrammar: GrammarLearnItem[] = []
         const allVerbs: VerbLearnItem[]      = []
+        const allNewVocab: { vocab: GwcVocab; sentences: GwcVocabSentence[] }[] = []
         let totalGoal = 0
 
         for (const path of activePaths) {
@@ -1627,10 +1460,6 @@ export default function LearnPage() {
 
           totalGoal += path.daily_goal
 
-          if (def.type === 'vocab' || def.type === 'mixed') {
-            const vocab = await fetchVocabItems(sessionId, path.lesson_order, path.batch_size)
-            allVocab.push(...vocab)
-          }
           if (def.type === 'grammar' || def.type === 'mixed') {
             const grammar = await fetchGrammarItems(sessionId, path.batch_size)
             allGrammar.push(...grammar)
@@ -1639,18 +1468,27 @@ export default function LearnPage() {
             const verbs = await fetchVerbItems(sessionId, path.batch_size, userLevel, path.path_id)
             allVerbs.push(...verbs)
           }
+          if (def.type === 'vocab' || def.type === 'mixed') {
+            // Include new-system vocab (gwc_vocab) not yet reviewed
+            const newVocabItems = await fetchNewVocabItems(sessionId)
+            allNewVocab.push(...newVocabItems)
+          }
         }
 
         setCurrentGoal(totalGoal)
 
-        if (allVocab.length === 0 && allGrammar.length === 0 && allVerbs.length === 0) {
+        if (allGrammar.length === 0 && allVerbs.length === 0 && allNewVocab.length === 0) {
           setAppPhase('no-items')
           return
         }
 
-        // 3. Build cloze sequence: vocab, then verbs (Präsens ich-form), then grammar
+        // 3. Build cloze sequence: vocab_new, then verbs, then grammar
         const items: ClozeItem[] = [
-          ...allVocab.map(v => ({ kind: 'vocab' as const, word: v.word, sentence: v.sentences[0] })),
+          // New vocab system (gwc_vocab) — show NOM sentence first (sort_order 1), or first available
+          ...allNewVocab.map(item => {
+            const nomSent = item.sentences.find(s => s.grammatical_case === 'NOMINATIV') ?? item.sentences[0]
+            return { kind: 'vocab_new' as const, vocab: item.vocab, sentence: nomSent }
+          }),
           ...allVerbs.flatMap(v => {
             // For each verb, add one cloze item per tense (using ich-form sentence or first available)
             const tenses = [...new Set(v.sentences.map(s => s.tense))]
@@ -1662,10 +1500,7 @@ export default function LearnPage() {
           ...allGrammar.map(g => ({ kind: 'grammar' as const, topic: g.topic, sentence: g.sentence })),
         ]
 
-        setVocabQueue(allVocab)
         setClozeItems(items)
-        setWordIndex(0)
-        setSlideIndex(0)
 
         // Build intro queue: one entry per unique grammar topic + one per unique verb×tense
         const seenIntros = new Set<string>()
@@ -1687,10 +1522,8 @@ export default function LearnPage() {
         setIntroQueue(intros)
         setIntroIndex(0)
 
-        // Flow: studying (vocab browse) → intro-sequence → quiz-time → cloze
-        if (allVocab.length > 0) {
-          setAppPhase('studying')
-        } else if (intros.length > 0) {
+        // Flow: intro-sequence → quiz-time → cloze
+        if (intros.length > 0) {
           setAppPhase('intro-sequence')
         } else {
           setAppPhase('quiz-time')
@@ -1704,107 +1537,132 @@ export default function LearnPage() {
     load()
   }, [loadKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Vocab study navigation ────────────────────────────────────────────────
-  const SLIDES = ['overview', 'sentences']
-  const currentVocabItem = vocabQueue[wordIndex]
-
-  function goNext() {
-    if (slideIndex < SLIDES.length - 1) {
-      setSlideIndex(s => s + 1)
-    } else if (wordIndex + 1 < vocabQueue.length) {
-      setWordIndex(w => w + 1)
-      setSlideIndex(0)
-    } else {
-      // Vocab browse done → go to intro-sequence if there are intros, else quiz-time
-      setAppPhase(introQueue.length > 0 ? 'intro-sequence' : 'quiz-time')
-    }
-  }
-
-  function goBack() {
-    if (slideIndex > 0) setSlideIndex(s => s - 1)
-    else if (wordIndex > 0) { setWordIndex(w => w - 1); setSlideIndex(SLIDES.length - 1) }
-  }
 
   // ── Save results and award XP ─────────────────────────────────────────────
   async function handleClozeComplete(results: ClozeResult[]) {
     const sessionId = getOrCreateSessionId()
     const now = new Date().toISOString()
 
-    const vocabResults   = results.filter(r => r.type === 'vocab')
-    const grammarResults = results.filter(r => r.type === 'grammar')
-    const verbResults    = results.filter(r => r.type === 'verb')
+    const vocabNewResults = results.filter(r => r.type === 'vocab_new')
+    const grammarResults  = results.filter(r => r.type === 'grammar')
+    const verbResults     = results.filter(r => r.type === 'verb')
 
-    // Save vocab reviews — upsert to avoid duplicate inserts if session is replayed
-    if (vocabResults.length > 0) {
-      await supabase.from('gwc_user_reviews').upsert(
-        vocabResults.map(r => {
-          const srs = calculateNextReview(r.correct, 2.5, 1, 0)
-          return {
-            session_id:          sessionId,
-            word_sentence_id:    r.id,
-            grammar_sentence_id: null,
-            item_type:           'vocab',
-            correct:             r.correct,
-            reviewed_at:         now,
-            next_review_at:      new Date(Date.now() + srs.nextInterval * 86400000).toISOString(),
-            ease_factor:         srs.newEaseFactor,
-            interval_days:       srs.nextInterval,
-            repetitions:         srs.newRepetitions,
+    // Save new-system vocab reviews (gwc_vocab_reviews)
+    // For NOMEN: one row per unlocked kasus; for others: one row with grammatical_case = null
+    if (vocabNewResults.length > 0) {
+      const { getOrCreateProgress, KASUS_BY_LEVEL } = await import('@/lib/gamification')
+      const progress = await getOrCreateProgress(sessionId)
+      const germanLevel = (progress?.german_level ?? 'A1') as string
+      const unlockedCases = KASUS_BY_LEVEL[germanLevel] ?? ['NOMINATIV', 'AKKUSATIV']
+
+      // Fetch types for the vocab IDs in these results
+      const uniqueVocabIds = [...new Set(vocabNewResults.map(r => r.vocabId!).filter(Boolean))]
+      const { data: vocabs } = await supabase
+        .from('gwc_vocab')
+        .select('id, type')
+        .in('id', uniqueVocabIds)
+
+      const vocabTypeMap = Object.fromEntries((vocabs || []).map((v: { id: string; type: string }) => [v.id, v.type]))
+
+      const rowsToInsert: Record<string, unknown>[] = []
+      for (const r of vocabNewResults) {
+        if (!r.vocabId) continue
+        const srs = calculateNextReview(r.correct, 0)
+        const nextAt = new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString()
+        const vocabType = vocabTypeMap[r.vocabId] ?? 'NOMEN'
+
+        if (vocabType === 'NOMEN') {
+          for (const kasus of unlockedCases) {
+            rowsToInsert.push({
+              session_id: sessionId, vocab_id: r.vocabId,
+              grammatical_case: kasus,
+              interval_days: Math.ceil(srs.intervalDays), ease_factor: 2.5,
+              repetitions: srs.newSrsLevel, next_review_at: nextAt, last_sentence_idx: -1,
+            })
           }
-        }),
-        { onConflict: 'session_id,word_sentence_id', ignoreDuplicates: false }
-      )
+        } else {
+          rowsToInsert.push({
+            session_id: sessionId, vocab_id: r.vocabId,
+            grammatical_case: null,
+            interval_days: Math.ceil(srs.intervalDays), ease_factor: 2.5,
+            repetitions: srs.newSrsLevel, next_review_at: nextAt, last_sentence_idx: -1,
+          })
+        }
+      }
+
+      if (rowsToInsert.length > 0) {
+        // Insert rows; if already exist just skip (idempotent)
+        await supabase.from('gwc_vocab_reviews').upsert(
+          rowsToInsert,
+          { onConflict: 'session_id,vocab_id,grammatical_case', ignoreDuplicates: true }
+        )
+      }
     }
 
     // Save grammar reviews — some may already exist (via "Add to Reviews" on topic page)
     if (grammarResults.length > 0) {
-      const { data: existing } = await supabase
-        .from('gwc_user_reviews')
-        .select('id, grammar_sentence_id')
-        .eq('session_id', sessionId)
-        .eq('item_type', 'grammar')
-        .in('grammar_sentence_id', grammarResults.map(r => r.id))
+      // Fetch grammar sentences to get topic_id for each result
+      const { data: sentenceData } = await supabase
+        .from('gwc_grammar_sentences')
+        .select('id, topic_id')
+        .in('id', grammarResults.map(r => r.id))
 
-      const existingMap = Object.fromEntries(
-        (existing || []).map((e: { id: string; grammar_sentence_id: string }) => [e.grammar_sentence_id, e.id])
+      const sentenceTopicMap = Object.fromEntries(
+        (sentenceData || []).map((s: { id: string; topic_id: string }) => [s.id, s.topic_id])
       )
 
-      const toInsert = grammarResults.filter(r => !existingMap[r.id])
-      const toUpdate = grammarResults.filter(r => !!existingMap[r.id])
+      // Check for existing grammar reviews (using topic_id now)
+      const topicIds = grammarResults
+        .map(r => sentenceTopicMap[r.id])
+        .filter((topicId): topicId is string => !!topicId)
+
+      const { data: existing } = await supabase
+        .from('gwc_grammar_reviews')
+        .select('id, topic_id')
+        .eq('session_id', sessionId)
+        .in('topic_id', topicIds)
+
+      const existingMap = Object.fromEntries(
+        (existing || []).map((e: { id: string; topic_id: string }) => [e.topic_id, e.id])
+      )
+
+      const toInsert = grammarResults.filter(r => !existingMap[sentenceTopicMap[r.id]])
+      const toUpdate = grammarResults.filter(r => !!existingMap[sentenceTopicMap[r.id]])
 
       if (toInsert.length > 0) {
-        await supabase.from('gwc_user_reviews').insert(
+        await supabase.from('gwc_grammar_reviews').insert(
           toInsert.map(r => {
-            const srs = calculateNextReview(r.correct, 2.5, 1, 0)
+            const topicId = sentenceTopicMap[r.id]
+            const srs = calculateNextReview(r.correct, 0)
             return {
-              session_id:          sessionId,
-              word_sentence_id:    null,
-              grammar_sentence_id: r.id,
-              item_type:           'grammar',
-              correct:             r.correct,
-              reviewed_at:         now,
-              next_review_at:      new Date(Date.now() + srs.nextInterval * 86400000).toISOString(),
-              ease_factor:         srs.newEaseFactor,
-              interval_days:       srs.nextInterval,
-              repetitions:         srs.newRepetitions,
+              session_id:       sessionId,
+              topic_id:         topicId,
+              next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
+              last_sentence_idx: 0,
+              repetitions:      srs.newSrsLevel,
+              ease_factor:      2.5,
+              interval_days:    Math.ceil(srs.intervalDays),
+              correct_streak:   r.correct ? 1 : 0,
+              total_reviews:    1,
+              correct_reviews:  r.correct ? 1 : 0,
             }
           })
         )
       }
 
       for (const r of toUpdate) {
-        const srs = calculateNextReview(r.correct, 2.5, 1, 0)
+        const topicId = sentenceTopicMap[r.id]
+        const srs = calculateNextReview(r.correct, 0)
         await supabase
-          .from('gwc_user_reviews')
+          .from('gwc_grammar_reviews')
           .update({
-            correct:        r.correct,
-            reviewed_at:    now,
-            next_review_at: new Date(Date.now() + srs.nextInterval * 86400000).toISOString(),
-            ease_factor:    srs.newEaseFactor,
-            interval_days:  srs.nextInterval,
-            repetitions:    srs.newRepetitions,
+            next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
+            ease_factor:      2.5,
+            interval_days:    Math.ceil(srs.intervalDays),
+            repetitions:      srs.newSrsLevel,
+            correct_streak:   r.correct ? 1 : 0,
           })
-          .eq('id', existingMap[r.id])
+          .eq('id', existingMap[topicId])
       }
     }
 
@@ -1815,16 +1673,16 @@ export default function LearnPage() {
         if (r.verbId && r.verbTense) verbCardMap.set(`${r.verbId}__${r.verbTense}`, r)
       }
       for (const r of verbCardMap.values()) {
-        const srs = calculateNextReview(r.correct, 2.5, 1, 0)
+        const srs = calculateNextReview(r.correct, 0)
         await supabase.from('gwc_verb_reviews').upsert(
           {
             session_id:      sessionId,
             verb_id:         r.verbId,
             tense:           r.verbTense,
-            interval_days:   srs.nextInterval,
-            ease_factor:     srs.newEaseFactor,
-            repetitions:     srs.newRepetitions,
-            next_review_at:  new Date(Date.now() + srs.nextInterval * 86400000).toISOString(),
+            interval_days:   Math.ceil(srs.intervalDays),
+            ease_factor:     2.5,
+            repetitions:     srs.newSrsLevel,
+            next_review_at:  new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
             reviewed_at:     now,
             total_reviews:   1,
             correct_reviews: r.correct ? 1 : 0,
@@ -1945,12 +1803,10 @@ export default function LearnPage() {
     const goBackIntro = () => {
       if (introIndex > 0) {
         setIntroIndex(i => i - 1)
-      } else if (vocabQueue.length > 0) {
-        setAppPhase('studying')
       }
     }
 
-    if (!item || item.kind === 'vocab') return null
+    if (!item) return null
 
     if (item.kind === 'grammar') {
       return (
@@ -1958,7 +1814,7 @@ export default function LearnPage() {
           topic={item.topic}
           sentence={item.sentence}
           onContinue={advanceIntro}
-          onBack={introIndex > 0 || vocabQueue.length > 0 ? goBackIntro : undefined}
+          onBack={introIndex > 0 ? goBackIntro : undefined}
           current={introIndex}
           total={introQueue.length}
         />
@@ -1970,7 +1826,7 @@ export default function LearnPage() {
           verb={item.verb}
           tense={item.tense}
           onContinue={advanceIntro}
-          onBack={introIndex > 0 || vocabQueue.length > 0 ? goBackIntro : undefined}
+          onBack={introIndex > 0 ? goBackIntro : undefined}
           current={introIndex}
           total={introQueue.length}
         />
@@ -1988,8 +1844,6 @@ export default function LearnPage() {
           if (introQueue.length > 0) {
             setIntroIndex(introQueue.length - 1)
             setAppPhase('intro-sequence')
-          } else if (vocabQueue.length > 0) {
-            setAppPhase('studying')
           }
         }}
       />
@@ -2014,95 +1868,11 @@ export default function LearnPage() {
     return (
       <ClozeSession
         items={clozeItems}
-        hasVocab={vocabQueue.length > 0}
         onComplete={handleClozeComplete}
       />
     )
   }
 
-  // ── Study phase (vocab browse) ──────────────────────────────────────────────
-  if (!currentVocabItem) return null
-
-  const totalSlides        = vocabQueue.length * SLIDES.length
-  const currentSlideGlobal = wordIndex * SLIDES.length + slideIndex
-
-  return (
-    <div className="min-h-screen bg-[#0f0e17] relative">
-
-      <div className="max-w-2xl mx-auto px-4 py-8">
-
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-6">
-          <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] text-sm transition-colors">
-            ← Dashboard
-          </Link>
-          <span className="text-[#9b98b0] text-sm">Word {wordIndex + 1} / {vocabQueue.length}</span>
-        </div>
-
-        {/* Progress bar */}
-        <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-6">
-          <div
-            className="h-full bg-[#7c6df2] rounded-full transition-all duration-500"
-            style={{ width: `${(currentSlideGlobal / totalSlides) * 100}%` }}
-          />
-        </div>
-
-        {/* Slide tabs */}
-        <div className="flex gap-1 bg-[#1a1830] rounded-xl p-1 mb-6">
-          {['Overview', 'Examples'].map((label, i) => (
-            <button
-              key={label}
-              onClick={() => i <= slideIndex && setSlideIndex(i)}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${
-                slideIndex === i ? 'bg-[#7c6df2] text-white' : 'text-[#9b98b0] hover:text-[#e8e6f0]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Slide content */}
-        <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden">
-          {slideIndex === 0 && <WordOverviewSlide word={currentVocabItem.word} />}
-          {slideIndex === 1 && <SentencesSlide word={currentVocabItem.word} sentences={currentVocabItem.sentences} />}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between mt-6">
-          <button
-            onClick={goBack}
-            disabled={wordIndex === 0 && slideIndex === 0}
-            className="px-5 py-2.5 rounded-xl bg-white/5 text-[#9b98b0] font-bold hover:bg-white/10 transition-colors disabled:opacity-0"
-          >
-            ← Back
-          </button>
-
-          <div className="hidden sm:flex gap-1.5">
-            {vocabQueue.map((_, wi) =>
-              SLIDES.map((_, si) => {
-                const isCurrent = wi === wordIndex && si === slideIndex
-                const isPast    = wi < wordIndex || (wi === wordIndex && si < slideIndex)
-                return (
-                  <div
-                    key={`${wi}-${si}`}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      isCurrent ? 'w-5 bg-[#7c6df2]' : isPast ? 'w-2 bg-[#7c6df2]/40' : 'w-2 bg-white/15'
-                    }`}
-                  />
-                )
-              })
-            )}
-          </div>
-
-          <button
-            onClick={goNext}
-            className="px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all hover:-translate-y-0.5 shadow-lg shadow-[#7c6df2]/20"
-          >
-            {wordIndex === vocabQueue.length - 1 && slideIndex === SLIDES.length - 1 ? 'Start Quiz →' : 'Next →'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  // No other phases should reach here
+  return null
 }

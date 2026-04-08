@@ -5,42 +5,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-export interface Word {
-  id: string
-  word: string
-  typ: string
-  artikel: string | null
-  plural: string | null
-  level: string
-  frequenz_rang: number
-  created_at: string
-  erklaerung: string | null       // Grammar / usage explanation
-  verwendung: string | null       // When to use: formal, casual, etc.
-  genitiv: string | null          // Genitive form (nouns)
-  translation_en: string | null   // English translation
-  explanation_en: string | null   // English explanation
-}
-
-export interface WordSentence {
-  id: string
-  word_id: string
-  sentence_de: string
-  sentence_en: string | null
-  cloze_word: string
-  cloze_word_en: string | null   // English equivalent shown in purple
-  sort_order: number
-  created_at: string
-}
-
 export interface UserReview {
   id: string
   session_id: string
-  word_sentence_id: string | null    // null for grammar reviews
-  grammar_sentence_id: string | null // null for vocab reviews
-  // Form key for grammar SRS — "topic_uuid:person" (e.g. "abc…:ich") or "topic_uuid:null".
-  // NULL for old sentence-level rows (backwards compat) and for vocab rows.
+  grammar_sentence_id: string | null
   grammar_form_key: string | null
-  item_type: 'vocab' | 'grammar'
+  item_type: 'grammar'
   correct: boolean
   reviewed_at: string
   next_review_at: string | null

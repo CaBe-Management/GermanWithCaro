@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
-import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW } from '@/lib/gamification'
+import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW, getOrCreateProgress, KASUS_BY_LEVEL } from '@/lib/gamification'
 import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 
 // ─── TTS Hook ─────────────────────────────────────────────────────────────────
@@ -29,20 +29,13 @@ function useTTS() {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface VocabWord {
-  id: string; word: string; typ: string; artikel: string | null; plural: string | null; level: string; frequenz_rang: number | null
+interface VerbWord {
+  id: string; slug: string; word: string; translation_en: string; level: string; category: string
+  auxiliary: string | null; partizip_ii: string | null
 }
-interface VocabSentence {
-  id: string; word_id: string; sentence_de: string; sentence_en: string | null; cloze_word: string; cloze_word_en: string | null; sort_order: number
-}
-
-interface VocabCard {
-  kind: 'vocab'
-  reviewId: string
-  word: VocabWord
-  sentence: VocabSentence
-  allSentences: VocabSentence[]
-  easeFactor: number; intervalDays: number; repetitions: number
+interface VerbSentence {
+  id: string; verb_id: string; sentence_de: string; sentence_en: string
+  cloze_word: string; tense: string; person: string; sort_order: number
 }
 
 interface GrammarCard {
@@ -50,10 +43,45 @@ interface GrammarCard {
   reviewId: string
   topic: GrammarTopic
   sentence: GrammarSentence
-  easeFactor: number; intervalDays: number; repetitions: number
+  srsLevel: number
 }
 
-type ReviewCard = VocabCard | GrammarCard
+interface VerbCard {
+  kind: 'verb'
+  reviewId: string
+  verb: VerbWord
+  sentence: VerbSentence
+  tense: string
+  lastSentenceIdx: number  // for cycling to next sentence after review
+  srsLevel: number
+}
+
+// ── New vocab system (gwc_vocab + gwc_vocab_sentences + gwc_vocab_reviews) ──
+interface GwcVocab {
+  id: string; slug: string; word: string; type: string; article: string | null
+  plural: string | null; level: string; frequency_rank: number | null
+  translation_en: string; explanation_en: string
+  nom_sg: string | null; nom_pl: string | null
+  akk_sg: string | null; akk_pl: string | null
+  dat_sg: string | null; dat_pl: string | null
+  gen_sg: string | null; gen_pl: string | null
+}
+interface GwcVocabSentence {
+  id: string; vocab_id: string; sentence_de: string; sentence_en: string
+  cloze_word: string; grammatical_case: string | null; min_level: string; sort_order: number
+}
+interface VocabNewCard {
+  kind: 'vocab_new'
+  reviewId: string
+  vocab: GwcVocab
+  sentence: GwcVocabSentence
+  allCaseSentences: GwcVocabSentence[]  // all sentences for this grammatical_case group
+  grammaticalCase: string | null
+  lastSentenceIdx: number
+  srsLevel: number
+}
+
+type ReviewCard = GrammarCard | VerbCard | VocabNewCard
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,55 +100,13 @@ function typColor(typ: string) {
   }
 }
 
-// ─── Vocab Word Info Panel ─────────────────────────────────────────────────────
-
-function VocabInfoPanel({ word }: { word: VocabWord }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="border-t border-white/8">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-center gap-2 py-4 text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm font-medium"
-      >
-        <span className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>↑</span>
-        {open ? 'Hide word info' : 'Show word info'}
-      </button>
-      {open && (
-        <div className="px-6 pb-6 pt-2 border-t border-white/5">
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${typColor(word.typ)}`}>{word.typ}</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">{word.level}</span>
-            {word.frequenz_rang && (
-              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">#{word.frequenz_rang}</span>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {word.artikel && (
-              <div className="bg-[#252340] rounded-xl p-3 border border-white/5">
-                <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-0.5">Article</p>
-                <p className="text-[#e8e6f0] font-bold">{word.artikel}</p>
-              </div>
-            )}
-            {word.plural && (
-              <div className="bg-[#252340] rounded-xl p-3 border border-white/5">
-                <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-0.5">Plural</p>
-                <p className="text-[#e8e6f0] font-bold">{word.plural}</p>
-              </div>
-            )}
-          </div>
-          <Link
-            href={`/word/${word.id}`}
-            className="mt-3 block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
-          >
-            All sentences for „{word.word}" →
-          </Link>
-        </div>
-      )}
-    </div>
-  )
+const TENSE_LABELS: Record<string, string> = {
+  'PRÄSENS': 'Präsens', 'PERFEKT': 'Perfekt', 'PRÄTERITUM': 'Präteritum',
+  'FUTUR I': 'Futur I', 'FUTUR II': 'Futur II',
+  'KONJUNKTIV II': 'Konj. II', 'PLUSQUAMPERFEKT': 'Plusquam.',
 }
 
-// ─── Grammar Info Panel ───────────────────────────────────────────────────────
+// ─── Info Panels ──────────────────────────────────────────────────────────────
 
 function GrammarInfoPanel({ topic, sentence }: { topic: GrammarTopic; sentence: GrammarSentence }) {
   const [open, setOpen] = useState(false)
@@ -163,6 +149,110 @@ function GrammarInfoPanel({ topic, sentence }: { topic: GrammarTopic; sentence: 
   )
 }
 
+function VerbInfoPanel({ verb, tense }: { verb: VerbWord; tense: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-t border-white/8">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-center gap-2 py-4 text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm font-medium"
+      >
+        <span className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>↑</span>
+        {open ? 'Hide verb info' : 'Show verb info'}
+      </button>
+      {open && (
+        <div className="px-6 pb-6 pt-2 border-t border-white/5">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">Verb</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{verb.level}</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{verb.category}</span>
+          </div>
+          <p className="text-sm font-bold text-[#e8e6f0] mb-1">{verb.word}</p>
+          <p className="text-xs text-[#9b98b0] mb-3">{verb.translation_en}</p>
+          {verb.auxiliary && verb.partizip_ii && (
+            <div className="flex gap-2 text-xs">
+              <div className="bg-[#252340] rounded-xl p-2 border border-white/5">
+                <p className="text-[#9b98b0] uppercase tracking-wider mb-0.5">Aux</p>
+                <p className="text-[#e8e6f0] font-bold">{verb.auxiliary}</p>
+              </div>
+              <div className="bg-[#252340] rounded-xl p-2 border border-white/5">
+                <p className="text-[#9b98b0] uppercase tracking-wider mb-0.5">Partizip II</p>
+                <p className="text-[#e8e6f0] font-bold">{verb.partizip_ii}</p>
+              </div>
+            </div>
+          )}
+          <Link
+            href={`/verbs/${verb.slug}`}
+            className="mt-3 block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
+          >
+            Full conjugation: {verb.word} →
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VocabNewInfoPanel({ vocab, grammaticalCase }: { vocab: GwcVocab; grammaticalCase: string | null }) {
+  const [open, setOpen] = useState(false)
+  const KASUS_LABELS_FULL: Record<string, string> = {
+    NOMINATIV: 'Nominativ', AKKUSATIV: 'Akkusativ', DATIV: 'Dativ', GENITIV: 'Genitiv',
+  }
+  // Declension rows: only for nouns
+  const declRows = vocab.article ? [
+    { label: 'Nominativ', value: vocab.nom_sg },
+    { label: 'Akkusativ', value: vocab.akk_sg },
+    { label: 'Dativ',     value: vocab.dat_sg },
+    { label: 'Genitiv',   value: vocab.gen_sg },
+  ] : []
+  return (
+    <div className="border-t border-white/8">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-center gap-2 py-4 text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm font-medium"
+      >
+        <span className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>↑</span>
+        {open ? 'Hide word info' : 'Show word info'}
+      </button>
+      {open && (
+        <div className="px-6 pb-6 pt-2 border-t border-white/5">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">{vocab.type}</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">{vocab.level}</span>
+            {grammaticalCase && (
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                {KASUS_LABELS_FULL[grammaticalCase] ?? grammaticalCase}
+              </span>
+            )}
+          </div>
+          <p className="text-sm font-bold text-[#e8e6f0] mb-1">{vocab.word}</p>
+          <p className="text-xs text-[#9b98b0] mb-3">{vocab.translation_en}</p>
+          {declRows.length > 0 && (
+            <div className="grid grid-cols-2 gap-1.5 text-xs mb-3">
+              {declRows.map(row => (
+                <div key={row.label} className={`rounded-lg p-2 border ${
+                  grammaticalCase && KASUS_LABELS_FULL[grammaticalCase] === row.label
+                    ? 'bg-blue-500/10 border-blue-500/30'
+                    : 'bg-[#252340] border-white/5'
+                }`}>
+                  <p className="text-[#9b98b0] uppercase tracking-wider mb-0.5">{row.label}</p>
+                  <p className="text-[#e8e6f0] font-bold">{row.value ?? '—'}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <Link
+            href={`/vocab/${vocab.slug}`}
+            className="block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
+          >
+            All sentences for „{vocab.word}" →
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Review Card View ─────────────────────────────────────────────────────────
 
 function ReviewCardView({
@@ -182,13 +272,14 @@ function ReviewCardView({
   const [answered, setAnswered] = useState(false)
   const tts = useTTS()
 
-  const sentence    = card.kind === 'vocab' ? card.sentence : card.sentence
+  // Resolve card-type-specific fields
+  const sentence    = card.sentence
   const clozeWord   = sentence.cloze_word
   const sentenceDE  = sentence.sentence_de
-  const sentenceEN  = sentence.sentence_en
+  const sentenceEN  = 'sentence_en' in sentence ? sentence.sentence_en : null
 
   // Build cloze parts: split sentence on the cloze word
-  const clozeParts = sentenceDE.replace(new RegExp(clozeWord, 'i'), '___').split('___')
+  const clozeParts = sentenceDE.replace(new RegExp(clozeWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '___').split('___')
 
   const isCorrect =
     normalize(input) === normalize(clozeWord) ||
@@ -218,20 +309,22 @@ function ReviewCardView({
   const wordsLeft = total - (cardNumber - 1)
   const progress  = (cardNumber - 1) / total
 
-  // English hint with optional cloze_word_en highlight (vocab only)
+  const KASUS_LABELS: Record<string, string> = {
+    NOMINATIV: 'Nom', AKKUSATIV: 'Akk', DATIV: 'Dat', GENITIV: 'Gen',
+  }
+
+  // Topic label shown above the sentence
+  const topicLabel =
+    card.kind === 'vocab_new' ? card.vocab.word :
+    card.kind === 'grammar'   ? card.topic.title :
+    `${card.verb.word} — ${TENSE_LABELS[card.tense] ?? card.tense}`
+
+  // SRS level badge
+  const srsLabel = `SRS ${card.srsLevel}`
+
+  // English hint
   function renderEN() {
     if (!sentenceEN) return null
-    if (card.kind === 'vocab' && card.sentence.cloze_word_en) {
-      const regex = new RegExp(`(${card.sentence.cloze_word_en})`, 'gi')
-      const parts = sentenceEN.split(regex)
-      return (
-        <p className="text-[#9b98b0] text-base sm:text-xl leading-relaxed">
-          {parts.map((part, i) =>
-            regex.test(part) ? <span key={i} className="text-[#9b8cf5] font-bold">{part}</span> : <span key={i}>{part}</span>
-          )}
-        </p>
-      )
-    }
     return <p className="text-[#9b98b0] text-base sm:text-xl leading-relaxed italic">{sentenceEN}</p>
   }
 
@@ -244,17 +337,24 @@ function ReviewCardView({
           ← Dashboard
         </Link>
         <div className="flex items-center gap-3">
-          {/* Grammar/person badges */}
+          {/* Type badge */}
           {card.kind === 'grammar' && (
-            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
-              Grammar
+            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">Grammar</span>
+          )}
+          {card.kind === 'verb' && (
+            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">
+              {TENSE_LABELS[card.tense] ?? card.tense}
             </span>
           )}
-          {card.kind === 'grammar' && card.sentence.person && (
-            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
-              {card.sentence.person}
+          {card.kind === 'vocab_new' && card.grammaticalCase && (
+            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              {KASUS_LABELS[card.grammaticalCase]}
             </span>
           )}
+          {/* SRS level */}
+          <span className="px-2 py-0.5 rounded-md text-xs text-[#6b6880] bg-white/5 border border-white/8">
+            {srsLabel}
+          </span>
           {/* Stats */}
           <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
             <div className="flex items-center gap-1">
@@ -281,16 +381,10 @@ function ReviewCardView({
       {/* Main content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-6 sm:py-12">
         <div className="max-w-2xl w-full text-center space-y-6">
-
-          {/* Label */}
-          <p className="text-[#9b8cf5] font-bold text-lg">
-            {card.kind === 'vocab' ? card.word.word : card.topic.title}
-          </p>
-
-          {/* English translation shown first — the highlighted word (purple) is what maps to the blank */}
+          <p className="text-[#9b8cf5] font-bold text-lg">{topicLabel}</p>
           {renderEN()}
 
-          {/* German sentence with gap — user types the missing word */}
+          {/* German sentence with gap */}
           <p className="text-[#e8e6f0] text-xl sm:text-3xl md:text-4xl leading-relaxed font-light">
             {clozeParts[0]}
             <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
@@ -345,7 +439,7 @@ function ReviewCardView({
                 ))}
               </div>
               <span className="text-xs text-[#9b98b0] font-medium shrink-0">
-                {card.kind === 'vocab' ? card.word.word : card.topic.title}
+                {card.kind === 'verb' ? card.verb.word : card.kind === 'vocab_new' ? card.vocab.word : card.topic.title}
               </span>
             </div>
             {/* Next button */}
@@ -361,9 +455,10 @@ function ReviewCardView({
           </div>
         )}
 
-        {/* Info panel — vocab or grammar */}
-        {card.kind === 'vocab' && <VocabInfoPanel word={card.word} />}
-        {card.kind === 'grammar' && <GrammarInfoPanel topic={card.topic} sentence={card.sentence} />}
+        {/* Info panel */}
+        {card.kind === 'vocab_new' && <VocabNewInfoPanel vocab={card.vocab} grammaticalCase={card.grammaticalCase} />}
+        {card.kind === 'grammar'   && <GrammarInfoPanel topic={card.topic} sentence={card.sentence} />}
+        {card.kind === 'verb'      && <VerbInfoPanel verb={card.verb} tense={card.tense} />}
       </div>
     </div>
   )
@@ -397,7 +492,7 @@ function EmptyState() {
         <h2 className="text-2xl font-bold text-[#e8e6f0] mb-2">No reviews due!</h2>
         <p className="text-[#9b98b0] mb-8">All done. Learn new words or come back later.</p>
         <div className="flex gap-3 justify-center">
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">Dashboard</Link>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold">Dashboard</Link>
           <Link href="/learn" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">Learn</Link>
         </div>
       </div>
@@ -409,7 +504,7 @@ function EmptyState() {
 
 function ReviewPageInner() {
   const searchParams = useSearchParams()
-  const typeFilter   = searchParams.get('type') as 'all' | 'vocab' | 'grammar' | null ?? 'all'
+  const typeFilter   = searchParams.get('type') as 'all' | 'vocab_new' | 'grammar' | 'verb' | null ?? 'all'
 
   const [loading, setLoading] = useState(true)
   const [cards, setCards]     = useState<ReviewCard[]>([])
@@ -424,145 +519,169 @@ function ReviewPageInner() {
       try {
         const sessionId = getOrCreateSessionId()
         const now = new Date().toISOString()
-
-        // Build query for due reviews, filtered by type if requested
-        let reviewQuery = supabase
-          .from('gwc_user_reviews')
-          .select('*')
-          .eq('session_id', sessionId)
-          .lte('next_review_at', now)
-          .order('next_review_at', { ascending: true })
-          .limit(50)
-
-        if (typeFilter === 'vocab') {
-          reviewQuery = reviewQuery.eq('item_type', 'vocab')
-        } else if (typeFilter === 'grammar') {
-          reviewQuery = reviewQuery.eq('item_type', 'grammar')
-        }
-
-        const { data: reviews, error: rErr } = await reviewQuery
-        if (rErr) throw rErr
-        if (!reviews || reviews.length === 0) { setCards([]); setLoading(false); return }
-
-        // ── Build vocab cards ─────────────────────────────────────────────────
-        const vocabReviews   = reviews.filter((r: { item_type: string }) => r.item_type === 'vocab')
-        const grammarReviews = reviews.filter((r: { item_type: string }) => r.item_type === 'grammar')
-
         const built: ReviewCard[] = []
 
-        if (vocabReviews.length > 0) {
-          const sentIds = vocabReviews.map((r: { word_sentence_id: string }) => r.word_sentence_id).filter(Boolean)
-          const { data: reviewSentences } = await supabase.from('gwc_word_sentences').select('*').in('id', sentIds)
-          const wordIds = [...new Set((reviewSentences || []).map((s: VocabSentence) => s.word_id))]
-          const [{ data: words }, { data: allSentences }] = await Promise.all([
-            supabase.from('gwc_words').select('*').in('id', wordIds),
-            supabase.from('gwc_word_sentences').select('*').in('word_id', wordIds).order('sort_order', { ascending: true }),
-          ])
+        // ── Grammar reviews ─────────────────────────────────────────────────────
+        if (typeFilter === 'all' || typeFilter === 'grammar') {
+          const { data: grammarReviews } = await supabase
+            .from('gwc_grammar_reviews')
+            .select('*')
+            .eq('session_id', sessionId)
+            .lte('next_review_at', now)
+            .order('next_review_at', { ascending: true })
+            .limit(50)
 
-          const wordMap     = Object.fromEntries((words || []).map((w: VocabWord) => [w.id, w]))
-          const sentenceMap = Object.fromEntries((reviewSentences || []).map((s: VocabSentence) => [s.id, s]))
-          const allByWord: Record<string, VocabSentence[]> = {}
-          for (const s of (allSentences || [])) {
-            if (!allByWord[s.word_id]) allByWord[s.word_id] = []
-            allByWord[s.word_id].push(s)
-          }
-
-          for (const r of vocabReviews) {
-            const sentence = sentenceMap[r.word_sentence_id]
-            if (!sentence) continue
-            const word = wordMap[sentence.word_id]
-            if (!word) continue
-            built.push({
-              kind: 'vocab', reviewId: r.id, word, sentence,
-              allSentences: allByWord[sentence.word_id] || [sentence],
-              easeFactor: r.ease_factor ?? 2.5, intervalDays: r.interval_days ?? 1, repetitions: r.repetitions ?? 0,
-            })
-          }
-        }
-
-        // ── Build grammar cards ───────────────────────────────────────────────
-        // Supports both old-style (sentence-level) and new-style (form-level) review rows.
-        // Old-style: grammar_form_key is null → one card per sentence (unchanged behaviour).
-        // New-style: grammar_form_key is set → deduplicate by form, pick random sentence from pool.
-        if (grammarReviews.length > 0) {
-          // Split rows by style
-          const oldStyle = grammarReviews.filter((r: { grammar_form_key?: string | null }) => !r.grammar_form_key)
-          const newStyle = grammarReviews.filter((r: { grammar_form_key?: string | null }) => !!r.grammar_form_key)
-
-          // ── Old-style: sentence-level (backwards compat) ──────────────────
-          if (oldStyle.length > 0) {
-            const sentIds = oldStyle.map((r: { grammar_sentence_id: string }) => r.grammar_sentence_id).filter(Boolean)
-            const { data: grammarSentences } = await supabase.from('gwc_grammar_sentences').select('*').in('id', sentIds)
-            const topicIds = [...new Set((grammarSentences || []).map((s: GrammarSentence) => s.topic_id))]
-            const { data: topics } = await supabase.from('gwc_grammar_topics').select('*').in('id', topicIds)
-
-            const sentenceMap = Object.fromEntries((grammarSentences || []).map((s: GrammarSentence) => [s.id, s]))
-            const topicMap    = Object.fromEntries((topics || []).map((t: GrammarTopic) => [t.id, t]))
-
-            for (const r of oldStyle) {
-              const sentence = sentenceMap[r.grammar_sentence_id]
-              if (!sentence) continue
-              const topic = topicMap[sentence.topic_id]
-              if (!topic) continue
-              built.push({
-                kind: 'grammar', reviewId: r.id, topic, sentence,
-                easeFactor: r.ease_factor ?? 2.5, intervalDays: r.interval_days ?? 1, repetitions: r.repetitions ?? 0,
-              })
-            }
-          }
-
-          // ── New-style: form-level (one card per form, random sentence from pool) ──
-          if (newStyle.length > 0) {
-            // Deduplicate: keep only the first (earliest-due) row for each form key
-            const seenFormKeys = new Set<string>()
-            const dedupedForms: typeof newStyle = []
-            for (const r of newStyle) {
-              if (!seenFormKeys.has(r.grammar_form_key)) {
-                seenFormKeys.add(r.grammar_form_key)
-                dedupedForms.push(r)
-              }
-            }
-
-            // Parse form keys → topicId + person
-            // Format: "topic_uuid:person" or "topic_uuid:null"
-            const formInfos = dedupedForms.map((r: { grammar_form_key: string; id: string; ease_factor: number; interval_days: number; repetitions: number }) => {
-              const colonIdx = r.grammar_form_key.indexOf(':')
-              const topicId  = r.grammar_form_key.slice(0, colonIdx)
-              const personStr = r.grammar_form_key.slice(colonIdx + 1)
-              return { review: r, topicId, person: personStr === 'null' ? null : personStr }
-            })
-
-            const formTopicIds = [...new Set(formInfos.map(f => f.topicId))]
-            const [{ data: formTopics }, { data: formSentences }] = await Promise.all([
-              supabase.from('gwc_grammar_topics').select('*').in('id', formTopicIds),
-              supabase.from('gwc_grammar_sentences').select('*').in('topic_id', formTopicIds),
+          if (grammarReviews && grammarReviews.length > 0) {
+            const topicIds = [...new Set(grammarReviews.map((r: { topic_id: string }) => r.topic_id))]
+            const [{ data: topics }, { data: allSentences }] = await Promise.all([
+              supabase.from('gwc_grammar_topics').select('*').in('id', topicIds),
+              supabase.from('gwc_grammar_sentences').select('*').in('topic_id', topicIds).order('sort_order', { ascending: true }),
             ])
 
-            const topicMap = Object.fromEntries((formTopics || []).map((t: GrammarTopic) => [t.id, t]))
-
-            // Index sentences by form key for O(1) pool lookup
-            const poolByFormKey: Record<string, GrammarSentence[]> = {}
-            for (const s of (formSentences as GrammarSentence[] || [])) {
-              const key = `${s.topic_id}:${s.person ?? 'null'}`
-              if (!poolByFormKey[key]) poolByFormKey[key] = []
-              poolByFormKey[key].push(s)
+            const topicMap = Object.fromEntries((topics || []).map((t: GrammarTopic) => [t.id, t]))
+            const sentsByTopic: Record<string, GrammarSentence[]> = {}
+            for (const s of (allSentences as GrammarSentence[] || [])) {
+              if (!sentsByTopic[s.topic_id]) sentsByTopic[s.topic_id] = []
+              sentsByTopic[s.topic_id].push(s)
             }
 
-            for (const { review, topicId } of formInfos) {
-              const topic = topicMap[topicId]
+            for (const r of grammarReviews) {
+              const topic = topicMap[r.topic_id]
               if (!topic) continue
-              const pool = poolByFormKey[review.grammar_form_key] || []
-              if (pool.length === 0) continue
-              // Pick a random sentence from the pool so each review uses a different example
-              const sentence = pool[Math.floor(Math.random() * pool.length)]
+              const sents = sentsByTopic[r.topic_id] || []
+              if (sents.length === 0) continue
+              const nextIdx = ((r.last_sentence_idx ?? -1) + 1) % sents.length
+              const sentence = sents[nextIdx]
               built.push({
-                kind: 'grammar', reviewId: review.id, topic, sentence,
-                easeFactor: review.ease_factor ?? 2.5, intervalDays: review.interval_days ?? 1, repetitions: review.repetitions ?? 0,
+                kind: 'grammar' as const,
+                reviewId: r.id,
+                topic,
+                sentence,
+                srsLevel: r.repetitions ?? 0,
               })
             }
           }
         }
 
+        // ── Verb reviews ──────────────────────────────────────────────────────
+        if (typeFilter === 'all' || typeFilter === 'verb') {
+          const { data: verbReviews } = await supabase
+            .from('gwc_verb_reviews')
+            .select('*')
+            .eq('session_id', sessionId)
+            .lte('next_review_at', now)
+            .order('next_review_at', { ascending: true })
+            .limit(50)
+
+          if (verbReviews && verbReviews.length > 0) {
+            const verbIds = [...new Set(verbReviews.map((r: { verb_id: string }) => r.verb_id))]
+            const tenses  = [...new Set(verbReviews.map((r: { tense: string }) => r.tense))]
+
+            const [{ data: verbs }, { data: verbSentences }] = await Promise.all([
+              supabase.from('gwc_verbs').select('id, slug, word, translation_en, level, category, auxiliary, partizip_ii').in('id', verbIds),
+              supabase.from('gwc_verb_sentences').select('*').in('verb_id', verbIds).in('tense', tenses).order('sort_order', { ascending: true }),
+            ])
+
+            const verbMap = Object.fromEntries((verbs || []).map((v: VerbWord) => [v.id, v]))
+
+            // Index sentences: verbId__tense → VerbSentence[]
+            const sentPool: Record<string, VerbSentence[]> = {}
+            for (const s of (verbSentences as VerbSentence[] || [])) {
+              const key = `${s.verb_id}__${s.tense}`
+              if (!sentPool[key]) sentPool[key] = []
+              sentPool[key].push(s)
+            }
+
+            for (const r of verbReviews) {
+              const verb = verbMap[r.verb_id]
+              if (!verb) continue
+              const pool = sentPool[`${r.verb_id}__${r.tense}`] || []
+              if (pool.length === 0) continue
+
+              // Rotate through sentences using last_sentence_idx
+              const nextIdx = ((r.last_sentence_idx ?? -1) + 1) % pool.length
+              // Pick the sentence AT nextIdx (will be saved after review)
+              const sentence = pool[nextIdx % pool.length]
+
+              built.push({
+                kind: 'verb',
+                reviewId: r.id,
+                verb,
+                sentence,
+                tense: r.tense,
+                lastSentenceIdx: nextIdx,
+                srsLevel: r.repetitions ?? 0,
+              })
+            }
+          }
+        }
+
+        // ── New vocab system (gwc_vocab_reviews) ─────────────────────────────
+        if (typeFilter === 'all' || typeFilter === 'vocab_new') {
+          // Load german_level to know which kasus rows to show
+          const progress = await getOrCreateProgress(sessionId)
+          const germanLevel = (progress?.german_level ?? 'A1') as string
+          const allowedCases = new Set(KASUS_BY_LEVEL[germanLevel] ?? ['NOMINATIV', 'AKKUSATIV'])
+
+          const { data: rawVocabReviews } = await supabase
+            .from('gwc_vocab_reviews')
+            .select('*')
+            .eq('session_id', sessionId)
+            .lte('next_review_at', now)
+            .order('next_review_at', { ascending: true })
+            .limit(50)
+
+          // Filter: show non-noun rows (grammatical_case IS NULL) always;
+          // show noun case rows only if that case is unlocked at current german_level
+          const newVocabReviews = (rawVocabReviews ?? []).filter((r: { grammatical_case: string | null }) =>
+            r.grammatical_case === null || allowedCases.has(r.grammatical_case)
+          )
+
+          if (newVocabReviews && newVocabReviews.length > 0) {
+            const vocabIds = [...new Set(newVocabReviews.map((r: { vocab_id: string }) => r.vocab_id))]
+
+            const [{ data: vocabs }, { data: vocabSentences }] = await Promise.all([
+              supabase.from('gwc_vocab').select('*').in('id', vocabIds),
+              supabase.from('gwc_vocab_sentences').select('*').in('vocab_id', vocabIds).order('sort_order', { ascending: true }),
+            ])
+
+            const vocabMap = Object.fromEntries((vocabs || []).map((v: GwcVocab) => [v.id, v]))
+
+            // Pool sentences by vocab_id__grammatical_case (or __null for non-nouns)
+            const sentPool: Record<string, GwcVocabSentence[]> = {}
+            for (const s of (vocabSentences as GwcVocabSentence[] || [])) {
+              const key = `${s.vocab_id}__${s.grammatical_case ?? 'null'}`
+              if (!sentPool[key]) sentPool[key] = []
+              sentPool[key].push(s)
+            }
+
+            for (const r of newVocabReviews) {
+              const vocab = vocabMap[r.vocab_id]
+              if (!vocab) continue
+              const poolKey = `${r.vocab_id}__${r.grammatical_case ?? 'null'}`
+              const pool = sentPool[poolKey] || []
+              if (pool.length === 0) continue
+
+              // Rotate through sentences within this case group
+              const nextIdx = ((r.last_sentence_idx ?? -1) + 1) % pool.length
+              const sentence = pool[nextIdx]
+
+              built.push({
+                kind: 'vocab_new' as const,
+                reviewId: r.id,
+                vocab,
+                sentence,
+                allCaseSentences: pool,
+                grammaticalCase: r.grammatical_case ?? null,
+                lastSentenceIdx: nextIdx,
+                srsLevel: r.repetitions ?? 0,
+              })
+            }
+          }
+        }
+
+        // Shuffle vocab/grammar/verb together for variety
+        // (stable sort: verbs interleaved with vocab/grammar)
         setCards(built)
       } catch (e) {
         setError('Could not load reviews.')
@@ -581,26 +700,79 @@ function ReviewPageInner() {
     const newCorrect  = wasCorrect ? correct + 1 : correct
     const newMistakes = wasCorrect ? mistakes : mistakes + 1
 
-    const srs = calculateNextReview(wasCorrect, card.easeFactor, card.intervalDays, card.repetitions)
-    const nextAt = new Date(Date.now() + srs.nextInterval * 86400000).toISOString()
+    // Bunpro SRS: pass current SRS level (from repetitions column)
+    const srs = calculateNextReview(wasCorrect, card.srsLevel)
+    const nextAt = new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString()
     const now = new Date().toISOString()
 
-    if (card.kind === 'vocab') {
-      // Rotate to next sentence for vocab (so each review uses a different example)
-      const sentenceList = card.allSentences
-      const currentIdx   = sentenceList.findIndex(s => s.id === card.sentence.id)
-      const nextSentId   = sentenceList[(currentIdx + 1) % sentenceList.length].id
+    if (card.kind === 'grammar') {
+      const { data: cur } = await supabase
+        .from('gwc_grammar_reviews')
+        .select('total_reviews, correct_reviews, correct_streak, last_sentence_idx')
+        .eq('id', card.reviewId)
+        .single()
 
-      await supabase.from('gwc_user_reviews').update({
-        word_sentence_id: nextSentId,
-        correct: wasCorrect, reviewed_at: now, next_review_at: nextAt,
-        ease_factor: srs.newEaseFactor, interval_days: srs.nextInterval, repetitions: srs.newRepetitions,
+      const newStreak = wasCorrect ? (cur?.correct_streak ?? 0) + 1 : 0
+      // Advance sentence index
+      const { data: sents } = await supabase
+        .from('gwc_grammar_sentences')
+        .select('id')
+        .eq('topic_id', card.topic.id)
+        .order('sort_order', { ascending: true })
+      const sentCount = sents?.length ?? 1
+      const nextSentIdx = ((cur?.last_sentence_idx ?? -1) + 1) % sentCount
+
+      await supabase.from('gwc_grammar_reviews').update({
+        reviewed_at:      now,
+        next_review_at:   nextAt,
+        ease_factor:      2.5,
+        interval_days:    Math.ceil(srs.intervalDays),
+        repetitions:      srs.newSrsLevel,
+        last_sentence_idx: nextSentIdx,
+        correct_streak:   newStreak,
+        total_reviews:    (cur?.total_reviews ?? 0) + 1,
+        correct_reviews:  (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
+        updated_at:       now,
       }).eq('id', card.reviewId).eq('session_id', sessionId)
-    } else {
-      // Grammar: no sentence rotation (each sentence IS its own card)
-      await supabase.from('gwc_user_reviews').update({
-        correct: wasCorrect, reviewed_at: now, next_review_at: nextAt,
-        ease_factor: srs.newEaseFactor, interval_days: srs.nextInterval, repetitions: srs.newRepetitions,
+
+    } else if (card.kind === 'verb') {
+      // Read current stats so we can increment them (no RPC needed)
+      const { data: cur } = await supabase
+        .from('gwc_verb_reviews')
+        .select('total_reviews, correct_reviews')
+        .eq('id', card.reviewId)
+        .single()
+
+      await supabase.from('gwc_verb_reviews').update({
+        reviewed_at:       now,
+        next_review_at:    nextAt,
+        ease_factor:       2.5,
+        interval_days:     Math.ceil(srs.intervalDays),
+        repetitions:       srs.newSrsLevel,
+        last_sentence_idx: card.lastSentenceIdx,
+        total_reviews:     (cur?.total_reviews   ?? 0) + 1,
+        correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
+      }).eq('id', card.reviewId).eq('session_id', sessionId)
+
+    } else if (card.kind === 'vocab_new') {
+      // New vocab system (gwc_vocab_reviews) — rotate within case group
+      const { data: cur } = await supabase
+        .from('gwc_vocab_reviews')
+        .select('total_reviews, correct_reviews, correct_streak')
+        .eq('id', card.reviewId)
+        .single()
+
+      await supabase.from('gwc_vocab_reviews').update({
+        reviewed_at:      now,
+        next_review_at:   nextAt,
+        ease_factor:      2.5,
+        interval_days:    Math.ceil(srs.intervalDays),
+        repetitions:      srs.newSrsLevel,
+        last_sentence_idx: card.lastSentenceIdx,
+        correct_streak:   wasCorrect ? ((cur?.correct_streak ?? 0) + 1) : 0,
+        total_reviews:    (cur?.total_reviews   ?? 0) + 1,
+        correct_reviews:  (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
+        updated_at:       now,
       }).eq('id', card.reviewId).eq('session_id', sessionId)
     }
 

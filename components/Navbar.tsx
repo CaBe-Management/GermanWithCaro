@@ -57,14 +57,19 @@ export default function Navbar() {
 
         const [
           { data: { user } },
-          { count: dueCount },
+          { count: grammarCount },
+          { count: verbCount },
+          { count: newVocabCount },
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
-          supabase.from('gwc_user_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
+          supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
+          supabase.from('gwc_verb_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
+          supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
           // Fetch user progress for global daily_goal + how many cards learned today
           getOrCreateProgress(sessionId),
         ])
+        const dueCount = (grammarCount ?? 0) + (verbCount ?? 0) + (newVocabCount ?? 0)
 
         if (user?.email) setUserEmail(user.email)
 

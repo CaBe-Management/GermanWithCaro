@@ -75,10 +75,10 @@ export default function PathPage() {
       // ── Vocabulary ──────────────────────────────────────────────────────────
       if (path!.type === 'vocab' || path!.type === 'mixed') {
         const { data } = await supabase
-          .from('gwc_words')
-          .select('id, word, artikel, typ, level, frequenz_rang')
+          .from('gwc_vocab')
+          .select('id, word, article, type, level, frequency_rank')
           .eq('level', level)
-          .order('frequenz_rang', { ascending: true, nullsFirst: false })
+          .order('frequency_rank', { ascending: true, nullsFirst: false })
           .limit(1000)
 
         for (const row of (data || []) as any[]) {
@@ -86,10 +86,10 @@ export default function PathPage() {
             kind:         'vocab',
             id:           row.id,
             word:         row.word,
-            artikel:      row.artikel,
-            typ:          row.typ,
+            artikel:      row.article,
+            typ:          row.type,
             level:        row.level,
-            frequenz_rang: row.frequenz_rang,
+            frequenz_rang: row.frequency_rank,
           })
         }
       }

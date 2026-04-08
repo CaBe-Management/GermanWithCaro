@@ -1,37 +1,38 @@
 'use client'
 
 import Link from 'next/link'
-import Badge from './Badge'
-import { Word } from '@/lib/supabase'
+import type { VocabWord } from '@/lib/supabase'
 
 interface WordRowProps {
-  word: Word
+  word: VocabWord
   reviewCount?: number
   onClick?: () => void
 }
 
 export default function WordRow({ word, reviewCount = 0, onClick }: WordRowProps) {
   const content = (
-    <div className="flex items-center justify-between gap-4 p-4 rounded-lg hover:bg-bg-card transition-colors border border-bg-secondary">
-      {/* Left: Badges and Word */}
+    <div className="flex items-center justify-between gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors border border-white/5">
       <div className="flex-1 flex items-center gap-4">
         <div className="flex gap-2">
-          <Badge type="typ" value={word.typ} />
-          <Badge type="level" value={word.level} />
+          <span className="px-2 py-0.5 rounded text-xs font-bold bg-white/10 text-[#9b98b0] border border-white/10">
+            {word.type}
+          </span>
+          <span className="px-2 py-0.5 rounded text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
+            {word.level}
+          </span>
         </div>
         <div className="flex-1">
           <div className="flex items-baseline gap-2">
-            {word.artikel && <span className="text-text-muted text-sm">{word.artikel}</span>}
-            <span className="text-text-primary font-semibold">{word.word}</span>
+            {word.article && <span className="text-[#9b98b0] text-sm">{word.article}</span>}
+            <span className="text-[#e8e6f0] font-semibold">{word.word}</span>
+            {word.plural && <span className="text-[#9b98b0] text-xs">/ {word.plural}</span>}
           </div>
-          {word.plural && <p className="text-text-muted text-xs mt-1">Plural: {word.plural}</p>}
+          <p className="text-[#9b98b0] text-xs mt-0.5">{word.translation_en}</p>
         </div>
       </div>
-
-      {/* Right: Review Count */}
-      <div className="text-right">
-        <Badge type="srs" value={`${reviewCount}`} />
-      </div>
+      {reviewCount > 0 && (
+        <span className="text-xs text-[#9b98b0] shrink-0">{reviewCount} reviews</span>
+      )}
     </div>
   )
 
@@ -39,5 +40,5 @@ export default function WordRow({ word, reviewCount = 0, onClick }: WordRowProps
     return <button onClick={onClick} className="w-full text-left">{content}</button>
   }
 
-  return <Link href={`/word/${word.id}`}>{content}</Link>
+  return <Link href={`/vocab/${word.slug}`}>{content}</Link>
 }

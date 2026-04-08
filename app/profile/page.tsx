@@ -10,6 +10,7 @@ import {
   checkAndAwardBadges,
   saveDailyGoal,
   saveGermanLevel,
+  backfillKasusRows,
   BADGE_DEFS,
   getBadgeStat,
   todayStr,
@@ -230,23 +231,24 @@ function DailyGoalControl({ initialGoal }: { initialGoal: number }) {
 const GERMAN_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
 type GermanLevel = typeof GERMAN_LEVELS[number]
 
+
 const LEVEL_DESCRIPTIONS: Record<GermanLevel, string> = {
-  A1: 'Komplette Anfänger',
-  A2: 'Grundkenntnisse',
-  B1: 'Mittelstufe',
-  B2: 'Obere Mittelstufe',
-  C1: 'Fortgeschritten',
-  C2: 'Meisterschaft',
+  A1: 'Complete Beginner',
+  A2: 'Elementary',
+  B1: 'Intermediate',
+  B2: 'Upper Intermediate',
+  C1: 'Advanced',
+  C2: 'Mastery',
 }
 
 // What NEW content gets unlocked AT each level (shown when going up to or through that level)
 const LEVEL_UNLOCKS: Record<GermanLevel, string[]> = {
-  A1: ['Präsens-Konjugation', 'A1-Vokabeln & Sätze'],
-  A2: ['Perfekt-Verbformen (bin/habe + Partizip II)', 'A2-Vokabeln & Grammatik'],
-  B1: ['Präteritum', 'Futur I (werde + Infinitiv)', 'B1-Sätze & Grammatik'],
-  B2: ['Konjunktiv II (wäre, würde …)', 'Plusquamperfekt', 'komplexe Kasusformen', 'B2-Inhalte'],
-  C1: ['Futur II (werde … gemacht haben)', 'C1-Sätze & Grammatik'],
-  C2: ['alle C2-Inhalte & Mastery-Übungen'],
+  A1: ['Present tense conjugation', 'A1 vocab & sentences'],
+  A2: ['Perfect tense (bin/habe + Partizip II)', 'A2 vocab & grammar'],
+  B1: ['Simple past (Präteritum)', 'Future I (werde + infinitive)', 'B1 sentences & grammar'],
+  B2: ['Konjunktiv II (wäre, würde …)', 'Past perfect', 'Complex case forms', 'B2 content'],
+  C1: ['Future II (werde … gemacht haben)', 'C1 sentences & grammar'],
+  C2: ['All C2 content & mastery exercises'],
 }
 
 // ─── Level Selector component ────────────────────────────────────────────────
@@ -292,11 +294,11 @@ function LevelSelector({
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
-        <p className="text-sm font-bold text-[#e8e6f0]">Dein Deutschniveau</p>
+        <p className="text-sm font-bold text-[#e8e6f0]">Your German Level</p>
         <span className="text-xs text-[#9b98b0]">{LEVEL_DESCRIPTIONS[selected]}</span>
       </div>
       <p className="text-xs text-[#9b98b0] mb-3">
-        Bestimmt, welche Sätze, Verbformen und Übungen dir angezeigt werden
+        Determines which sentences, verb forms and exercises are shown to you
       </p>
 
       {/* Level buttons */}
@@ -337,7 +339,7 @@ function LevelSelector({
         }`}>
           {goingUp ? (
             <>
-              <p className="font-bold mb-1.5">🔓 Wird freigeschaltet:</p>
+              <p className="font-bold mb-1.5">🔓 Unlocks:</p>
               <ul className="space-y-0.5 text-xs">
                 {changedFeatures.map(f => (
                   <li key={f} className="flex items-start gap-1.5">
@@ -349,7 +351,7 @@ function LevelSelector({
             </>
           ) : (
             <>
-              <p className="font-bold mb-1.5">🔒 Wird ausgeblendet:</p>
+              <p className="font-bold mb-1.5">🔒 Will be hidden:</p>
               <ul className="space-y-0.5 text-xs">
                 {changedFeatures.map(f => (
                   <li key={f} className="flex items-start gap-1.5">
@@ -374,17 +376,19 @@ function LevelSelector({
               : 'bg-amber-500 hover:bg-amber-400 text-white shadow-sm shadow-amber-500/30'
           } disabled:opacity-60`}
         >
-          {saving ? 'Speichern …' : `Niveau auf ${selected} setzen`}
+          {saving ? 'Saving …' : `Set level to ${selected}`}
         </button>
       )}
 
       {/* Brief success confirmation */}
       {justSaved && !isDirty && (
-        <p className="text-xs text-emerald-400 text-center mt-2">✓ Gespeichert</p>
+        <p className="text-xs text-emerald-400 text-center mt-2">✓ Saved</p>
       )}
     </div>
   )
 }
+
+
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -400,9 +404,15 @@ export default function ProfilePage() {
   const [germanLevel, setGermanLevel]     = useState<GermanLevel>('A1')
 
   async function handleSaveGermanLevel(level: GermanLevel) {
-    setGermanLevel(level)
     const sessionId = getOrCreateSessionId()
+    const prevLevel = germanLevel
+    setGermanLevel(level)
     await saveGermanLevel(sessionId, level)
+    // If going up: backfill any missing kasus rows for already-learned NOMEN
+    const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+    if (LEVELS.indexOf(level) > LEVELS.indexOf(prevLevel)) {
+      await backfillKasusRows(sessionId, level)
+    }
   }
 
   useEffect(() => {
@@ -420,19 +430,19 @@ export default function ProfilePage() {
 
           // All review rows for SRS breakdown, total count, and correct rate
           supabase
-            .from('gwc_user_reviews')
-            .select('word_sentence_id, correct, interval_days, reviewed_at')
+            .from('gwc_grammar_reviews')
+            .select('interval_days, updated_at, correct_reviews, total_reviews')
             .eq('session_id', sessionId),
 
           // Reviews from this week (Mon–Sun) for the weekly dot view
           (() => {
             const days = getCurrentWeekDays()
             return supabase
-              .from('gwc_user_reviews')
-              .select('reviewed_at')
+              .from('gwc_grammar_reviews')
+              .select('updated_at')
               .eq('session_id', sessionId)
-              .gte('reviewed_at', days[0] + 'T00:00:00')
-              .lte('reviewed_at', days[6] + 'T23:59:59')
+              .gte('updated_at', days[0] + 'T00:00:00')
+              .lte('updated_at', days[6] + 'T23:59:59')
           })(),
         ])
 
@@ -441,20 +451,16 @@ export default function ProfilePage() {
         const reviews = allReviews || []
 
         // ── Stats ────────────────────────────────────────────────────────────
-        const totalReviews = reviews.length
-        const correctCount = reviews.filter(r => r.correct).length
+        const totalReviews = reviews.reduce((sum, r) => sum + (r.total_reviews || 0), 0)
+        const correctCount = reviews.reduce((sum, r) => sum + (r.correct_reviews || 0), 0)
         const correctRate  = totalReviews > 0 ? Math.round((correctCount / totalReviews) * 100) : 0
 
-        // Unique words learned (distinct word_sentence → word)
-        const reviewedSentenceIds = reviews.map(r => r.word_sentence_id)
-        let learnedWords = 0
-        if (reviewedSentenceIds.length > 0) {
-          const { data: sentWords } = await supabase
-            .from('gwc_word_sentences')
-            .select('word_id')
-            .in('id', reviewedSentenceIds)
-          learnedWords = new Set((sentWords || []).map((s: { word_id: string }) => s.word_id)).size
-        }
+        // Unique vocab learned (distinct vocab_id from gwc_vocab_reviews)
+        const { data: learnedVocabRows } = await supabase
+          .from('gwc_vocab_reviews')
+          .select('vocab_id')
+          .eq('session_id', sessionId)
+        const learnedWords = new Set((learnedVocabRows || []).map((r: { vocab_id: string }) => r.vocab_id)).size
 
         // ── User progress (XP, streak, daily goal, german level) ────────────
         const prog = await getOrCreateProgress(sessionId)
@@ -480,7 +486,7 @@ export default function ProfilePage() {
         const days = getCurrentWeekDays()
         setWeekDays(days)
         const daySet = new Set(
-          (weekReviewData || []).map(r => (r.reviewed_at as string).slice(0, 10))
+          (weekReviewData || []).map(r => (r.updated_at as string).slice(0, 10))
         )
         setActiveDays(daySet)
 
