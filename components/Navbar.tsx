@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { getOrCreateProgress, getLevelFromXP, todayStr } from '@/lib/gamification'
-import { ALL_PATHS } from '@/lib/paths'
+// paths import removed — dropdown now links to /paths overview page
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -151,7 +151,7 @@ export default function Navbar() {
             <button
               onClick={() => pathsDropdown.setOpen(v => !v)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                pathname.startsWith('/path') || pathname.startsWith('/reading')
+                pathname.startsWith('/path') || pathname === '/paths' || pathname.startsWith('/reading')
                   ? 'text-[#e8e6f0] bg-white/8'
                   : 'text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/5'
               }`}
@@ -181,60 +181,18 @@ export default function Navbar() {
                   </div>
                 </Link>
                 <Link
-                  href="/grammar"
-                  onClick={() => pathsDropdown.setOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
-                    pathname.startsWith('/grammar') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                  }`}
-                >
-                  <span className="text-lg">📝</span>
-                  <div>
-                    <p className="text-sm font-semibold leading-tight">Grammar</p>
-                    <p className="text-xs text-[#9b98b0]">Topics & practice</p>
-                  </div>
-                </Link>
-                <Link
-                  href="/vocab"
+                  href="/paths"
                   onClick={() => pathsDropdown.setOpen(false)}
                   className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
-                    pathname.startsWith('/vocab') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                    pathname.startsWith('/path') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
                   }`}
                 >
-                  <span className="text-lg">📚</span>
+                  <span className="text-lg">🗺️</span>
                   <div>
-                    <p className="text-sm font-semibold leading-tight">Vocabulary</p>
-                    <p className="text-xs text-[#9b98b0]">Words & phrases</p>
+                    <p className="text-sm font-semibold leading-tight">Paths</p>
+                    <p className="text-xs text-[#9b98b0]">A1 → C2, all types</p>
                   </div>
                 </Link>
-                <Link
-                  href="/verbs"
-                  onClick={() => pathsDropdown.setOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
-                    pathname.startsWith('/verbs') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                  }`}
-                >
-                  <span className="text-lg">🔤</span>
-                  <div>
-                    <p className="text-sm font-semibold leading-tight">Verb Conjugation</p>
-                    <p className="text-xs text-[#9b98b0]">All tenses & forms</p>
-                  </div>
-                </Link>
-                <p className="px-3 pt-2.5 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">
-                  Paths
-                </p>
-                {ALL_PATHS.map(path => (
-                  <Link
-                    key={path.id}
-                    href={`/path/${path.id}`}
-                    onClick={() => pathsDropdown.setOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-white/5 ${
-                      pathname === `/path/${path.id}` ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                    }`}
-                  >
-                    <span className="text-base">{path.icon}</span>
-                    <span>{path.name}</span>
-                  </Link>
-                ))}
               </div>
             )}
           </div>
@@ -406,60 +364,18 @@ export default function Navbar() {
                     </div>
                   </Link>
                   <Link
-                    href="/grammar"
+                    href="/paths"
                     onClick={() => mobileMenu.setOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
-                      pathname.startsWith('/grammar') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                      pathname.startsWith('/path') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
                     }`}
                   >
-                    <span className="text-base">📝</span>
+                    <span className="text-base">🗺️</span>
                     <div>
-                      <p className="font-medium leading-tight">Grammar</p>
-                      <p className="text-xs text-[#9b98b0]">Topics & practice</p>
+                      <p className="font-medium leading-tight">Paths</p>
+                      <p className="text-xs text-[#9b98b0]">A1 → C2, all types</p>
                     </div>
                   </Link>
-                  <Link
-                    href="/vocab"
-                    onClick={() => mobileMenu.setOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
-                      pathname.startsWith('/vocab') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                    }`}
-                  >
-                    <span className="text-base">📚</span>
-                    <div>
-                      <p className="font-medium leading-tight">Vocabulary</p>
-                      <p className="text-xs text-[#9b98b0]">Words & phrases</p>
-                    </div>
-                  </Link>
-                  <Link
-                    href="/verbs"
-                    onClick={() => mobileMenu.setOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
-                      pathname.startsWith('/verbs') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                    }`}
-                  >
-                    <span className="text-base">🔤</span>
-                    <div>
-                      <p className="font-medium leading-tight">Verb Conjugation</p>
-                      <p className="text-xs text-[#9b98b0]">All tenses & forms</p>
-                    </div>
-                  </Link>
-
-                  {/* Paths */}
-                  <p className="px-4 pt-2 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">Paths</p>
-                  {ALL_PATHS.map(path => (
-                    <Link
-                      key={path.id}
-                      href={`/path/${path.id}`}
-                      onClick={() => mobileMenu.setOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
-                        pathname === `/path/${path.id}` ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                      }`}
-                    >
-                      <span className="text-base">{path.icon}</span>
-                      <span>{path.name}</span>
-                    </Link>
-                  ))}
                 </div>
 
                 {/* User section */}

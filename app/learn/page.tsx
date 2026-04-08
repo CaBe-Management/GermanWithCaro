@@ -990,6 +990,12 @@ function ClozeSession({
       if (verb.partizip_ii && verb.auxiliary) {
         stripPhrase = `${verb.partizip_ii} ${verb.auxiliary}`
       }
+    } else if (current.tense === 'KONJUNKTIV II') {
+      // "würde + Infinitiv" construction: cloze_word is one of the würde-forms
+      const WUERDE = ['würde', 'würdest', 'würden', 'würdet']
+      if (WUERDE.includes(sentence.cloze_word.toLowerCase())) {
+        stripPhrase = verb.word
+      }
     }
     if (stripPhrase) {
       clozeWord = `${sentence.cloze_word} ${stripPhrase}`
@@ -1167,8 +1173,8 @@ function ClozeSession({
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="max-w-2xl w-full text-center space-y-6">
 
-          {/* Word/topic label — hidden for verb (already shown inside hint box) */}
-          {current.kind !== 'verb' && (
+          {/* Word label — only shown for vocab; verb/grammar show their info inside the hint box */}
+          {current.kind === 'vocab' && (
             <p className="text-[#9b8cf5] font-bold text-lg">{cardBadge}</p>
           )}
 
