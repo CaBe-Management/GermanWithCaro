@@ -108,7 +108,7 @@ interface CompletionData {
   dailyTotal: number
 }
 
-type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'studying' | 'intro-sequence' | 'quiz-modal' | 'cloze' | 'done' | 'daily-goal-reached'
+type AppPhase = 'loading' | 'no-paths' | 'no-items' | 'studying' | 'intro-sequence' | 'quiz-time' | 'cloze' | 'batch-done' | 'done' | 'daily-goal-reached'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -335,33 +335,50 @@ async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 
 
 // ─── Quiz Time Modal ──────────────────────────────────────────────────────────
 
-function QuizTimeModal({ count, pathName, onStart }: {
-  count: number; pathName: string; onStart: () => void
+function QuizTimeScreen({ count, pathName, onStart, onBack }: {
+  count: number; pathName: string; onStart: () => void; onBack?: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative bg-[#1a1830] rounded-2xl border border-white/10 w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="px-6 pt-6 pb-4">
-          <h2 className="text-2xl font-bold text-[#e8e6f0]">Quiz Time!</h2>
-          <p className="text-[#9b98b0] text-sm mt-1">{pathName}</p>
-        </div>
-        <div className="mx-6 mb-6 bg-[#7c6df2]/20 rounded-xl px-4 py-3 border border-[#7c6df2]/30">
-          <div className="flex gap-1 flex-wrap">
-            {Array.from({ length: Math.max(count * 2, 10) }).map((_, i) => (
-              <div key={i} className={`h-1.5 flex-1 rounded-full min-w-[12px] ${i < count ? 'bg-[#7c6df2]' : 'bg-white/15'}`} />
-            ))}
+    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center px-5 py-3 border-b border-white/5">
+        {onBack ? (
+          <button onClick={onBack} className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+            ← Back
+          </button>
+        ) : (
+          <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+            ✕ Dashboard
+          </Link>
+        )}
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          <h2 className="text-4xl font-bold text-[#e8e6f0] mb-8">Quiz Time!</h2>
+
+          {/* Path card */}
+          <div className="bg-[#7c6df2]/20 rounded-2xl px-5 py-4 border border-[#7c6df2]/30 mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[#e8e6f0] font-semibold">{pathName}</span>
+              <span className="text-[#9b8cf5] font-bold">+{count}</span>
+            </div>
+            <div className="flex gap-1 flex-wrap">
+              {Array.from({ length: Math.max(count * 2, 10) }).map((_, i) => (
+                <div key={i} className={`h-2 flex-1 rounded-full min-w-[14px] ${i < count ? 'bg-[#7c6df2]' : 'bg-white/15'}`} />
+              ))}
+            </div>
           </div>
-        </div>
-        <p className="text-center text-[#9b98b0] text-sm px-8 mb-6 leading-relaxed">
-          Practice the {count} word{count !== 1 ? 's' : ''} you just studied to add them to your Review Queue!
-        </p>
-        <div className="px-6 pb-6">
+
+          <p className="text-center text-[#9b98b0] text-base mb-8 leading-relaxed px-2">
+            Complete a quiz on the {count} item{count !== 1 ? 's' : ''} you just studied to add them to your Review Queue!
+          </p>
+
           <button
             onClick={onStart}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30 hover:-translate-y-0.5"
           >
-            Start Quiz →
+            → Review
           </button>
         </div>
       </div>
@@ -530,7 +547,11 @@ function AudioButton({ filename, size = 'md' }: { filename?: string | null; size
 
 // ─── Grammar Topic Explanation (shown inline before first sentence of a topic) ─
 
-function GrammarExplainer({ topic, onContinue }: { topic: GrammarTopic; onContinue: () => void }) {
+function GrammarExplainer({ topic, onContinue, onBack, current: idx, total }: {
+  topic: GrammarTopic; onContinue: () => void
+  onBack?: () => void; current: number; total: number
+}) {
+  const isLast = idx >= total - 1
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
       <div className="flex items-center px-5 py-3 border-b border-white/5">
@@ -539,7 +560,7 @@ function GrammarExplainer({ topic, onContinue }: { topic: GrammarTopic; onContin
         </Link>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-y-auto">
         <div className="max-w-lg w-full">
           {/* Badge */}
           <div className="flex items-center gap-2 mb-4 justify-center">
@@ -562,12 +583,32 @@ function GrammarExplainer({ topic, onContinue }: { topic: GrammarTopic; onContin
               dangerouslySetInnerHTML={{ __html: renderMd(topic.explanation_en) }}
             />
           </div>
+        </div>
+      </div>
 
+      {/* Bottom nav — progress dots + Previous / Next */}
+      <div className="px-6 pb-8 pt-4 border-t border-white/5">
+        <div className="flex justify-center gap-2 mb-5">
+          {Array.from({ length: total }).map((_, i) => (
+            <div key={i} className={`rounded-full transition-all duration-300 ${
+              i === idx ? 'w-5 h-2 bg-[#7c6df2]' : i < idx ? 'w-2 h-2 bg-[#7c6df2]/40' : 'w-2 h-2 bg-white/15'
+            }`} />
+          ))}
+        </div>
+        <div className="flex gap-3 max-w-lg mx-auto">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="flex-1 py-3 rounded-xl border border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:border-white/20 transition-colors font-semibold"
+            >
+              ← Previous
+            </button>
+          )}
           <button
             onClick={onContinue}
-            className="w-full py-4 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all hover:-translate-y-0.5 shadow-lg shadow-[#7c6df2]/30 text-lg"
+            className="flex-1 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/20"
           >
-            Practice →
+            {isLast ? 'Start Quiz →' : 'Next →'}
           </button>
         </div>
       </div>
@@ -585,6 +626,38 @@ const TENSE_LABEL_MAP: Record<string, string> = {
   'KONJUNKTIV II':  'Konjunktiv II',
   'PLUSQUAMPERFEKT':'Plusquamperfekt',
   'FUTUR II':       'Futur II',
+}
+
+// When to use each tense — shown in VerbIntroScreen
+const TENSE_USAGE: Record<string, { when: string; examples: string[] }> = {
+  'PRÄSENS': {
+    when: 'Used for current actions, habits, general truths, and the near future. The most common tense in everyday German.',
+    examples: ['Ich lerne Deutsch. (I am learning German.)', 'Die Sonne geht jeden Morgen auf. (The sun rises every morning.)', 'Morgen fahre ich nach Berlin. (Tomorrow I\'m going to Berlin.)'],
+  },
+  'PERFEKT': {
+    when: 'The standard past tense in spoken German. Used for completed actions in everyday conversation — even when English uses the simple past.',
+    examples: ['Ich habe gegessen. (I ate / I have eaten.)', 'Wir sind nach Hause gegangen. (We went home.)', 'Was hast du gestern gemacht? (What did you do yesterday?)'],
+  },
+  'PRÄTERITUM': {
+    when: 'A written narrative past tense used in stories, news, and literature. Also commonly used for sein, haben, and modal verbs even in speech.',
+    examples: ['Er war sehr müde. (He was very tired.)', 'Sie hatte keine Zeit. (She had no time.)', 'Es war einmal… (Once upon a time…)'],
+  },
+  'FUTUR I': {
+    when: 'Used for predictions, intentions, and promises. Often replaced by Präsens + time word in casual speech.',
+    examples: ['Es wird morgen regnen. (It will rain tomorrow.)', 'Ich werde das erledigen. (I will take care of it.)', 'Du wirst es schaffen! (You will make it!)'],
+  },
+  'KONJUNKTIV II': {
+    when: 'Used for hypothetical situations, polite requests, and wishes. Essential for saying what "would" happen.',
+    examples: ['Ich würde gerne helfen. (I would like to help.)', 'Wenn ich Zeit hätte… (If I had time…)', 'Könnten Sie mir bitte helfen? (Could you please help me?)'],
+  },
+  'PLUSQUAMPERFEKT': {
+    when: 'The "past perfect" — used for actions that were completed before another past event. Always in combination with another past tense.',
+    examples: ['Er hatte schon gegessen, als sie ankam. (He had already eaten when she arrived.)', 'Ich war noch nie dort gewesen. (I had never been there before.)'],
+  },
+  'FUTUR II': {
+    when: 'Used for actions that will be completed by a future point in time, or to express an assumption about something that has happened.',
+    examples: ['Bis morgen werde ich fertig sein. (By tomorrow I will have finished.)', 'Er wird wohl eingeschlafen sein. (He has probably fallen asleep.)'],
+  },
 }
 
 function getConjRows(verb: VerbWord, tense: string): { person: string; form: string }[] {
@@ -643,14 +716,19 @@ function getConjRows(verb: VerbWord, tense: string): { person: string; form: str
   }
 }
 
-function VerbIntroScreen({ verb, tense, onContinue }: {
+function VerbIntroScreen({ verb, tense, onContinue, onBack, current: idx, total }: {
   verb: VerbWord
   tense: string
   onContinue: () => void
+  onBack?: () => void
+  current: number
+  total: number
 }) {
   const rows = getConjRows(verb, tense)
   const tenseLabel = TENSE_LABEL_MAP[tense] ?? tense
   const minLevel = TENSE_MIN_LEVEL[tense] ?? 'A1'
+  const usage = TENSE_USAGE[tense]
+  const isLast = idx === total - 1
 
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
@@ -660,30 +738,37 @@ function VerbIntroScreen({ verb, tense, onContinue }: {
         </Link>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10">
-        <div className="max-w-lg w-full">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-lg mx-auto px-6 py-10">
 
           {/* Badges */}
           <div className="flex items-center gap-2 mb-4 justify-center flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">
-              Verb
-            </span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/20">
-              {tenseLabel}
-            </span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
-              {minLevel}
-            </span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">Verb</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/20">{tenseLabel}</span>
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{minLevel}</span>
           </div>
 
           {/* Verb name */}
           <h2 className="text-4xl font-bold text-[#7c6df2] text-center mb-1">{verb.word}</h2>
           <p className="text-[#9b98b0] text-center italic mb-6">{verb.translation_en}</p>
 
+          {/* When to use */}
+          {usage && (
+            <div className="bg-[#1a1830] rounded-2xl border border-[#7c6df2]/15 px-5 py-4 mb-4">
+              <p className="text-xs text-[#9b8cf5] uppercase tracking-wider font-bold mb-2">📌 When to use</p>
+              <p className="text-[#c5c3d4] text-sm leading-relaxed mb-3">{usage.when}</p>
+              <div className="space-y-1">
+                {usage.examples.map((ex, i) => (
+                  <p key={i} className="text-xs text-[#9b98b0] leading-relaxed">→ {ex}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Conjugation table */}
           <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden mb-4">
             <div className="px-5 py-3 border-b border-white/5">
-              <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold">{tenseLabel}</p>
+              <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold">{tenseLabel} — {verb.word}</p>
             </div>
             <table className="w-full">
               <tbody>
@@ -699,17 +784,38 @@ function VerbIntroScreen({ verb, tense, onContinue }: {
 
           {/* Fun fact */}
           {verb.fun_fact && (
-            <div className="bg-[#1a1830] rounded-2xl border border-[#7c6df2]/15 px-5 py-4 mb-4">
-              <p className="text-xs text-[#9b98b0] uppercase tracking-wider mb-1.5">✨ Fun Fact</p>
+            <div className="bg-[#1a1830] rounded-2xl border border-[#ffc850]/15 px-5 py-4 mb-4">
+              <p className="text-xs text-[#ffc850] uppercase tracking-wider mb-1.5 font-bold">✨ Fun Fact</p>
               <p className="text-[#c5c3d4] text-sm leading-relaxed">{verb.fun_fact}</p>
             </div>
           )}
+        </div>
+      </div>
 
+      {/* Bottom nav */}
+      <div className="bg-[#0f0e17] border-t border-white/5 px-5 py-4">
+        {/* Progress dots */}
+        <div className="flex justify-center gap-1.5 mb-4">
+          {Array.from({ length: total }).map((_, i) => (
+            <div key={i} className={`rounded-full transition-all duration-300 ${
+              i === idx ? 'w-5 h-2 bg-[#7c6df2]' : i < idx ? 'w-2 h-2 bg-[#7c6df2]/40' : 'w-2 h-2 bg-white/15'
+            }`} />
+          ))}
+        </div>
+        <div className="flex gap-3 max-w-lg mx-auto">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="flex-1 py-3 rounded-xl border border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:border-white/20 transition-colors font-semibold"
+            >
+              ← Previous
+            </button>
+          )}
           <button
             onClick={onContinue}
-            className="w-full py-4 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all hover:-translate-y-0.5 shadow-lg shadow-[#7c6df2]/30 text-lg mt-2"
+            className="flex-1 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/20"
           >
-            Practice →
+            {isLast ? 'Start Quiz →' : 'Next →'}
           </button>
         </div>
       </div>
@@ -1174,6 +1280,114 @@ function CompletionScreen({ data }: { data: CompletionData }) {
   )
 }
 
+// ─── Batch Done Screen ────────────────────────────────────────────────────────
+
+function BatchDoneScreen({ data, pathName, goal, onContinue, onExit }: {
+  data: CompletionData
+  pathName: string
+  goal: number
+  onContinue: () => void
+  onExit: () => void
+}) {
+  const pct         = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
+  const goalPct     = goal > 0 ? Math.min(1, data.dailyTotal / goal) : 0
+  const goalDone    = data.dailyTotal >= goal
+
+  return (
+    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center px-5 py-3 border-b border-white/5">
+        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+          ← Dashboard
+        </Link>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          {/* Title */}
+          <h2 className="text-4xl font-bold text-[#e8e6f0] mb-8">Good Job! 🎉</h2>
+
+          {/* Path card with score */}
+          <div className="bg-[#7c6df2]/20 rounded-2xl px-5 py-4 border border-[#7c6df2]/30 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[#e8e6f0] font-semibold">{pathName}</span>
+              <span className="text-[#9b8cf5] font-bold">
+                ✓ {data.correct}/{data.total}
+              </span>
+            </div>
+            {/* Score bar */}
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#7c6df2] rounded-full transition-all duration-700"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="flex gap-3 mb-6">
+            <div className="flex-1 bg-[#1a1830] rounded-xl px-4 py-3 border border-white/5 text-center">
+              <p className="text-2xl font-bold text-[#9b8cf5]">+{data.xpGained}</p>
+              <p className="text-xs text-[#9b98b0] mt-0.5">XP earned</p>
+            </div>
+            <div className="flex-1 bg-[#1a1830] rounded-xl px-4 py-3 border border-white/5 text-center">
+              <p className="text-2xl font-bold text-[#e8e6f0]">{pct}%</p>
+              <p className="text-xs text-[#9b98b0] mt-0.5">Correct</p>
+            </div>
+            {data.newStreak > 0 && (
+              <div className="flex-1 bg-[#1a1830] rounded-xl px-4 py-3 border border-white/5 text-center">
+                <p className="text-2xl font-bold text-orange-400">🔥{data.newStreak}</p>
+                <p className="text-xs text-[#9b98b0] mt-0.5">Day streak</p>
+              </div>
+            )}
+          </div>
+
+          <p className="text-center text-[#9b98b0] text-sm mb-8 leading-relaxed">
+            {goalDone
+              ? "Daily goal reached! 🏆 These items are now in your Review Queue."
+              : "These items are now in your Review Queue. Continue Learning to reach your Daily Goal!"}
+          </p>
+
+          {/* Action buttons */}
+          {!goalDone && (
+            <button
+              onClick={onContinue}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/30 hover:-translate-y-0.5 mb-3"
+            >
+              → Continue Learning
+            </button>
+          )}
+          <button
+            onClick={onExit}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 text-[#9b98b0] font-bold hover:text-[#e8e6f0] hover:border-white/20 transition-colors"
+          >
+            ↩ Exit to Summary
+          </button>
+        </div>
+      </div>
+
+      {/* Daily goal progress bar at bottom */}
+      <div className="px-6 pb-8 pt-4 border-t border-white/5">
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-[#9b98b0]">Daily Goal</span>
+            <span className="text-xs text-[#9b98b0]">{data.dailyTotal} / {goal}</span>
+          </div>
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${goalDone ? 'bg-emerald-500' : 'bg-[#7c6df2]'}`}
+              style={{ width: `${goalPct * 100}%` }}
+            />
+          </div>
+          {goalDone && (
+            <p className="text-center text-emerald-400 text-xs mt-2 font-semibold">Goal complete! 🏆</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function LearnPage() {
@@ -1330,13 +1544,13 @@ export default function LearnPage() {
         setIntroQueue(intros)
         setIntroIndex(0)
 
-        // Flow: studying (vocab browse) → intro-sequence → quiz-modal → cloze
+        // Flow: studying (vocab browse) → intro-sequence → quiz-time → cloze
         if (allVocab.length > 0) {
           setAppPhase('studying')
         } else if (intros.length > 0) {
           setAppPhase('intro-sequence')
         } else {
-          setAppPhase('quiz-modal')
+          setAppPhase('quiz-time')
         }
       } catch (e) {
         setError('Connection error.')
@@ -1358,8 +1572,8 @@ export default function LearnPage() {
       setWordIndex(w => w + 1)
       setSlideIndex(0)
     } else {
-      // Vocab browse done → go to intro-sequence if there are intros, else quiz-modal
-      setAppPhase(introQueue.length > 0 ? 'intro-sequence' : 'quiz-modal')
+      // Vocab browse done → go to intro-sequence if there are intros, else quiz-time
+      setAppPhase(introQueue.length > 0 ? 'intro-sequence' : 'quiz-time')
     }
   }
 
@@ -1489,7 +1703,7 @@ export default function LearnPage() {
       newStreak: xpResult?.newStreak ?? 0, dailyTotal,
     }
     setCompletion(data)
-    setAppPhase(dailyTotal >= currentGoal ? 'daily-goal-reached' : 'done')
+    setAppPhase('batch-done')
   }
 
   // ── Extend session by 5 more items ────────────────────────────────────────
@@ -1579,20 +1793,77 @@ export default function LearnPage() {
 
     const advanceIntro = () => {
       if (isLast) {
-        setAppPhase('quiz-modal')
+        setAppPhase('quiz-time')
       } else {
         setIntroIndex(i => i + 1)
+      }
+    }
+
+    const goBackIntro = () => {
+      if (introIndex > 0) {
+        setIntroIndex(i => i - 1)
+      } else if (vocabQueue.length > 0) {
+        setAppPhase('studying')
       }
     }
 
     if (!item || item.kind === 'vocab') return null
 
     if (item.kind === 'grammar') {
-      return <GrammarExplainer topic={item.topic} onContinue={advanceIntro} />
+      return (
+        <GrammarExplainer
+          topic={item.topic}
+          onContinue={advanceIntro}
+          onBack={introIndex > 0 || vocabQueue.length > 0 ? goBackIntro : undefined}
+          current={introIndex}
+          total={introQueue.length}
+        />
+      )
     }
     if (item.kind === 'verb') {
-      return <VerbIntroScreen verb={item.verb} tense={item.tense} onContinue={advanceIntro} />
+      return (
+        <VerbIntroScreen
+          verb={item.verb}
+          tense={item.tense}
+          onContinue={advanceIntro}
+          onBack={introIndex > 0 || vocabQueue.length > 0 ? goBackIntro : undefined}
+          current={introIndex}
+          total={introQueue.length}
+        />
+      )
     }
+  }
+
+  if (appPhase === 'quiz-time') {
+    return (
+      <QuizTimeScreen
+        count={clozeItems.length}
+        pathName={pathName}
+        onStart={() => setAppPhase('cloze')}
+        onBack={() => {
+          if (introQueue.length > 0) {
+            setIntroIndex(introQueue.length - 1)
+            setAppPhase('intro-sequence')
+          } else if (vocabQueue.length > 0) {
+            setAppPhase('studying')
+          }
+        }}
+      />
+    )
+  }
+
+  if (appPhase === 'batch-done' && completion) {
+    return (
+      <BatchDoneScreen
+        data={completion}
+        pathName={pathName}
+        goal={currentGoal}
+        onContinue={() => {
+          setLoadKey(k => k + 1)
+        }}
+        onExit={() => setAppPhase(completion.dailyTotal >= currentGoal ? 'daily-goal-reached' : 'done')}
+      />
+    )
   }
 
   if (appPhase === 'cloze') {
@@ -1613,15 +1884,6 @@ export default function LearnPage() {
 
   return (
     <div className="min-h-screen bg-[#0f0e17] relative">
-
-      {/* Quiz Time Modal — appears when all vocab has been browsed */}
-      {appPhase === 'quiz-modal' && (
-        <QuizTimeModal
-          count={vocabQueue.length}
-          pathName={pathName}
-          onStart={() => setAppPhase('cloze')}
-        />
-      )}
 
       <div className="max-w-2xl mx-auto px-4 py-8">
 
@@ -1693,7 +1955,7 @@ export default function LearnPage() {
             onClick={goNext}
             className="px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all hover:-translate-y-0.5 shadow-lg shadow-[#7c6df2]/20"
           >
-            {wordIndex === vocabQueue.length - 1 && slideIndex === SLIDES.length - 1 ? 'Done ✓' : 'Next →'}
+            {wordIndex === vocabQueue.length - 1 && slideIndex === SLIDES.length - 1 ? 'Start Quiz →' : 'Next →'}
           </button>
         </div>
       </div>
