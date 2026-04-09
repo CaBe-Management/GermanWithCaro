@@ -333,28 +333,27 @@ export default function VerbLearnPage() {
         .eq('verb_id', verbData.id)
         .order('sort_order', { ascending: true })
 
-      // Load already-learned (verb, tense) pairs
+      // Check if verb is already in gwc_verb_reviews (one row per verb now)
       const { data: existing } = await supabase
         .from('gwc_verb_reviews')
-        .select('tense')
+        .select('id')
         .eq('session_id', sessionId)
         .eq('verb_id', verbData.id)
-      const learnedTenses = new Set((existing ?? []).map((r: { tense: string }) => r.tense))
+        .maybeSingle()
+      const alreadyLearned = !!existing
 
-      // Group sentences by tense, filter by level
+      // Group sentences by tense, filter by level — all tenses show as "new" if verb not yet learned
       const groups: TenseGroup[] = TENSE_ORDER
         .filter(t => levelGte(level, TENSE_MIN_LEVEL[t] ?? 'A1'))
         .map(tense => ({
           tense,
           sentences: ((sentences ?? []) as VerbSentence[]).filter(s => s.tense === tense),
-          alreadyLearned: learnedTenses.has(tense),
+          alreadyLearned,
         }))
-        .filter(g => g.sentences.length > 0)  // only tenses with content
+        .filter(g => g.sentences.length > 0)
 
       setTenseGroups(groups)
-
-      const hasNew = groups.some(g => !g.alreadyLearned)
-      setPhase(hasNew ? 'intro' : 'all-learned')
+      setPhase(alreadyLearned ? 'all-learned' : 'intro')
     }
     load()
   }, [slug])
@@ -399,35 +398,24 @@ export default function VerbLearnPage() {
     const sessionId = getOrCreateSessionId()
     const now = new Date().toISOString()
 
-    // Group results by tense to determine per-tense success
-    const tenseResults: Record<string, { correct: number; total: number }> = {}
-    for (const r of finalResults) {
-      if (!tenseResults[r.tense]) tenseResults[r.tense] = { correct: 0, total: 0 }
-      tenseResults[r.tense].total++
-      if (r.correct) tenseResults[r.tense].correct++
-    }
-
-    // Upsert one gwc_verb_reviews row per (verb, tense)
-    for (const [tense, stats] of Object.entries(tenseResults)) {
-      const allCorrect = stats.correct === stats.total
-      const srs = calculateNextReview(allCorrect, 0)
-      await supabase.from('gwc_verb_reviews').upsert(
-        {
-          session_id:      sessionId,
-          verb_id:         verb!.id,
-          tense,
-          interval_days:   Math.ceil(srs.intervalDays),
-          ease_factor:     2.5,
-          repetitions:     srs.newSrsLevel,
-          next_review_at:  new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
-          reviewed_at:     now,
-          total_reviews:   1,
-          correct_reviews: stats.correct > 0 ? 1 : 0,
-          last_sentence_idx: 0,
-        },
-        { onConflict: 'session_id,verb_id,tense', ignoreDuplicates: false }
-      )
-    }
+    // Upsert one gwc_verb_reviews row per verb (rotation handles tenses)
+    const allCorrect = finalResults.every(r => r.correct)
+    const srs = calculateNextReview(allCorrect, 0)
+    await supabase.from('gwc_verb_reviews').upsert(
+      {
+        session_id:       sessionId,
+        verb_id:          verb!.id,
+        interval_days:    Math.ceil(srs.intervalDays),
+        ease_factor:      2.5,
+        repetitions:      srs.newSrsLevel,
+        next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
+        reviewed_at:      now,
+        total_reviews:    1,
+        correct_reviews:  allCorrect ? 1 : 0,
+        last_sentence_idx: 1,
+      },
+      { onConflict: 'session_id,verb_id', ignoreDuplicates: false }
+    )
 
     const correctCount  = finalResults.filter(r => r.correct).length
     const wrongCount    = finalResults.length - correctCount
@@ -440,7 +428,7 @@ export default function VerbLearnPage() {
       correct: correctCount,
       xpGained,
       newStreak: xpResult?.newStreak ?? 0,
-      tensesAdded: Object.keys(tenseResults).length,
+      tensesAdded: tenseGroups.filter(g => !g.alreadyLearned).length,
     })
     setPhase('done')
   }

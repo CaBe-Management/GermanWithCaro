@@ -283,16 +283,12 @@ const VERB_PATH_COL: Record<string, string> = {
 }
 
 async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 'A1', pathId?: string): Promise<VerbLearnItem[]> {
-  // Check at (verb × tense) granularity — not just verb level.
-  // This means levelling up to A2 surfaces "sein × Perfekt" as a new card
-  // even though "sein × Präsens" was already learned.
+  // One SRS card per verb. A verb is "new" if it has no row in gwc_verb_reviews yet.
   const { data: reviewRows } = await supabase
     .from('gwc_verb_reviews')
-    .select('verb_id, tense')
+    .select('verb_id')
     .eq('session_id', sessionId)
-  const learnedCards = new Set(
-    (reviewRows || []).map((r: { verb_id: string; tense: string }) => `${r.verb_id}__${r.tense}`)
-  )
+  const learnedVerbIds = new Set((reviewRows || []).map((r: { verb_id: string }) => r.verb_id))
 
   const pathCol = pathId ? VERB_PATH_COL[pathId] : null
 
@@ -305,7 +301,10 @@ async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 
   const { data: verbs } = await query.limit(200)
   if (!verbs || verbs.length === 0) return []
 
-  const verbIds = (verbs as VerbWord[]).map(v => v.id)
+  const newVerbs = (verbs as VerbWord[]).filter(v => !learnedVerbIds.has(v.id))
+  if (newVerbs.length === 0) return []
+
+  const verbIds = newVerbs.slice(0, batchSize).map(v => v.id)
   const { data: sentences } = await supabase
     .from('gwc_verb_sentences')
     .select('*')
@@ -313,17 +312,15 @@ async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 
     .order('sort_order', { ascending: true })
 
   const result: VerbLearnItem[] = []
-  for (const verb of verbs as VerbWord[]) {
-    // Only sentences for tenses unlocked at current level AND not yet learned
-    const newSents = ((sentences || []) as VerbSentence[]).filter(s =>
+  for (const verb of newVerbs.slice(0, batchSize)) {
+    // All sentences unlocked for current level — the rotation happens in reviews
+    const unlockedSents = ((sentences || []) as VerbSentence[]).filter(s =>
       s.verb_id === verb.id &&
-      levelGte(userLevel, TENSE_MIN_LEVEL[s.tense] ?? 'A1') &&
-      !learnedCards.has(`${verb.id}__${s.tense}`)
+      levelGte(userLevel, TENSE_MIN_LEVEL[s.tense] ?? 'A1')
     )
-    if (newSents.length > 0) {
-      result.push({ type: 'verb', verb, sentences: newSents })
+    if (unlockedSents.length > 0) {
+      result.push({ type: 'verb', verb, sentences: unlockedSents })
     }
-    if (result.length >= batchSize) break
   }
   return result
 }
@@ -1672,54 +1669,26 @@ export default function LearnPage() {
     const grammarResults  = results.filter(r => r.type === 'grammar')
     const verbResults     = results.filter(r => r.type === 'verb')
 
-    // Save new-system vocab reviews (gwc_vocab_reviews)
-    // For NOMEN: one row per unlocked kasus; for others: one row with grammatical_case = null
+    // Save vocab reviews — one row per vocab word.
+    // Sentences rotate via last_sentence_idx; new cases appear automatically when level goes up.
     if (vocabNewResults.length > 0) {
-      const { getOrCreateProgress, KASUS_BY_LEVEL } = await import('@/lib/gamification')
-      const progress = await getOrCreateProgress(sessionId)
-      const germanLevel = (progress?.german_level ?? 'A1') as string
-      const unlockedCases = KASUS_BY_LEVEL[germanLevel] ?? ['NOMINATIV', 'AKKUSATIV']
-
-      // Fetch types for the vocab IDs in these results
       const uniqueVocabIds = [...new Set(vocabNewResults.map(r => r.vocabId!).filter(Boolean))]
-      const { data: vocabs } = await supabase
-        .from('gwc_vocab')
-        .select('id, type')
-        .in('id', uniqueVocabIds)
-
-      const vocabTypeMap = Object.fromEntries((vocabs || []).map((v: { id: string; type: string }) => [v.id, v.type]))
-
-      const rowsToInsert: Record<string, unknown>[] = []
-      for (const r of vocabNewResults) {
-        if (!r.vocabId) continue
+      for (const vocabId of uniqueVocabIds) {
+        const r = vocabNewResults.find(x => x.vocabId === vocabId)!
         const srs = calculateNextReview(r.correct, 0)
-        const nextAt = new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString()
-        const vocabType = vocabTypeMap[r.vocabId] ?? 'NOMEN'
-
-        if (vocabType === 'NOMEN') {
-          for (const kasus of unlockedCases) {
-            rowsToInsert.push({
-              session_id: sessionId, vocab_id: r.vocabId,
-              grammatical_case: kasus,
-              interval_days: Math.ceil(srs.intervalDays), ease_factor: 2.5,
-              repetitions: srs.newSrsLevel, next_review_at: nextAt, last_sentence_idx: -1,
-            })
-          }
-        } else {
-          rowsToInsert.push({
-            session_id: sessionId, vocab_id: r.vocabId,
-            grammatical_case: null,
-            interval_days: Math.ceil(srs.intervalDays), ease_factor: 2.5,
-            repetitions: srs.newSrsLevel, next_review_at: nextAt, last_sentence_idx: -1,
-          })
-        }
-      }
-
-      if (rowsToInsert.length > 0) {
-        // Insert rows; if already exist just skip (idempotent)
         await supabase.from('gwc_vocab_reviews').upsert(
-          rowsToInsert,
-          { onConflict: 'session_id,vocab_id,grammatical_case', ignoreDuplicates: true }
+          {
+            session_id:       sessionId,
+            vocab_id:         vocabId,
+            interval_days:    Math.ceil(srs.intervalDays),
+            ease_factor:      2.5,
+            repetitions:      srs.newSrsLevel,
+            next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
+            last_sentence_idx: 1,
+            total_reviews:    1,
+            correct_reviews:  r.correct ? 1 : 0,
+          },
+          { onConflict: 'session_id,vocab_id', ignoreDuplicates: false }
         )
       }
     }
@@ -1791,28 +1760,28 @@ export default function LearnPage() {
       }
     }
 
-    // Save verb reviews — upsert one row per (session × verb × tense)
+    // Save verb reviews — one row per verb (tense rotation happens in reviews via last_sentence_idx)
     if (verbResults.length > 0) {
-      const verbCardMap = new Map<string, ClozeResult>()
+      const verbMap = new Map<string, ClozeResult>()
       for (const r of verbResults) {
-        if (r.verbId && r.verbTense) verbCardMap.set(`${r.verbId}__${r.verbTense}`, r)
+        if (r.verbId) verbMap.set(r.verbId, r)
       }
-      for (const r of verbCardMap.values()) {
+      for (const r of verbMap.values()) {
         const srs = calculateNextReview(r.correct, 0)
         await supabase.from('gwc_verb_reviews').upsert(
           {
-            session_id:      sessionId,
-            verb_id:         r.verbId,
-            tense:           r.verbTense,
-            interval_days:   Math.ceil(srs.intervalDays),
-            ease_factor:     2.5,
-            repetitions:     srs.newSrsLevel,
-            next_review_at:  new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
-            reviewed_at:     now,
-            total_reviews:   1,
-            correct_reviews: r.correct ? 1 : 0,
+            session_id:       sessionId,
+            verb_id:          r.verbId,
+            interval_days:    Math.ceil(srs.intervalDays),
+            ease_factor:      2.5,
+            repetitions:      srs.newSrsLevel,
+            next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
+            reviewed_at:      now,
+            last_sentence_idx: 1,  // start rotation from sentence 1 on next review
+            total_reviews:    1,
+            correct_reviews:  r.correct ? 1 : 0,
           },
-          { onConflict: 'session_id,verb_id,tense', ignoreDuplicates: false }
+          { onConflict: 'session_id,verb_id', ignoreDuplicates: false }
         )
       }
     }

@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import type { GrammarTopic, GrammarSentence, GrammarResource } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
+import { SrsProgressCard } from '@/components/SrsProgressCard'
+import type { SrsReviewData } from '@/components/SrsProgressCard'
 
 // GrammarTopic now includes all detail-page fields (translation_en, structure, register_*, fun_fact, resources)
 type GrammarTopicExtended = GrammarTopic
@@ -265,6 +267,7 @@ export default function GrammarTopicPage() {
   const [reviewedForms, setReviewedForms] = useState(0)
   const [totalForms, setTotalForms]       = useState(0)
   const [addState, setAddState]           = useState<'idle' | 'adding' | 'added' | 'all_added'>('idle')
+  const [srsData, setSrsData]             = useState<SrsReviewData | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -300,7 +303,7 @@ export default function GrammarTopicPage() {
           // Check if this topic has a review record
           const { data: reviewRecord } = await supabase
             .from('gwc_grammar_reviews')
-            .select('id')
+            .select('id, repetitions, next_review_at, created_at, total_reviews, correct_reviews')
             .eq('session_id', sessionId)
             .eq('topic_id', topicData.id)
             .maybeSingle()
@@ -308,6 +311,7 @@ export default function GrammarTopicPage() {
           if (reviewRecord) {
             setReviewedForms(uniquePersons.length)
             setAddState('all_added')
+            setSrsData(reviewRecord as SrsReviewData)
           } else {
             setReviewedForms(0)
           }
@@ -358,6 +362,13 @@ export default function GrammarTopicPage() {
 
     setReviewedForms(totalForms)
     setAddState('added')
+    setSrsData({
+      repetitions:     0,
+      next_review_at:  new Date().toISOString(),
+      created_at:      new Date().toISOString(),
+      total_reviews:   0,
+      correct_reviews: 0,
+    })
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────────
@@ -469,10 +480,17 @@ export default function GrammarTopicPage() {
               {addState === 'idle'      && <><span>+</span><span>Add to Reviews</span></>}
               {addState === 'adding'    && 'Adding…'}
               {addState === 'added'     && <><span>✓</span><span>Added</span></>}
-              {addState === 'all_added' && <><span>✓</span><span>In Queue</span></>}
+              {addState === 'all_added' && <><span>✓</span><span>In Reviews</span></>}
             </button>
           </div>
         </div>
+
+        {/* ── SRS Progress ─────────────────────────────────────────── */}
+        {srsData && (
+          <div className="mb-6">
+            <SrsProgressCard data={srsData} />
+          </div>
+        )}
 
         {/* ── Tab Nav ── */}
         <div className="flex items-center gap-1 p-1 bg-[#1a1830] rounded-2xl border border-white/5 mb-6">

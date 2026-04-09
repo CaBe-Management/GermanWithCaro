@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { VocabWord, VocabSentence } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
+import { SrsProgressCard } from '@/components/SrsProgressCard'
+import type { SrsReviewData } from '@/components/SrsProgressCard'
 
 type GermanLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 type Tab = 'details' | 'declension' | 'sentences'
@@ -146,6 +148,8 @@ export default function VocabDetailPage() {
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
   const [userLevel, setUserLevel] = useState<GermanLevel>('A1')
+  const [srsData, setSrsData]     = useState<SrsReviewData | null>(null)
+  const [addState, setAddState]   = useState<'idle' | 'adding' | 'added'>('idle')
 
   useEffect(() => {
     async function load() {
@@ -177,6 +181,15 @@ export default function VocabDetailPage() {
           .order('sort_order', { ascending: true })
         setSentences((sentData || []) as VocabSentence[])
 
+        // Load SRS review data
+        const { data: reviewData } = await supabase
+          .from('gwc_vocab_reviews')
+          .select('repetitions, next_review_at, created_at, total_reviews, correct_reviews')
+          .eq('session_id', sessionId)
+          .eq('vocab_id', wordData.id)
+          .maybeSingle()
+        if (reviewData) setSrsData(reviewData as SrsReviewData)
+
       } catch (e) {
         console.error(e)
         setError('Could not load this word.')
@@ -186,6 +199,27 @@ export default function VocabDetailPage() {
     }
     load()
   }, [slug])
+
+  async function handleAddToReviews() {
+    if (!word || srsData) return
+    setAddState('adding')
+    const sessionId = getOrCreateSessionId()
+    const now = new Date().toISOString()
+    await supabase.from('gwc_vocab_reviews').upsert({
+      session_id:       sessionId,
+      vocab_id:         word.id,
+      repetitions:      0,
+      interval_days:    1,
+      ease_factor:      2.5,
+      next_review_at:   now,
+      last_sentence_idx: 0,
+      correct_streak:   0,
+      total_reviews:    0,
+      correct_reviews:  0,
+    }, { onConflict: 'session_id,vocab_id', ignoreDuplicates: true })
+    setSrsData({ repetitions: 0, next_review_at: now, created_at: now, total_reviews: 0, correct_reviews: 0 })
+    setAddState('added')
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
@@ -249,6 +283,30 @@ export default function VocabDetailPage() {
           </div>
           <AudioButton filename={word.audio_file} />
         </div>
+
+        {/* ── Add to Reviews button ────────────────────────────────── */}
+        <div className="mb-6">
+          <button
+            onClick={handleAddToReviews}
+            disabled={!!srsData || addState === 'adding'}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${
+              srsData
+                ? 'bg-[#3bd395]/10 text-[#3bd395] border border-[#3bd395]/20 cursor-default'
+                : addState === 'adding'
+                ? 'bg-[#7c6df2]/50 text-white cursor-wait'
+                : 'bg-[#7c6df2] text-white hover:bg-[#9b8cf5] shadow-lg shadow-[#7c6df2]/25'
+            }`}
+          >
+            {srsData ? '✓ In Reviews' : addState === 'adding' ? 'Adding…' : '+ Add to Reviews'}
+          </button>
+        </div>
+
+        {/* ── SRS Progress ─────────────────────────────────────────── */}
+        {srsData && (
+          <div className="mb-6">
+            <SrsProgressCard data={srsData} />
+          </div>
+        )}
 
         {/* ── Tabs ─────────────────────────────────────────────────── */}
         <div className="flex gap-1 bg-[#1a1830] p-1 rounded-2xl mb-6">

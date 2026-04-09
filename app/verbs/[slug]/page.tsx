@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getOrCreateSessionId } from '@/lib/session'
+import { SrsProgressCard } from '@/components/SrsProgressCard'
+import type { SrsReviewData } from '@/components/SrsProgressCard'
 
 interface VerbWord {
   id: string; slug: string; word: string; translation_en: string
@@ -147,9 +150,13 @@ export default function VerbDetailPage() {
   const [tab, setTab]             = useState<Tab>('details')
   const [loading, setLoading]     = useState(true)
   const [userLevel, setUserLevel] = useState<GermanLevel>('A1')
+  const [srsData, setSrsData]     = useState<SrsReviewData | null>(null)
+  const [addState, setAddState]   = useState<'idle' | 'adding' | 'added'>('idle')
 
   useEffect(() => {
     async function load() {
+      const sessionId = getOrCreateSessionId()
+
       const { data: profile } = await supabase
         .from('gwc_user_profiles')
         .select('german_level')
@@ -170,10 +177,40 @@ export default function VerbDetailPage() {
         .eq('verb_id', verbData.id)
         .order('sort_order', { ascending: true })
       setSentences((sentData || []) as VerbSentence[])
+
+      // Load SRS review data
+      const { data: reviewData } = await supabase
+        .from('gwc_verb_reviews')
+        .select('repetitions, next_review_at, created_at, total_reviews, correct_reviews')
+        .eq('session_id', sessionId)
+        .eq('verb_id', verbData.id)
+        .maybeSingle()
+      if (reviewData) setSrsData(reviewData as SrsReviewData)
+
       setLoading(false)
     }
     load()
   }, [slug])
+
+  async function handleAddToReviews() {
+    if (!verb || srsData) return
+    setAddState('adding')
+    const sessionId = getOrCreateSessionId()
+    const now = new Date().toISOString()
+    await supabase.from('gwc_verb_reviews').upsert({
+      session_id:        sessionId,
+      verb_id:           verb.id,
+      repetitions:       0,
+      interval_days:     1,
+      ease_factor:       2.5,
+      next_review_at:    now,
+      last_sentence_idx: 0,
+      total_reviews:     0,
+      correct_reviews:   0,
+    }, { onConflict: 'session_id,verb_id', ignoreDuplicates: true })
+    setSrsData({ repetitions: 0, next_review_at: now, created_at: now, total_reviews: 0, correct_reviews: 0 })
+    setAddState('added')
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
@@ -275,15 +312,36 @@ export default function VerbDetailPage() {
               )}
             </div>
           </div>
-          <div className="mt-5">
+          <div className="mt-5 flex gap-3 flex-wrap">
             <Link
               href={`/verbs/${slug}/learn`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-semibold hover:bg-[#9b8cf5] transition-colors text-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white font-semibold hover:bg-[#9b8cf5] transition-colors text-sm shadow-lg shadow-[#7c6df2]/25"
             >
-              + Add to review queue
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M5 3.5l9 4.5-9 4.5V3.5z"/></svg>
+              Learn
             </Link>
+            <button
+              onClick={handleAddToReviews}
+              disabled={!!srsData || addState === 'adding'}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${
+                srsData
+                  ? 'bg-[#3bd395]/10 text-[#3bd395] border border-[#3bd395]/20 cursor-default'
+                  : addState === 'adding'
+                  ? 'bg-white/10 text-[#9b98b0] cursor-wait'
+                  : 'bg-white/5 text-[#e8e6f0] border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              {srsData ? '✓ In Reviews' : addState === 'adding' ? 'Adding…' : '+ Add to Reviews'}
+            </button>
           </div>
         </div>
+
+        {/* ── SRS Progress ─────────────────────────────────────────── */}
+        {srsData && (
+          <div className="mb-6">
+            <SrsProgressCard data={srsData} />
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 bg-[#1a1830] p-1 rounded-2xl mb-6">

@@ -6,7 +6,9 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
-import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW, getOrCreateProgress, KASUS_BY_LEVEL } from '@/lib/gamification'
+import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW, getOrCreateProgress } from '@/lib/gamification'
+
+const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
 import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 
 // ─── TTS Hook ─────────────────────────────────────────────────────────────────
@@ -74,10 +76,8 @@ interface VocabNewCard {
   kind: 'vocab_new'
   reviewId: string
   vocab: GwcVocab
-  sentence: GwcVocabSentence
-  allCaseSentences: GwcVocabSentence[]  // all sentences for this grammatical_case group
-  grammaticalCase: string | null
-  lastSentenceIdx: number
+  sentence: GwcVocabSentence        // the sentence to show this review
+  lastSentenceIdx: number            // current idx (will be incremented on save)
   srsLevel: number
 }
 
@@ -346,9 +346,9 @@ function ReviewCardView({
               {TENSE_LABELS[card.tense] ?? card.tense}
             </span>
           )}
-          {card.kind === 'vocab_new' && card.grammaticalCase && (
+          {card.kind === 'vocab_new' && card.sentence.grammatical_case && (
             <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-              {KASUS_LABELS[card.grammaticalCase]}
+              {KASUS_LABELS[card.sentence.grammatical_case] ?? card.sentence.grammatical_case}
             </span>
           )}
           {/* SRS level */}
@@ -456,7 +456,7 @@ function ReviewCardView({
         )}
 
         {/* Info panel */}
-        {card.kind === 'vocab_new' && <VocabNewInfoPanel vocab={card.vocab} grammaticalCase={card.grammaticalCase} />}
+        {card.kind === 'vocab_new' && <VocabNewInfoPanel vocab={card.vocab} grammaticalCase={card.sentence.grammatical_case ?? null} />}
         {card.kind === 'grammar'   && <GrammarInfoPanel topic={card.topic} sentence={card.sentence} />}
         {card.kind === 'verb'      && <VerbInfoPanel verb={card.verb} tense={card.tense} />}
       </div>
@@ -563,7 +563,7 @@ function ReviewPageInner() {
           }
         }
 
-        // ── Verb reviews ──────────────────────────────────────────────────────
+        // ── Verb reviews — one card per verb, sentences rotate through full pool ──
         if (typeFilter === 'all' || typeFilter === 'verb') {
           const { data: verbReviews } = await supabase
             .from('gwc_verb_reviews')
@@ -574,56 +574,53 @@ function ReviewPageInner() {
             .limit(50)
 
           if (verbReviews && verbReviews.length > 0) {
-            const verbIds = [...new Set(verbReviews.map((r: { verb_id: string }) => r.verb_id))]
-            const tenses  = [...new Set(verbReviews.map((r: { tense: string }) => r.tense))]
+            const verbIds = verbReviews.map((r: { verb_id: string }) => r.verb_id)
+
+            // Load german_level to know which tenses are unlocked
+            const progress = await getOrCreateProgress(sessionId)
+            const germanLevel = progress?.german_level ?? 'A1'
+            const unlockedLevels = LEVEL_ORDER.slice(0, LEVEL_ORDER.indexOf(germanLevel as typeof LEVEL_ORDER[number]) + 1)
 
             const [{ data: verbs }, { data: verbSentences }] = await Promise.all([
               supabase.from('gwc_verbs').select('id, slug, word, translation_en, level, category, auxiliary, partizip_ii').in('id', verbIds),
-              supabase.from('gwc_verb_sentences').select('*').in('verb_id', verbIds).in('tense', tenses).order('sort_order', { ascending: true }),
+              supabase.from('gwc_verb_sentences').select('*').in('verb_id', verbIds).in('min_level', unlockedLevels).order('sort_order', { ascending: true }),
             ])
 
             const verbMap = Object.fromEntries((verbs || []).map((v: VerbWord) => [v.id, v]))
-
-            // Index sentences: verbId__tense → VerbSentence[]
+            // Pool: verbId → all unlocked sentences
             const sentPool: Record<string, VerbSentence[]> = {}
             for (const s of (verbSentences as VerbSentence[] || [])) {
-              const key = `${s.verb_id}__${s.tense}`
-              if (!sentPool[key]) sentPool[key] = []
-              sentPool[key].push(s)
+              if (!sentPool[s.verb_id]) sentPool[s.verb_id] = []
+              sentPool[s.verb_id].push(s)
             }
 
             for (const r of verbReviews) {
               const verb = verbMap[r.verb_id]
               if (!verb) continue
-              const pool = sentPool[`${r.verb_id}__${r.tense}`] || []
+              const pool = sentPool[r.verb_id] || []
               if (pool.length === 0) continue
-
-              // Rotate through sentences using last_sentence_idx
-              const nextIdx = ((r.last_sentence_idx ?? -1) + 1) % pool.length
-              // Pick the sentence AT nextIdx (will be saved after review)
-              const sentence = pool[nextIdx % pool.length]
-
+              const idx = (r.last_sentence_idx ?? 0) % pool.length
+              const sentence = pool[idx]
               built.push({
                 kind: 'verb',
                 reviewId: r.id,
                 verb,
                 sentence,
-                tense: r.tense,
-                lastSentenceIdx: nextIdx,
+                tense: sentence.tense,
+                lastSentenceIdx: r.last_sentence_idx ?? 0,
                 srsLevel: r.repetitions ?? 0,
               })
             }
           }
         }
 
-        // ── New vocab system (gwc_vocab_reviews) ─────────────────────────────
+        // ── Vocab reviews — one card per word, sentences rotate through all cases ──
         if (typeFilter === 'all' || typeFilter === 'vocab_new') {
-          // Load german_level to know which kasus rows to show
           const progress = await getOrCreateProgress(sessionId)
-          const germanLevel = (progress?.german_level ?? 'A1') as string
-          const allowedCases = new Set(KASUS_BY_LEVEL[germanLevel] ?? ['NOMINATIV', 'AKKUSATIV'])
+          const germanLevel = progress?.german_level ?? 'A1'
+          const unlockedLevels = LEVEL_ORDER.slice(0, LEVEL_ORDER.indexOf(germanLevel as typeof LEVEL_ORDER[number]) + 1)
 
-          const { data: rawVocabReviews } = await supabase
+          const { data: vocabReviews } = await supabase
             .from('gwc_vocab_reviews')
             .select('*')
             .eq('session_id', sessionId)
@@ -631,49 +628,33 @@ function ReviewPageInner() {
             .order('next_review_at', { ascending: true })
             .limit(50)
 
-          // Filter: show non-noun rows (grammatical_case IS NULL) always;
-          // show noun case rows only if that case is unlocked at current german_level
-          const newVocabReviews = (rawVocabReviews ?? []).filter((r: { grammatical_case: string | null }) =>
-            r.grammatical_case === null || allowedCases.has(r.grammatical_case)
-          )
-
-          if (newVocabReviews && newVocabReviews.length > 0) {
-            const vocabIds = [...new Set(newVocabReviews.map((r: { vocab_id: string }) => r.vocab_id))]
+          if (vocabReviews && vocabReviews.length > 0) {
+            const vocabIds = vocabReviews.map((r: { vocab_id: string }) => r.vocab_id)
 
             const [{ data: vocabs }, { data: vocabSentences }] = await Promise.all([
               supabase.from('gwc_vocab').select('*').in('id', vocabIds),
-              supabase.from('gwc_vocab_sentences').select('*').in('vocab_id', vocabIds).order('sort_order', { ascending: true }),
+              supabase.from('gwc_vocab_sentences').select('*').in('vocab_id', vocabIds).in('min_level', unlockedLevels).order('sort_order', { ascending: true }),
             ])
 
             const vocabMap = Object.fromEntries((vocabs || []).map((v: GwcVocab) => [v.id, v]))
-
-            // Pool sentences by vocab_id__grammatical_case (or __null for non-nouns)
             const sentPool: Record<string, GwcVocabSentence[]> = {}
             for (const s of (vocabSentences as GwcVocabSentence[] || [])) {
-              const key = `${s.vocab_id}__${s.grammatical_case ?? 'null'}`
-              if (!sentPool[key]) sentPool[key] = []
-              sentPool[key].push(s)
+              if (!sentPool[s.vocab_id]) sentPool[s.vocab_id] = []
+              sentPool[s.vocab_id].push(s)
             }
 
-            for (const r of newVocabReviews) {
+            for (const r of vocabReviews) {
               const vocab = vocabMap[r.vocab_id]
               if (!vocab) continue
-              const poolKey = `${r.vocab_id}__${r.grammatical_case ?? 'null'}`
-              const pool = sentPool[poolKey] || []
+              const pool = sentPool[r.vocab_id] || []
               if (pool.length === 0) continue
-
-              // Rotate through sentences within this case group
-              const nextIdx = ((r.last_sentence_idx ?? -1) + 1) % pool.length
-              const sentence = pool[nextIdx]
-
+              const idx = (r.last_sentence_idx ?? 0) % pool.length
               built.push({
                 kind: 'vocab_new' as const,
                 reviewId: r.id,
                 vocab,
-                sentence,
-                allCaseSentences: pool,
-                grammaticalCase: r.grammatical_case ?? null,
-                lastSentenceIdx: nextIdx,
+                sentence: pool[idx],
+                lastSentenceIdx: r.last_sentence_idx ?? 0,
                 srsLevel: r.repetitions ?? 0,
               })
             }
@@ -736,7 +717,6 @@ function ReviewPageInner() {
       }).eq('id', card.reviewId).eq('session_id', sessionId)
 
     } else if (card.kind === 'verb') {
-      // Read current stats so we can increment them (no RPC needed)
       const { data: cur } = await supabase
         .from('gwc_verb_reviews')
         .select('total_reviews, correct_reviews')
@@ -749,13 +729,12 @@ function ReviewPageInner() {
         ease_factor:       2.5,
         interval_days:     Math.ceil(srs.intervalDays),
         repetitions:       srs.newSrsLevel,
-        last_sentence_idx: card.lastSentenceIdx,
+        last_sentence_idx: card.lastSentenceIdx + 1,  // advance rotation
         total_reviews:     (cur?.total_reviews   ?? 0) + 1,
         correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
       }).eq('id', card.reviewId).eq('session_id', sessionId)
 
     } else if (card.kind === 'vocab_new') {
-      // New vocab system (gwc_vocab_reviews) — rotate within case group
       const { data: cur } = await supabase
         .from('gwc_vocab_reviews')
         .select('total_reviews, correct_reviews, correct_streak')
@@ -763,16 +742,15 @@ function ReviewPageInner() {
         .single()
 
       await supabase.from('gwc_vocab_reviews').update({
-        reviewed_at:      now,
-        next_review_at:   nextAt,
-        ease_factor:      2.5,
-        interval_days:    Math.ceil(srs.intervalDays),
-        repetitions:      srs.newSrsLevel,
-        last_sentence_idx: card.lastSentenceIdx,
-        correct_streak:   wasCorrect ? ((cur?.correct_streak ?? 0) + 1) : 0,
-        total_reviews:    (cur?.total_reviews   ?? 0) + 1,
-        correct_reviews:  (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
-        updated_at:       now,
+        next_review_at:    nextAt,
+        ease_factor:       2.5,
+        interval_days:     Math.ceil(srs.intervalDays),
+        repetitions:       srs.newSrsLevel,
+        last_sentence_idx: card.lastSentenceIdx + 1,  // advance rotation
+        correct_streak:    wasCorrect ? ((cur?.correct_streak ?? 0) + 1) : 0,
+        total_reviews:     (cur?.total_reviews   ?? 0) + 1,
+        correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
+        updated_at:        now,
       }).eq('id', card.reviewId).eq('session_id', sessionId)
     }
 

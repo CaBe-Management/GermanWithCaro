@@ -204,8 +204,8 @@ export default function Dashboard() {
             .eq('session_id', sessionId),
           // All verbs with level (for verb level-progress totals)
           supabase.from('gwc_verbs').select('id, level'),
-          // All verb sentences (verb_id + tense) for computing total (verb × tense) per level
-          supabase.from('gwc_verb_sentences').select('verb_id, tense'),
+          // Placeholder — verb totals come from gwc_verbs directly
+          Promise.resolve({ data: [] }),
           // User XP, streak, daily goal
           getOrCreateProgress(sessionId),
         ])
@@ -350,18 +350,13 @@ export default function Dashboard() {
         const verbLevelMap: Record<string, string> = {}
         for (const v of (verbRows || [])) verbLevelMap[v.id] = v.level
 
-        // Total = unique (verb_id × tense) pairs, grouped by verb level
+        // Total = unique verbs per level
         const verbTotalByLevel: Record<string, number> = {}
-        const seenVerbTense = new Set<string>()
-        for (const s of (verbSentRows || []) as { verb_id: string; tense: string }[]) {
-          const key = `${s.verb_id}__${s.tense}`
-          if (seenVerbTense.has(key)) continue
-          seenVerbTense.add(key)
-          const level = verbLevelMap[s.verb_id]
-          if (level) verbTotalByLevel[level] = (verbTotalByLevel[level] || 0) + 1
+        for (const [id, level] of Object.entries(verbLevelMap)) {
+          if (id) verbTotalByLevel[level] = (verbTotalByLevel[level] || 0) + 1
         }
 
-        // Learned = unique (verb_id × tense) pairs in gwc_verb_reviews, by verb level
+        // Learned = unique verbs in gwc_verb_reviews, grouped by verb level
         const verbLearnedByLevel: Record<string, number> = {}
         for (const r of (verbReviewRows || []) as { verb_id: string }[]) {
           const level = verbLevelMap[r.verb_id]
@@ -398,10 +393,20 @@ export default function Dashboard() {
   // ── Derived values ────────────────────────────────────────────────────────────
 
   const todayDateStr = offsetDateStr(0)
-  const dailyCardsToday = userProgress?.daily_cards_date === todayDateStr
-    ? (userProgress?.daily_cards_today ?? 0) : 0
-  const dailyGoal  = userProgress?.daily_goal ?? 0
-  const doneCapped = Math.min(dailyCardsToday, dailyGoal)
+
+  // Header "Learn X/Y": sum of per-path daily goals vs sum of per-path done today
+  const pathsDailyGoal = activePaths.reduce((sum, p) => sum + (p.daily_goal ?? 0), 0)
+  const pathsDoneToday = activePaths.reduce((sum, p) => {
+    const def = getPathById(p.path_id)
+    if (!def) return sum
+    const done = def.type === 'vocab'   ? vocabDoneToday
+               : def.type === 'grammar' ? grammarDoneToday
+               : def.type === 'verb'    ? verbDoneToday
+               : vocabDoneToday + grammarDoneToday
+    return sum + Math.min(done, p.daily_goal ?? 0)
+  }, 0)
+  const dailyGoal  = pathsDailyGoal
+  const doneCapped = pathsDoneToday
 
   const xpInfo   = userProgress ? getXPProgress(userProgress.xp_total) : null
   const username = userEmail ? userEmail.split('@')[0] : null

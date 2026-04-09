@@ -10,7 +10,6 @@ import {
   checkAndAwardBadges,
   saveDailyGoal,
   saveGermanLevel,
-  backfillKasusRows,
   BADGE_DEFS,
   getBadgeStat,
   todayStr,
@@ -405,14 +404,9 @@ export default function ProfilePage() {
 
   async function handleSaveGermanLevel(level: GermanLevel) {
     const sessionId = getOrCreateSessionId()
-    const prevLevel = germanLevel
     setGermanLevel(level)
     await saveGermanLevel(sessionId, level)
-    // If going up: backfill any missing kasus rows for already-learned NOMEN
-    const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-    if (LEVELS.indexOf(level) > LEVELS.indexOf(prevLevel)) {
-      await backfillKasusRows(sessionId, level)
-    }
+    // No backfill needed — review cards rotate through all sentences for the current level automatically
   }
 
   useEffect(() => {
