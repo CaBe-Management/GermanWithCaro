@@ -249,18 +249,36 @@ function ReviewCardView({
     NOMINATIV: 'Nom', AKKUSATIV: 'Akk', DATIV: 'Dat', GENITIV: 'Gen',
   }
 
-  // Topic label shown above the sentence
-  const topicLabel =
-    card.kind === 'vocab_new' ? card.vocab.word :
-    card.topic.title
+  // No topic label shown above the sentence — it gives away the answer
+  const topicLabel = null
 
   // SRS level badge
   const srsLabel = `SRS ${card.srsLevel}`
 
-  // English hint
+  // Highlight a word/phrase inside an English sentence in purple
+  function highlightTranslation(sentenceEn: string, target: string) {
+    if (!target) return <span>{sentenceEn}</span>
+    const idx = sentenceEn.toLowerCase().indexOf(target.toLowerCase())
+    if (idx === -1) return <span>{sentenceEn}</span>
+    return (
+      <>
+        {sentenceEn.slice(0, idx)}
+        <span className="text-[#7c6df2] font-semibold">{sentenceEn.slice(idx, idx + target.length)}</span>
+        {sentenceEn.slice(idx + target.length)}
+      </>
+    )
+  }
+
+  // English hint — always visible; highlights the relevant word in purple
   function renderEN() {
     if (!sentenceEN) return null
-    return <p className="text-[#9b98b0] text-base sm:text-xl leading-relaxed italic">{sentenceEN}</p>
+    const content =
+      card.kind === 'vocab_new'
+        ? highlightTranslation(sentenceEN, card.vocab.translation_en)
+        : (card.sentence as GrammarSentence).highlight_en
+          ? highlightTranslation(sentenceEN, (card.sentence as GrammarSentence).highlight_en!)
+          : <span>{sentenceEN}</span>
+    return <p className="text-[#9b98b0] text-base sm:text-xl leading-relaxed italic">{content}</p>
   }
 
   return (
@@ -311,7 +329,6 @@ function ReviewCardView({
       {/* Main content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-6 sm:py-12">
         <div className="max-w-2xl w-full text-center space-y-6">
-          <p className="text-[#9b8cf5] font-bold text-lg">{topicLabel}</p>
           {renderEN()}
 
           {/* German sentence with gap */}
