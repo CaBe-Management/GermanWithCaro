@@ -8,6 +8,7 @@ import type { GrammarTopic, GrammarSentence, GrammarResource } from '@/lib/supab
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
 import { SrsProgressCard } from '@/components/SrsProgressCard'
+import AudioButton from '@/components/AudioButton'
 import type { SrsReviewData } from '@/components/SrsProgressCard'
 
 // GrammarTopic now includes all detail-page fields (translation_en, structure, register_*, fun_fact, resources)
@@ -82,53 +83,6 @@ function parseResources(raw: GrammarResource[] | null | undefined): GrammarResou
   return raw
 }
 
-// ─── Audio Button ──────────────────────────────────────────────────────────────
-
-function AudioButton({ filename }: { filename?: string | null }) {
-  const [playing, setPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  function toggle() {
-    if (!filename) return
-    if (!audioRef.current) {
-      audioRef.current = new Audio(`/audio/${filename}`)
-      audioRef.current.onended = () => setPlaying(false)
-    }
-    if (playing) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-      setPlaying(false)
-    } else {
-      audioRef.current.play()
-      setPlaying(true)
-    }
-  }
-
-  if (!filename) return null
-
-  return (
-    <button
-      onClick={toggle}
-      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-        playing
-          ? 'bg-[#7c6df2] text-white'
-          : 'bg-white/5 text-[#9b98b0] hover:bg-[#7c6df2]/20 hover:text-[#9b8cf5]'
-      }`}
-      title={playing ? 'Stop' : 'Play audio'}
-    >
-      {playing ? (
-        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
-          <rect x="3" y="3" width="4" height="10" rx="1" />
-          <rect x="9" y="3" width="4" height="10" rx="1" />
-        </svg>
-      ) : (
-        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
-          <path d="M5 3.5l9 4.5-9 4.5V3.5z" />
-        </svg>
-      )}
-    </button>
-  )
-}
 
 // ─── Sentence Card ─────────────────────────────────────────────────────────────
 
@@ -149,7 +103,7 @@ function SentenceCard({
   )
   const highlighted = parts.map((part, i) =>
     new RegExp(`^${sentence.cloze_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i').test(part)
-      ? <span key={i} className="text-[#9b8cf5] font-bold">{part}</span>
+      ? <span key={i} className="text-[#c084fc] font-bold">{part}</span>
       : <span key={i}>{part}</span>
   )
 

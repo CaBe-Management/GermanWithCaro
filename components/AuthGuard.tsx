@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import Navbar from './Navbar'
 
 // Pages that do NOT require login
-const PUBLIC_PATHS = ['/', '/login']
+const PUBLIC_PATHS = ['/', '/login', '/grammar', '/reset-password']
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()

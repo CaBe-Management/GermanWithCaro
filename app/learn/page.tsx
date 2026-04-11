@@ -15,6 +15,7 @@ import {
 } from '@/lib/gamification'
 import { getPathById } from '@/lib/paths'
 import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
+import AudioButton from '@/components/AudioButton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -323,63 +324,6 @@ function QuizTimeScreen({ count, pathName, onStart, onBack }: {
 
 
 
-// ─── Audio Button ─────────────────────────────────────────────────────────────
-
-function AudioButton({ filename, size = 'md' }: { filename?: string | null; size?: 'sm' | 'md' }) {
-  const [playing, setPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  // Clean up on unmount (card change via key prop)
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause()
-    }
-  }, [])
-
-  function toggle() {
-    if (!filename) return
-    if (!audioRef.current) {
-      audioRef.current = new Audio(`/audio/${filename}`)
-      audioRef.current.onended = () => setPlaying(false)
-    }
-    if (playing) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-      setPlaying(false)
-    } else {
-      audioRef.current.play()
-      setPlaying(true)
-    }
-  }
-
-  if (!filename) return null
-
-  const dim = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
-  const icon = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'
-
-  return (
-    <button
-      onClick={toggle}
-      className={`${dim} rounded-full flex items-center justify-center transition-colors shrink-0 ${
-        playing
-          ? 'bg-[#7c6df2] text-white'
-          : 'bg-white/5 text-[#9b98b0] hover:bg-[#7c6df2]/20 hover:text-[#9b8cf5]'
-      }`}
-      title={playing ? 'Stop' : 'Audio abspielen'}
-    >
-      {playing ? (
-        <svg className={icon} fill="currentColor" viewBox="0 0 16 16">
-          <rect x="3" y="3" width="4" height="10" rx="1" />
-          <rect x="9" y="3" width="4" height="10" rx="1" />
-        </svg>
-      ) : (
-        <svg className={icon} fill="currentColor" viewBox="0 0 16 16">
-          <path d="M5 3.5l9 4.5-9 4.5V3.5z" />
-        </svg>
-      )}
-    </button>
-  )
-}
 
 // ─── Grammar Topic Explanation (shown inline before first sentence of a topic) ─
 
@@ -1119,7 +1063,7 @@ function ClozeSession({
 
 // ─── Completion Screens ───────────────────────────────────────────────────────
 
-function DailyGoalScreen({ data, onExtend }: { data: CompletionData; onExtend: () => void }) {
+function DailyGoalScreen({ data, onExtend, batchSize }: { data: CompletionData; onExtend: () => void; batchSize: number }) {
   const pct = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
   return (
     <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
@@ -1148,7 +1092,7 @@ function DailyGoalScreen({ data, onExtend }: { data: CompletionData; onExtend: (
             onClick={onExtend}
             className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2]/20 text-[#9b8cf5] font-bold border border-[#7c6df2]/40 hover:bg-[#7c6df2]/30 transition-colors"
           >
-            Learn 5 more →
+            Learn {batchSize} more →
           </button>
           <Link
             href="/dashboard"
@@ -1165,11 +1109,11 @@ function DailyGoalScreen({ data, onExtend }: { data: CompletionData; onExtend: (
   )
 }
 
-function CompletionScreen({ data }: { data: CompletionData }) {
+function CompletionScreen({ data, onExtend, batchSize }: { data: CompletionData; onExtend: () => void; batchSize: number }) {
   const pct = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
   return (
     <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
-      <div className="text-center max-w-sm">
+      <div className="text-center max-w-sm w-full">
         <div className="text-6xl mb-6">{pct >= 70 ? '🎉' : '📚'}</div>
         <h2 className="text-3xl font-bold text-[#e8e6f0] mb-2">{pct >= 70 ? 'Great job!' : 'Keep practicing!'}</h2>
         <p className="text-[#9b98b0] mb-1">{data.correct}/{data.total} correct — {pct}%</p>
@@ -1178,12 +1122,21 @@ function CompletionScreen({ data }: { data: CompletionData }) {
         <p className="text-[#9b98b0] text-sm mb-8">
           These cards are now in your <span className="text-[#9b8cf5] font-semibold">Review Queue</span>.
         </p>
-        <div className="flex gap-3 justify-center">
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
-            Dashboard
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={onExtend}
+            className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2]/20 text-[#9b8cf5] font-bold border border-[#7c6df2]/40 hover:bg-[#7c6df2]/30 transition-colors"
+          >
+            Learn {batchSize} more →
+          </button>
+          <Link
+            href="/dashboard"
+            className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors text-center"
+          >
+            Done for today
           </Link>
-          <Link href="/learn" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">
-            Learn More
+          <Link href="/review" className="text-[#9b98b0] text-sm hover:text-[#e8e6f0] transition-colors py-1">
+            Go to Reviews →
           </Link>
         </div>
       </div>
@@ -1322,6 +1275,7 @@ export default function LearnPage() {
 
   // Daily goal tracking
   const [currentGoal, setCurrentGoal] = useState(10)
+  const [batchSize, setBatchSize]     = useState(5)  // actual batch size from user's path config
   const [completion, setCompletion]   = useState<CompletionData | null>(null)
 
   // Accumulate results across all batches for the final summary
@@ -1387,9 +1341,10 @@ export default function LearnPage() {
           return
         }
 
-        // Set path name for quiz modal (use first path)
+        // Set path name and batch size (use first path)
         const firstDef = getPathById(activePaths[0].path_id)
         if (firstDef) setPathName(firstDef.name)
+        setBatchSize(activePaths[0].batch_size ?? 5)
 
         // 3. Build one PathBatch per active path
         const batches: PathBatch[] = []
@@ -1574,8 +1529,8 @@ export default function LearnPage() {
 
   // ── Extend session by 5 more items ────────────────────────────────────────
   function handleExtend() {
-    setCurrentGoal(g => g + 5)
-    extensionBatchRef.current = 5
+    setCurrentGoal(g => g + batchSize)
+    extensionBatchRef.current = batchSize
     setCompletion(null)
     setLoadKey(k => k + 1)
   }
@@ -1628,16 +1583,27 @@ export default function LearnPage() {
   if (appPhase === 'no-items') {
     return (
       <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
-        <div className="text-center max-w-sm">
-          <p className="text-4xl mb-4">✅</p>
+        <div className="text-center max-w-sm w-full">
+          <p className="text-5xl mb-4">✅</p>
           <p className="text-[#e8e6f0] font-bold text-xl mb-2">All caught up!</p>
-          <p className="text-[#9b98b0] text-sm mb-8">No new items in your queue. Check back tomorrow or review what you've learned.</p>
-          <div className="flex gap-3 justify-center">
-            <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
-              Dashboard
+          <p className="text-[#9b98b0] text-sm mb-8">
+            No new items in your queue. Check back tomorrow or review what you&apos;ve learned.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleExtend}
+              className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2]/20 text-[#9b8cf5] font-bold border border-[#7c6df2]/40 hover:bg-[#7c6df2]/30 transition-colors"
+            >
+              Learn {batchSize} more →
+            </button>
+            <Link
+              href="/review"
+              className="w-full px-6 py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors text-center"
+            >
+              Go to Reviews
             </Link>
-            <Link href="/review" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">
-              Review
+            <Link href="/dashboard" className="text-[#9b98b0] text-sm hover:text-[#e8e6f0] transition-colors py-1">
+              Dashboard →
             </Link>
           </div>
         </div>
@@ -1646,11 +1612,11 @@ export default function LearnPage() {
   }
 
   if (appPhase === 'daily-goal-reached' && completion) {
-    return <DailyGoalScreen data={completion} onExtend={handleExtend} />
+    return <DailyGoalScreen data={completion} onExtend={handleExtend} batchSize={batchSize} />
   }
 
   if (appPhase === 'done' && completion) {
-    return <CompletionScreen data={completion} />
+    return <CompletionScreen data={completion} onExtend={handleExtend} batchSize={batchSize} />
   }
 
   if (appPhase === 'intro-sequence') {

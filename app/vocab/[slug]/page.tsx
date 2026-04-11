@@ -8,6 +8,7 @@ import type { VocabWord, VocabSentence } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { SrsProgressCard } from '@/components/SrsProgressCard'
 import type { SrsReviewData } from '@/components/SrsProgressCard'
+import AudioButton from '@/components/AudioButton'
 
 type Tab = 'details' | 'declension' | 'sentences'
 type GrammaticalCase = 'NOMINATIV' | 'AKKUSATIV' | 'DATIV' | 'GENITIV'
@@ -16,47 +17,6 @@ const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function AudioButton({ filename, small }: { filename?: string | null; small?: boolean }) {
-  const [playing, setPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  useEffect(() => {
-    return () => { audioRef.current?.pause() }
-  }, [])
-
-  function toggle() {
-    if (!filename) return
-    if (!audioRef.current) {
-      audioRef.current = new Audio(`/audio/${filename}`)
-      audioRef.current.onended = () => setPlaying(false)
-    }
-    if (playing) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-      setPlaying(false)
-    } else {
-      audioRef.current.play()
-      setPlaying(true)
-    }
-  }
-
-  if (!filename) return null
-
-  return (
-    <button
-      className={`shrink-0 transition-colors ${small
-        ? 'text-[#9b98b0] hover:text-[#7c6df2] p-1'
-        : 'flex items-center gap-2 bg-[#7c6df2]/10 border border-[#7c6df2]/25 text-[#7c6df2] px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#7c6df2]/20'
-      } ${playing ? 'opacity-70' : ''}`}
-      onClick={toggle}
-    >
-      {small
-        ? (playing ? '⏸' : '🔊')
-        : (playing ? '⏸ Stop' : '🔊 Listen')
-      }
-    </button>
-  )
-}
 
 function TabBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -97,7 +57,7 @@ function highlightCloze(sentence: string, cloze: string) {
   return (
     <>
       {sentence.slice(0, idx)}
-      <span className="text-[#7c6df2] font-bold">{sentence.slice(idx, idx + cloze.length)}</span>
+      <span className="text-[#c084fc] font-bold">{sentence.slice(idx, idx + cloze.length)}</span>
       {sentence.slice(idx + cloze.length)}
     </>
   )
@@ -112,7 +72,7 @@ function SentenceCard({ sentence }: { sentence: VocabSentence }) {
         </p>
         <p className="text-[#9b98b0] text-[0.8rem] mt-1">{sentence.sentence_en}</p>
       </div>
-      <AudioButton filename={sentence.audio_file} small />
+      <AudioButton filename={sentence.audio_file} size="sm" />
     </div>
   )
 }
@@ -258,7 +218,7 @@ export default function VocabDetailPage() {
               )}
             </div>
           </div>
-          <AudioButton filename={word.audio_file} />
+          <AudioButton filename={word.audio_file} size="lg" />
         </div>
 
         {/* ── Add to Reviews button ────────────────────────────────── */}
