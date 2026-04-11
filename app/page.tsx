@@ -51,7 +51,7 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 function ClozePreview() {
   const [answered, setAnswered] = useState(false)
   const [input, setInput] = useState('')
-  const correct = 'Familie'
+  const correct = 'Hund'
   const isCorrect = input.toLowerCase() === correct.toLowerCase()
 
   return (
@@ -69,14 +69,19 @@ function ClozePreview() {
         </div>
         <span className="text-xs text-yellow-400 font-bold">⚡ +10 XP</span>
       </div>
-      <p className="text-xs text-text-muted mb-4">die Familie · Familien</p>
+      <p className="text-xs text-text-muted italic mb-4">My dog&apos;s name is Max.</p>
       <div className="bg-[#252340] rounded-xl p-4 mb-4 border border-white/5">
         <p className="text-text-primary text-base leading-relaxed mb-4">
-          Meine{' '}
-          <span className="inline-block min-w-[70px] border-b-2 border-accent-purple text-center text-accent-violet font-bold px-1">
-            {answered ? correct : '______'}
+          Mein{' '}
+          <span className="inline-block min-w-[70px] border-b-2 border-accent-purple text-center font-bold px-1">
+            {answered
+              ? <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>{correct}</span>
+              : input
+                ? <span className="text-accent-violet">{input}</span>
+                : <span className="text-white/20 italic font-normal text-sm">answer</span>
+            }
           </span>{' '}
-          ist sehr groß.
+          heißt Max.
         </p>
         {!answered ? (
           <div className="flex gap-2">
@@ -85,7 +90,7 @@ function ClozePreview() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && input && setAnswered(true)}
-              placeholder="Type your answer..."
+              placeholder="Type the missing word..."
               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple"
             />
             <button
@@ -94,16 +99,13 @@ function ClozePreview() {
             >✓</button>
           </div>
         ) : (
-          <div className={`rounded-lg p-3 text-sm font-medium ${isCorrect ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}`}>
-            {isCorrect ? '✓ Richtig! My family is very big.' : `✗ "${correct}" — My family is very big.`}
-            <button onClick={() => { setAnswered(false); setInput('') }} className="ml-2 underline opacity-70 hover:opacity-100 text-xs">↺ Try again</button>
+          <div className={`rounded-lg p-3 text-sm font-medium flex items-center justify-between ${isCorrect ? 'bg-green-500/10 text-green-300 border border-green-500/20' : 'bg-red-500/10 text-red-300 border border-red-500/20'}`}>
+            <span>{isCorrect ? `✓ ${correct}` : `✗ "${correct}"`}</span>
+            <button onClick={() => { setAnswered(false); setInput('') }} className="underline opacity-60 hover:opacity-100 text-xs">↺</button>
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between text-xs text-text-muted">
-        <span>Stage: <span className="text-accent-violet font-semibold">Beginner</span></span>
-        <span>Type · Press Enter</span>
-      </div>
+      <p className="text-xs text-text-muted text-right">Type · Press Enter</p>
     </div>
   )
 }
@@ -113,59 +115,57 @@ function ClozePreview() {
 function GrammarPreview() {
   const [answered, setAnswered] = useState(false)
   const [input, setInput] = useState('')
-  const correct = 'bin'
+  const correct = 'Wie'
   const isCorrect = input.toLowerCase() === correct.toLowerCase()
 
   return (
     <div className="bg-[#0f0e17] p-5 min-h-full">
-      <div className="flex items-center gap-1.5 mb-4">
-        <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">GRAMMAR</span>
-        <span className="px-2 py-0.5 rounded text-xs font-bold bg-accent-purple/20 text-accent-violet border border-accent-purple/30">A1</span>
-        <span className="text-xs text-text-muted">Präsens: sein</span>
-      </div>
-      <div className="bg-[#252340] rounded-xl p-4 mb-4 border border-emerald-500/20">
-        <p className="text-emerald-300 text-xs font-bold mb-3 uppercase tracking-wide">sein (to be) — Present tense</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-          {[['ich','bin'],['du','bist'],['er/sie/es','ist'],['wir','sind'],['ihr','seid'],['sie/Sie','sind']].map(([p,c]) => (
-            <div key={p} className="flex gap-2">
-              <span className="text-text-muted w-16 shrink-0">{p}</span>
-              <span className="text-text-primary font-bold">{c}</span>
-            </div>
-          ))}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full w-3/5 bg-accent-purple rounded-full" />
         </div>
+        <span className="text-xs text-text-muted">Card 3 / 5</span>
       </div>
-      <div className="bg-[#252340] rounded-xl p-4 mb-4 border border-white/5">
-        <p className="text-xs text-text-muted font-semibold mb-3 uppercase tracking-wide">Now use it:</p>
-        <p className="text-text-primary text-base leading-relaxed mb-4">
-          Ich{' '}
-          <span className="inline-block min-w-[50px] border-b-2 border-emerald-400 text-center text-emerald-300 font-bold px-1">
-            {answered ? correct : '_____'}
+      <div className="flex items-center gap-1.5 mb-5">
+        <span className="px-2 py-0.5 rounded text-xs font-bold bg-accent-purple/20 text-accent-violet border border-accent-purple/30">GRAMMAR</span>
+        <span className="px-2 py-0.5 rounded text-xs font-bold bg-white/5 text-text-muted border border-white/10">A1</span>
+      </div>
+      <p className="text-xs text-text-muted italic mb-5">What is your name?</p>
+      <div className="mb-5">
+        <p className="text-text-primary text-2xl font-light leading-relaxed text-center">
+          <span className="inline-block min-w-[70px] border-b-2 border-accent-purple text-center font-bold px-2">
+            {answered
+              ? <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>{correct}</span>
+              : input
+                ? <span className="text-accent-violet">{input}</span>
+                : <span className="text-white/20 italic font-normal text-lg">question-word</span>
+            }
           </span>{' '}
-          sehr müde.
+          heißt du?
         </p>
-        {!answered ? (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && input && setAnswered(true)}
-              placeholder="Conjugate sein..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-emerald-500"
-            />
-            <button
-              onClick={() => input && setAnswered(true)}
-              className="px-3 py-2 rounded-lg bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-600 transition-colors"
-            >✓</button>
-          </div>
-        ) : (
-          <div className={`rounded-lg p-3 text-sm font-medium ${isCorrect ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}`}>
-            {isCorrect ? '✓ Richtig! I am very tired.' : `✗ "${correct}" — I am very tired.`}
-            <button onClick={() => { setAnswered(false); setInput('') }} className="ml-2 underline opacity-70 hover:opacity-100 text-xs">↺ Try again</button>
-          </div>
-        )}
       </div>
-      <p className="text-xs text-text-muted text-center">Grammar · SRS · 50 A1 topics</p>
+      {!answered ? (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && input && setAnswered(true)}
+            placeholder="Type the missing word..."
+            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple"
+          />
+          <button
+            onClick={() => input && setAnswered(true)}
+            className="px-3 py-2 rounded-lg bg-accent-purple text-white text-sm font-bold hover:bg-accent-violet transition-colors"
+          >✓</button>
+        </div>
+      ) : (
+        <div className={`rounded-lg p-3 text-sm font-medium flex items-center justify-between ${isCorrect ? 'bg-green-500/10 text-green-300 border border-green-500/20' : 'bg-red-500/10 text-red-300 border border-red-500/20'}`}>
+          <span>{isCorrect ? `✓ ${correct}` : `✗ "${correct}"`}</span>
+          <button onClick={() => { setAnswered(false); setInput('') }} className="underline opacity-60 hover:opacity-100 text-xs">↺</button>
+        </div>
+      )}
+      <p className="text-xs text-text-muted text-right mt-3">Type · Press Enter</p>
     </div>
   )
 }
@@ -206,7 +206,7 @@ function FloatingWords() {
 const FAQS = [
   {
     q: 'Wait — is this actually free?',
-    a: "Yes. The app is in beta right now, which means you can sign up and use everything for free. When the A1 grammar section is complete, it'll switch to a paid subscription (€4.99/month). If you're in now, enjoy it while it lasts.",
+    a: "Yes. The app is in beta right now, which means you can sign up and use everything for free. When the A1 grammar section is complete, it'll switch to a paid subscription (€9.99/month). If you're in now, enjoy it while it lasts.",
   },
   {
     q: "I tried Duolingo. How is this different?",
@@ -217,8 +217,8 @@ const FAQS = [
     a: "The videos are great for understanding concepts. This is where you practice them until they stick. Think of the videos as the explanation, and this as the homework — but the fun kind.",
   },
   {
-    q: 'I need to pass the Goethe A1 exam. Will this help?',
-    a: "Yes, directly. The vocabulary is cross-referenced with the official Goethe-Institut A1 word list, and the grammar covers all 50 A1 topics the exam tests. If you know what's in this app, you're ready.",
+    q: 'I need to reach A1 level. Is this the right app?',
+    a: "The app is built around the A1 vocabulary and grammar topics you need for everyday German. If you're working towards an exam, the content will help — but we don't make official promises.",
   },
   {
     q: 'Why do I have to type answers instead of clicking?',
@@ -449,7 +449,7 @@ function LandingContent() {
               <div>
                 <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Structure</p>
                 <div className="bg-[#0f0e17] rounded-xl p-3 font-mono text-sm border border-white/5">
-                  <span className="text-accent-violet">[Verb]</span> + wie + <span className="text-accent-violet">[Noun]</span>?
+                  Wie + <span className="text-accent-violet">[Verb]</span> + <span className="text-accent-violet">[Subjekt]</span>?
                 </div>
               </div>
               {/* Register */}
@@ -512,10 +512,10 @@ function LandingContent() {
                 tagColor: 'bg-accent-purple/15 text-accent-violet border-accent-purple/25',
               },
               {
-                emoji: '📋',
-                title: "You need to pass the Goethe A1 exam",
-                desc: "The vocabulary is based directly on the official Goethe-Institut A1 word list, and the grammar covers every topic that appears in the exam. Systematic, complete, no guessing what to study.",
-                tag: 'Exam Prep',
+                emoji: '🎯',
+                title: "You want structure, not just vibes",
+                desc: "Random YouTube videos and scattered notes only get you so far. Here everything is organised by level and topic — vocabulary, grammar, reading. You always know what you're learning and why.",
+                tag: 'Structured Learning',
                 tagColor: 'bg-blue-500/15 text-blue-300 border-blue-500/25',
               },
               {
