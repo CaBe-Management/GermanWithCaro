@@ -56,29 +56,40 @@ export default function Navbar() {
         const sessionId = getOrCreateSessionId()
         const now = new Date().toISOString()
 
+        const todayStart = todayStr() + 'T00:00:00'
+
         const [
           { data: { user } },
           { count: grammarCount },
-          { count: verbCount },
-          { count: newVocabCount },
+          { count: vocabCount },
+          { data: activePaths },
+          { data: vocabReviewed },
+          { data: grammarReviewed },
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
+          // Reviews due: grammar + vocab only (no verbs)
           supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
-          supabase.from('gwc_verb_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
           supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
-          // Fetch user progress for global daily_goal + how many cards learned today
+          // Active paths (for learn count)
+          supabase.from('gwc_user_paths').select('path_id, daily_goal').eq('session_id', sessionId).eq('active', true),
+          // Items done today (vocab)
+          supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).gte('reviewed_at', todayStart),
+          // Items done today (grammar)
+          supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).gte('updated_at', todayStart),
           getOrCreateProgress(sessionId),
         ])
-        const dueCount = (grammarCount ?? 0) + (verbCount ?? 0) + (newVocabCount ?? 0)
+        const dueCount = (grammarCount ?? 0) + (vocabCount ?? 0)
 
         if (user?.email) setUserEmail(user.email)
 
-        // Learn count = global daily_goal minus cards already learned today
-        // Uses userProgress.daily_goal (the value the user sets via +/- on the dashboard)
-        const today = todayStr()
-        const dailyDone = (progressData?.daily_cards_date === today) ? (progressData?.daily_cards_today ?? 0) : 0
-        setLearnCount(Math.max(0, (progressData?.daily_goal ?? 0) - dailyDone))
+        // Learn count: sum of per-path daily_goal minus items done today
+        // (same metric the dashboard Learn box shows)
+        const pathsDailyGoal = (activePaths || []).reduce((s: number, p: { daily_goal: number }) => s + (p.daily_goal ?? 0), 0)
+        const vocabDoneCount   = vocabReviewed   ?? 0
+        const grammarDoneCount = grammarReviewed ?? 0
+        const doneToday = (vocabDoneCount as number) + (grammarDoneCount as number)
+        setLearnCount(Math.max(0, pathsDailyGoal - doneToday))
         setReviewCount(dueCount || 0)
 
         // Load user's XP level for the level badge

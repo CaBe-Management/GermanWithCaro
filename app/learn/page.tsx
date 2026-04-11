@@ -216,22 +216,25 @@ async function fetchGrammarItems(
     .select('*')
     .order('sort_order', { ascending: true })
 
-  // Filter unreviewed, sort by (topicOrder, sentenceSortOrder), take batchSize
-  const unreviewed = (sentences as GrammarSentence[] || [])
-    .filter(s => !reviewedTopicIds.has(s.topic_id))
-    .sort((a, b) => {
-      const tDiff = (topicOrder[a.topic_id] ?? 999) - (topicOrder[b.topic_id] ?? 999)
-      return tDiff !== 0 ? tDiff : a.sort_order - b.sort_order
-    })
+  // Group sentences by topic_id — sorted by sort_order (already done above)
+  const sentencesByTopic: Record<string, GrammarSentence[]> = {}
+  for (const s of (sentences as GrammarSentence[] || [])) {
+    if (!sentencesByTopic[s.topic_id]) sentencesByTopic[s.topic_id] = []
+    sentencesByTopic[s.topic_id].push(s)
+  }
+
+  // Pick ONE sentence per unreviewed topic (first by sort_order), up to batchSize topics
+  const unreviewedTopics = (topics || [])
+    .filter(t => !reviewedTopicIds.has(t.id) && topicMap[t.id])
     .slice(0, batchSize)
 
-  return unreviewed
-    .filter(s => topicMap[s.topic_id])
-    .map(s => ({
-      type: 'grammar' as const,
-      topic: topicMap[s.topic_id],
-      sentence: s,
-    }))
+  return unreviewedTopics
+    .map(topic => {
+      const first = (sentencesByTopic[topic.id] || [])[0]
+      if (!first) return null
+      return { type: 'grammar' as const, topic, sentence: first }
+    })
+    .filter((x): x is GrammarLearnItem => x !== null)
 }
 
 // ─── Quiz Time Modal ──────────────────────────────────────────────────────────
@@ -653,7 +656,6 @@ function ClozeSession({
   useEffect(() => {
     setInput('')
     setAnswered(false)
-    setShowEN(false)
     setShowInfo(false)
   }, [index])
 
@@ -715,15 +717,6 @@ function ClozeSession({
   // Small context badge: grammar → person
   const personBadge = current.kind === 'grammar' ? (current.sentence.person || null) : null
 
-  // Hint box translation
-  const hint1 = current.kind === 'vocab_new' ? current.vocab.translation_en
-              : current.topic.translation_en
-
-  // EN translation display
-  function renderEN() {
-    if (!sentence?.sentence_en) return null
-    return <p className="text-[#9b98b0] text-xl leading-relaxed italic">{sentence.sentence_en}</p>
-  }
 
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
@@ -759,56 +752,41 @@ function ClozeSession({
         <div className="max-w-2xl w-full text-center space-y-6">
 
 
-          {/* Hint box — grammar only */}
-          {hint1 && current.kind === 'grammar' && (
-            <div className="w-full max-w-md mx-auto">
-              <div className="bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
-                <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
-              </div>
-            </div>
-          )}
-
           {/* German sentence with gap */}
           <div className="flex items-center justify-center gap-3">
             <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
               {clozeParts[0]}
-              <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
-                !answered
-                  ? 'border-[#7c6df2] text-[#9b8cf5]'
-                  : isCorrect
-                    ? 'border-[#4ade80] text-[#4ade80]'
-                    : 'border-[#f87171] text-[#f87171]'
-              }`}>
-                {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
+              <span className="inline-block relative align-middle">
+                <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
+                  !answered
+                    ? 'border-[#7c6df2] text-[#9b8cf5]'
+                    : isCorrect
+                      ? 'border-[#4ade80] text-[#4ade80]'
+                      : 'border-[#f87171] text-[#f87171]'
+                }`}>
+                  {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
+                </span>
+                {/* Grammar hint label below the blank */}
+                {current.kind === 'grammar' && (
+                  <span className="absolute left-0 right-0 text-center text-[0.65rem] font-semibold tracking-wide text-[#9b8cf5] top-full mt-0.5 whitespace-nowrap">
+                    {current.topic.title}
+                  </span>
+                )}
               </span>
               {clozeParts[1]}
             </p>
           </div>
 
-          {/* English translation */}
+          {/* English translation — always visible for both vocab and grammar */}
           {sentence?.sentence_en && (
-            current.kind === 'vocab_new' ? (
-              // Vocab: always visible, cloze word highlighted in purple
-              <p className="text-[#9b98b0] text-base">
-                {highlightTranslation(sentence.sentence_en, current.vocab.translation_en)}
-              </p>
-            ) : (
-              // Grammar: collapsible on front, always shown on back
-              answered ? (
-                <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
-              ) : (
-                showEN ? (
-                  <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
-                ) : (
-                  <button
-                    onClick={() => setShowEN(true)}
-                    className="text-xs text-[#9b98b0] hover:text-[#e8e6f0] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-                  >
-                    🌐 Translation anzeigen
-                  </button>
-                )
-              )
-            )
+            <p className="text-[#9b98b0] text-base">
+              {current.kind === 'vocab_new'
+                ? highlightTranslation(sentence.sentence_en, current.vocab.translation_en)
+                : current.topic.translation_en
+                  ? highlightTranslation(sentence.sentence_en, current.topic.translation_en)
+                  : <span>{sentence.sentence_en}</span>
+              }
+            </p>
           )}
 
           {/* Wrong answer feedback */}
