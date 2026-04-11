@@ -97,6 +97,18 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Forgot password — only visible in login mode */}
+            {mode === 'login' && (
+              <div className="text-right -mt-1">
+                <a
+                  href="/reset-password"
+                  className="text-xs text-[#9b98b0] hover:text-[#9b8cf5] transition-colors"
+                >
+                  Forgot password?
+                </a>
+              </div>
+            )}
+
             {/* Error */}
             {error && (
               <div className="px-4 py-3 rounded-xl bg-[#f87171]/10 border border-[#f87171]/20 text-[#f87171] text-sm">

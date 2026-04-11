@@ -152,9 +152,10 @@ function getGrammarPlaceholder(topic: GrammarTopic): string {
     return 'question-word'
   if (cat.includes('verb'))   return 'verb form'
   if (cat.includes('article') || cat.includes('artikel')) return 'article'
-  if (cat.includes('adj'))    return 'adjective'
-  if (cat.includes('prep'))   return 'preposition'
-  if (cat.includes('modal'))  return 'modal verb'
+  if (cat.includes('adj'))     return 'adjective'
+  if (cat.includes('prep'))    return 'preposition'
+  if (cat.includes('modal'))   return 'modal verb'
+  if (cat.includes('pronoun')) return 'pronoun'
   return 'answer'
 }
 
@@ -169,8 +170,12 @@ function renderMd(text: string): string {
 
 // ─── New vocab system fetch (gwc_vocab) ──────────────────────────────────────
 
+// Admin email — draft items are visible to this account only
+const ADMIN_EMAIL = 'cabe.management@gmail.com'
+
 async function fetchNewVocabItems(
-  sessionId: string
+  sessionId: string,
+  isAdmin = false
 ): Promise<{ vocab: GwcVocab; sentences: GwcVocabSentence[] }[]> {
   // Words that already have ANY review row are considered "learned" — skip them
   const { data: existingRows } = await supabase
@@ -180,10 +185,13 @@ async function fetchNewVocabItems(
 
   const learnedIds = new Set((existingRows || []).map((r: { vocab_id: string }) => r.vocab_id))
 
-  const { data: vocabs } = await supabase
+  let vocabQuery = supabase
     .from('gwc_vocab')
     .select('*')
     .order('frequency_rank', { ascending: true, nullsFirst: false })
+  if (!isAdmin) vocabQuery = vocabQuery.eq('is_draft', false)
+
+  const { data: vocabs } = await vocabQuery
 
   const newVocabs = (vocabs as GwcVocab[] || []).filter(v => !learnedIds.has(v.id))
   if (newVocabs.length === 0) return []
@@ -206,7 +214,8 @@ async function fetchNewVocabItems(
 
 async function fetchGrammarItems(
   sessionId: string,
-  batchSize: number
+  batchSize: number,
+  isAdmin = false
 ): Promise<GrammarLearnItem[]> {
   // Get already-reviewed grammar topic IDs
   const { data: reviewRows } = await supabase
@@ -217,10 +226,13 @@ async function fetchGrammarItems(
   const reviewedTopicIds = new Set((reviewRows || []).map((r: { topic_id: string }) => r.topic_id))
 
   // Fetch topics sorted by their sort_order (so we teach topics in order)
-  const { data: topics } = await supabase
+  let topicsQuery = supabase
     .from('gwc_grammar_topics')
     .select('*')
     .order('sort_order', { ascending: true })
+  if (!isAdmin) topicsQuery = topicsQuery.eq('is_draft', false)
+
+  const { data: topics } = await topicsQuery
 
   const topicMap: Record<string, GrammarTopic> = Object.fromEntries(
     (topics || []).map((t: GrammarTopic) => [t.id, t])
@@ -1327,6 +1339,10 @@ export default function LearnPage() {
       try {
         const sessionId = getOrCreateSessionId()
 
+        // Check if admin — draft items are visible to the admin account only
+        const { data: { user } } = await supabase.auth.getUser()
+        const isAdmin = user?.email === ADMIN_EMAIL
+
         // Extension batch: skip path loading, will refetch all items for next batch
         const extBatch = extensionBatchRef.current
         extensionBatchRef.current = null
@@ -1336,9 +1352,21 @@ export default function LearnPage() {
           // (no special handling needed — just fall through to normal load)
         }
 
-        // 1. Load user level from profile
+        // 1. Load user level + daily budget from profile
         const progress = await getOrCreateProgress(sessionId)
         const userLevel = progress?.german_level ?? 'A1'
+
+        // Check if daily goal already reached — don't load new items
+        const todayStr       = new Date().toISOString().slice(0, 10)
+        const isToday        = progress?.daily_cards_date === todayStr
+        const dailyCardsSoFar = isToday ? (progress?.daily_cards_today ?? 0) : 0
+        const dailyGoal      = progress?.daily_goal ?? 10
+        const remainingBudget = Math.max(0, dailyGoal - dailyCardsSoFar)
+
+        if (remainingBudget === 0) {
+          setAppPhase('daily-goal-reached')
+          return
+        }
 
         // 2. Load active paths — filtered to a single path if ?path= param is present
         let pathQuery = supabase
@@ -1366,25 +1394,32 @@ export default function LearnPage() {
         // 3. Build one PathBatch per active path
         const batches: PathBatch[] = []
         let totalGoal = 0
+        let budgetLeft = remainingBudget
 
         for (const path of activePaths) {
           const def = getPathById(path.path_id)
           if (!def) continue
+          if (budgetLeft <= 0) break
 
-          totalGoal += path.batch_size
+          // Cap this path's contribution to remaining daily budget
+          const effectiveBatch = Math.min(path.batch_size, budgetLeft)
+          totalGoal += effectiveBatch
 
           const pathGrammar: GrammarLearnItem[] = []
           const pathVocab: { vocab: GwcVocab; sentences: GwcVocabSentence[] }[] = []
 
           if (def.type === 'grammar' || def.type === 'mixed') {
-            const g = await fetchGrammarItems(sessionId, path.batch_size)
+            const g = await fetchGrammarItems(sessionId, effectiveBatch, isAdmin)
             pathGrammar.push(...g)
           }
           if (def.type === 'vocab' || def.type === 'mixed') {
-            const voc = await fetchNewVocabItems(sessionId)
-            // Limit to batch_size items per session
-            pathVocab.push(...voc.slice(0, path.batch_size))
+            const voc = await fetchNewVocabItems(sessionId, isAdmin)
+            // Limit to remaining budget after grammar
+            const vocabSlot = Math.max(0, effectiveBatch - pathGrammar.length)
+            pathVocab.push(...voc.slice(0, vocabSlot))
           }
+
+          budgetLeft -= (pathGrammar.length + pathVocab.length)
 
           if (pathGrammar.length === 0 && pathVocab.length === 0) continue
 

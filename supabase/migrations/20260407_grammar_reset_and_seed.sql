@@ -75,8 +75,8 @@ INSERT INTO gwc_grammar_topics (
   -- related_forms
   'Other W-questions: was? (what), wer? (who), wo? (where), wann? (when), warum? (why), wohin? (where to), woher? (where from). Also related: Wie bitte? (Could you repeat that? / Excuse me?)',
 
-  -- resources (YouTube/TikTok — fill in your own links)
-  '[{"type":"tiktok","url":"","title":"","description":""}]'::jsonb,
+  -- resources (NULL until real links are added)
+  NULL,
 
   -- sort_order
   1

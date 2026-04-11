@@ -90,10 +90,14 @@ function LevelBar({ data, view }: { data: LevelProgress; view: 'all' | 'vocab' |
   )
 }
 
+// Admin email — draft content is counted/shown for this account only
+const ADMIN_EMAIL = 'cabe.management@gmail.com'
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const [loading, setLoading]             = useState(true)
+  const [loadError, setLoadError]         = useState(false)
   const [userProgress, setUserProgress]   = useState<UserProgress | null>(null)
   const [userEmail, setUserEmail]         = useState<string | null>(null)
   const [allDue, setAllDue]               = useState(0)
@@ -128,9 +132,12 @@ export default function Dashboard() {
         const past14Start = pastDays(14)[0]
         const yesterday = new Date(now.getTime() - 86400000)
 
+        // ── Resolve auth first so we can apply draft filter ─────────────────
+        const { data: { user } } = await supabase.auth.getUser()
+        const isAdmin = user?.email === ADMIN_EMAIL
+
         // ── All queries run in parallel ──────────────────────────────────────
         const [
-          { data: { user } },
           { count: allDueCount },
           { count: vocabDueCount },
           { count: grammarDueCount },
@@ -147,7 +154,6 @@ export default function Dashboard() {
           { data: grammarReviewRows },
           progressData,
         ] = await Promise.all([
-          supabase.auth.getUser(),
           // Total reviews due now (vocab + grammar)
           supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true })
             .eq('session_id', sessionId).lte('next_review_at', nowISO),
@@ -179,12 +185,16 @@ export default function Dashboard() {
           // Last 24h reviews for accuracy stat
           supabase.from('gwc_user_reviews').select('correct')
             .eq('session_id', sessionId).gte('reviewed_at', yesterday.toISOString()),
-          // All vocab with their CEFR level (for level progress bars)
-          supabase.from('gwc_vocab').select('id, level'),
+          // All vocab with their CEFR level (for level progress bars) — hide drafts from non-admin
+          isAdmin
+            ? supabase.from('gwc_vocab').select('id, level')
+            : supabase.from('gwc_vocab').select('id, level').eq('is_draft', false),
           // All grammar sentences (to count totals per level)
           supabase.from('gwc_grammar_sentences').select('id, topic_id'),
-          // Grammar topics (maps topic_id → level)
-          supabase.from('gwc_grammar_topics').select('id, level'),
+          // Grammar topics (maps topic_id → level) — hide drafts from non-admin
+          isAdmin
+            ? supabase.from('gwc_grammar_topics').select('id, level')
+            : supabase.from('gwc_grammar_topics').select('id, level').eq('is_draft', false),
           // Vocab review history (vocab_id → used to compute unique vocab learned per level)
           supabase.from('gwc_vocab_reviews').select('vocab_id, reviewed_at')
             .eq('session_id', sessionId),
@@ -330,6 +340,7 @@ export default function Dashboard() {
 
       } catch (e) {
         console.error('Dashboard load error:', e)
+        setLoadError(true)
       } finally {
         setLoading(false)
       }
@@ -386,6 +397,26 @@ export default function Dashboard() {
   )
 
   // ── Render ────────────────────────────────────────────────────────────────────
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+        <div className="text-center max-w-sm">
+          <p className="text-4xl mb-4">⚠️</p>
+          <p className="text-[#e8e6f0] font-bold text-lg mb-2">Couldn&apos;t load your dashboard</p>
+          <p className="text-[#9b98b0] text-sm mb-6">
+            There was a problem connecting to the server. Check your connection and try again.
+          </p>
+          <button
+            onClick={() => { setLoadError(false); setLoading(true); window.location.reload() }}
+            className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">

@@ -614,6 +614,29 @@ function LandingContent() {
         </div>
       </section>
 
+      {/* ── About Caro ─────────────────────────────────────────────────────── */}
+      <section className="py-20 px-5">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-[#1a1830] rounded-2xl border border-white/5 p-8 flex flex-col sm:flex-row gap-8 items-center sm:items-start">
+            <img
+              src="/caro.jpg"
+              alt="Caroline"
+              className="w-28 h-28 rounded-full object-cover shrink-0 border-2 border-[#7c6df2]/40"
+            />
+            <div>
+              <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-2">Built by a real teacher</p>
+              <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Hi, I&apos;m Caro 👋</h2>
+              <p className="text-[#9b98b0] leading-relaxed mb-3">
+                I&apos;m a German teacher and I built this app because I couldn&apos;t find something that worked the way I actually teach — word by word, with real sentences, and spaced repetition that respects your time.
+              </p>
+              <p className="text-[#9b98b0] leading-relaxed">
+                Everything in here — the vocabulary, the grammar explanations, the example sentences — I wrote myself. This is the app I wish my students had from day one.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Final CTA ──────────────────────────────────────────────────────── */}
       <section className="py-20 px-5 text-center">
         <div className="max-w-md mx-auto">
