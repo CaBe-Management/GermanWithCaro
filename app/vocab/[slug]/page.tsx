@@ -12,6 +12,8 @@ import type { SrsReviewData } from '@/components/SrsProgressCard'
 type Tab = 'details' | 'declension' | 'sentences'
 type GrammaticalCase = 'NOMINATIV' | 'AKKUSATIV' | 'DATIV' | 'GENITIV'
 
+const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function AudioButton({ filename, small }: { filename?: string | null; small?: boolean }) {
@@ -144,11 +146,15 @@ export default function VocabDetailPage() {
         if (!wordData) { setError('Word not found.'); setLoading(false); return }
         setWord(wordData as VocabWord)
 
-        // Load sentences
+        // Load sentences — only up to the word's own level
+        // (A1 noun → A1 sentences only; no user-level gating needed)
+        const wordLevelIdx = LEVEL_ORDER.indexOf(wordData.level ?? 'C2')
+        const allowedLevels = LEVEL_ORDER.slice(0, wordLevelIdx + 1)
         const { data: sentData } = await supabase
           .from('gwc_vocab_sentences')
           .select('*')
           .eq('vocab_id', wordData.id)
+          .in('min_level', allowedLevels)
           .order('sort_order', { ascending: true })
         setSentences((sentData || []) as VocabSentence[])
 

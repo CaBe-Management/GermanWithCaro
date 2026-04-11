@@ -44,7 +44,8 @@ export default function Navbar() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userLevel, setUserLevel] = useState<number | null>(null)  // current XP level
 
-  const pathsDropdown = useDropdown()
+  const contentDropdown = useDropdown()
+  const practiceDropdown = useDropdown()
   const profileDropdown = useDropdown()
   const mobileMenu = useDropdown()
 
@@ -152,30 +153,94 @@ export default function Navbar() {
           <div className="w-px h-5 bg-white/10 mx-1 hidden md:block" />
 
           {/* Content dropdown — desktop only */}
-          <div className="relative hidden md:block" ref={pathsDropdown.ref}>
+          <div className="relative hidden md:block" ref={contentDropdown.ref}>
             <button
-              onClick={() => pathsDropdown.setOpen(v => !v)}
+              onClick={() => contentDropdown.setOpen(v => !v)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                pathname.startsWith('/path') || pathname === '/paths' || pathname.startsWith('/reading')
+                pathname.startsWith('/path') || pathname === '/paths' || pathname.startsWith('/grammar') || pathname === '/search'
                   ? 'text-[#e8e6f0] bg-white/8'
                   : 'text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/5'
               }`}
             >
               Content
               <svg
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${pathsDropdown.open ? 'rotate-180' : ''}`}
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${contentDropdown.open ? 'rotate-180' : ''}`}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
-            {pathsDropdown.open && (
+            {contentDropdown.open && (
+              <div className="absolute top-full left-0 mt-1.5 w-52 bg-[#1a1830] rounded-xl border border-white/8 shadow-xl shadow-black/40 overflow-hidden z-50">
+                <Link
+                  href="/paths"
+                  onClick={() => contentDropdown.setOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
+                    pathname.startsWith('/path') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                  }`}
+                >
+                  <span className="text-lg">🗂️</span>
+                  <div>
+                    <p className="text-sm font-semibold leading-tight">Decks</p>
+                    <p className="text-xs text-[#9b98b0]">A1 → C2 by type</p>
+                  </div>
+                </Link>
+                <Link
+                  href="/grammar"
+                  onClick={() => contentDropdown.setOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
+                    pathname.startsWith('/grammar') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                  }`}
+                >
+                  <span className="text-lg">📚</span>
+                  <div>
+                    <p className="text-sm font-semibold leading-tight">Grammar Library</p>
+                    <p className="text-xs text-[#9b98b0]">Topics & rules</p>
+                  </div>
+                </Link>
+                <Link
+                  href="/search"
+                  onClick={() => contentDropdown.setOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
+                    pathname === '/search' ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                  }`}
+                >
+                  <span className="text-lg">🔍</span>
+                  <div>
+                    <p className="text-sm font-semibold leading-tight">Search</p>
+                    <p className="text-xs text-[#9b98b0]">Find words & topics</p>
+                  </div>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Practice dropdown — desktop only */}
+          <div className="relative hidden md:block" ref={practiceDropdown.ref}>
+            <button
+              onClick={() => practiceDropdown.setOpen(v => !v)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                pathname.startsWith('/reading')
+                  ? 'text-[#e8e6f0] bg-white/8'
+                  : 'text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/5'
+              }`}
+            >
+              Practice
+              <svg
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${practiceDropdown.open ? 'rotate-180' : ''}`}
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {practiceDropdown.open && (
               <div className="absolute top-full left-0 mt-1.5 w-52 bg-[#1a1830] rounded-xl border border-white/8 shadow-xl shadow-black/40 overflow-hidden z-50">
                 <Link
                   href="/reading"
-                  onClick={() => pathsDropdown.setOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
+                  onClick={() => practiceDropdown.setOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
                     pathname.startsWith('/reading') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
                   }`}
                 >
@@ -185,19 +250,6 @@ export default function Navbar() {
                     <p className="text-xs text-[#9b98b0]">Stories by level</p>
                   </div>
                 </Link>
-                <Link
-                  href="/paths"
-                  onClick={() => pathsDropdown.setOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
-                    pathname.startsWith('/path') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                  }`}
-                >
-                  <span className="text-lg">🗺️</span>
-                  <div>
-                    <p className="text-sm font-semibold leading-tight">Paths</p>
-                    <p className="text-xs text-[#9b98b0]">A1 → C2, all types</p>
-                  </div>
-                </Link>
               </div>
             )}
           </div>
@@ -205,21 +257,6 @@ export default function Navbar() {
 
         {/* ── Right: Desktop (search + avatar) | Mobile (hamburger) ── */}
         <div className="flex items-center gap-2 shrink-0">
-
-          {/* Search icon — desktop only */}
-          <Link
-            href="/search"
-            className={`hidden md:flex w-8 h-8 items-center justify-center rounded-lg transition-colors ${
-              isActive('/search')
-                ? 'text-[#e8e6f0] bg-white/8'
-                : 'text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/5'
-            }`}
-            title="Search"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </Link>
 
           {/* User avatar dropdown — desktop only */}
           <div className="relative hidden md:block" ref={profileDropdown.ref}>
@@ -310,18 +347,6 @@ export default function Navbar() {
                 {/* Navigation */}
                 <div className="py-1">
                   <Link
-                    href="/search"
-                    onClick={() => mobileMenu.setOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
-                      isActive('/search') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                    }`}
-                  >
-                    <svg className="w-4 h-4 text-[#9b98b0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <span className="font-medium">Search</span>
-                  </Link>
-                  <Link
                     href="/profile"
                     onClick={() => mobileMenu.setOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
@@ -356,6 +381,50 @@ export default function Navbar() {
                 <div className="border-t border-white/5">
                   <p className="px-4 pt-3 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">Content</p>
                   <Link
+                    href="/paths"
+                    onClick={() => mobileMenu.setOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
+                      pathname.startsWith('/path') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                    }`}
+                  >
+                    <span className="text-base">🗂️</span>
+                    <div>
+                      <p className="font-medium leading-tight">Decks</p>
+                      <p className="text-xs text-[#9b98b0]">A1 → C2 by type</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/grammar"
+                    onClick={() => mobileMenu.setOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
+                      pathname.startsWith('/grammar') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                    }`}
+                  >
+                    <span className="text-base">📚</span>
+                    <div>
+                      <p className="font-medium leading-tight">Grammar Library</p>
+                      <p className="text-xs text-[#9b98b0]">Topics & rules</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/search"
+                    onClick={() => mobileMenu.setOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
+                      pathname === '/search' ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
+                    }`}
+                  >
+                    <span className="text-base">🔍</span>
+                    <div>
+                      <p className="font-medium leading-tight">Search</p>
+                      <p className="text-xs text-[#9b98b0]">Find words & topics</p>
+                    </div>
+                  </Link>
+                </div>
+
+                {/* Practice section */}
+                <div className="border-t border-white/5">
+                  <p className="px-4 pt-3 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">Practice</p>
+                  <Link
                     href="/reading"
                     onClick={() => mobileMenu.setOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
@@ -366,19 +435,6 @@ export default function Navbar() {
                     <div>
                       <p className="font-medium leading-tight">Reading Practice</p>
                       <p className="text-xs text-[#9b98b0]">Stories by level</p>
-                    </div>
-                  </Link>
-                  <Link
-                    href="/paths"
-                    onClick={() => mobileMenu.setOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
-                      pathname.startsWith('/path') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
-                    }`}
-                  >
-                    <span className="text-base">🗺️</span>
-                    <div>
-                      <p className="font-medium leading-tight">Paths</p>
-                      <p className="text-xs text-[#9b98b0]">A1 → C2, all types</p>
                     </div>
                   </Link>
                 </div>
