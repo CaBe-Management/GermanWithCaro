@@ -110,6 +110,20 @@ function createCloze(sentence: string, clozeWord: string): string {
   return sentence.replace(new RegExp(clozeWord, 'i'), '___')
 }
 
+/** Highlight the vocab's English translation inside the English sentence. */
+function highlightTranslation(sentenceEn: string, vocabEn: string) {
+  if (!vocabEn) return <span>{sentenceEn}</span>
+  const idx = sentenceEn.toLowerCase().indexOf(vocabEn.toLowerCase())
+  if (idx === -1) return <span>{sentenceEn}</span>
+  return (
+    <>
+      {sentenceEn.slice(0, idx)}
+      <span className="text-[#7c6df2] font-semibold">{sentenceEn.slice(idx, idx + vocabEn.length)}</span>
+      {sentenceEn.slice(idx + vocabEn.length)}
+    </>
+  )
+}
+
 function getDeclension(artikel: string, word: string, genitiv: string | null) {
   const art = artikel.toLowerCase()
   let akkArt = artikel, datArt = artikel, genArt = artikel
@@ -629,16 +643,26 @@ function ClozeSession({
   const [input, setInput]                 = useState('')
   const [answered, setAnswered]           = useState(false)
   const [showEN, setShowEN]               = useState(false)
+  const [showInfo, setShowInfo]           = useState(false)
   const [results, setResults]             = useState<ClozeResult[]>([])
+  const infoRef = useRef<HTMLDivElement>(null)
 
   const current = items[index]
 
-  // When index changes: just reset card state (no more inline intro interruptions)
+  // When index changes: reset card state
   useEffect(() => {
     setInput('')
     setAnswered(false)
     setShowEN(false)
+    setShowInfo(false)
   }, [index])
+
+  // Scroll to info panel when opened
+  useEffect(() => {
+    if (showInfo && infoRef.current) {
+      setTimeout(() => infoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+    }
+  }, [showInfo])
 
   const sentence   = current?.kind === 'grammar' ? current.sentence
                    : current?.sentence
@@ -730,13 +754,13 @@ function ClozeSession({
         <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${progress * 100}%` }} />
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+      {/* Main content — not vertically centred so the Info panel can flow below */}
+      <div className="flex-1 flex flex-col items-center px-6 pt-16 pb-6">
         <div className="max-w-2xl w-full text-center space-y-6">
 
 
-          {/* Hint box — translation */}
-          {hint1 && (
+          {/* Hint box — grammar only */}
+          {hint1 && current.kind === 'grammar' && (
             <div className="w-full max-w-md mx-auto">
               <div className="bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
                 <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
@@ -761,29 +785,30 @@ function ClozeSession({
             </p>
           </div>
 
-          {/* English translation: collapsible on front, always shown on back */}
+          {/* English translation */}
           {sentence?.sentence_en && (
-            answered ? (
-              <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
+            current.kind === 'vocab_new' ? (
+              // Vocab: always visible, cloze word highlighted in purple
+              <p className="text-[#9b98b0] text-base">
+                {highlightTranslation(sentence.sentence_en, current.vocab.translation_en)}
+              </p>
             ) : (
-              showEN ? (
+              // Grammar: collapsible on front, always shown on back
+              answered ? (
                 <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
               ) : (
-                <button
-                  onClick={() => setShowEN(true)}
-                  className="text-xs text-[#9b98b0] hover:text-[#e8e6f0] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-                >
-                  🌐 Translation anzeigen
-                </button>
+                showEN ? (
+                  <p className="text-[#9b98b0] text-base italic">{sentence.sentence_en}</p>
+                ) : (
+                  <button
+                    onClick={() => setShowEN(true)}
+                    className="text-xs text-[#9b98b0] hover:text-[#e8e6f0] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                  >
+                    🌐 Translation anzeigen
+                  </button>
+                )
               )
             )
-          )}
-
-          {/* Audio button — below everything, key=index remounts on card change */}
-          {sentence?.audio_file && (
-            <div className="flex justify-center">
-              <AudioButton key={index} filename={sentence.audio_file} />
-            </div>
           )}
 
           {/* Wrong answer feedback */}
@@ -793,10 +818,77 @@ function ClozeSession({
             </div>
           )}
         </div>
+
+        {/* ── Inline vocab info panel ─────────────────────────────── */}
+        {showInfo && answered && current.kind === 'vocab_new' && (
+          <div ref={infoRef} className="max-w-2xl w-full mt-10 mb-4 text-left">
+            <div className="h-px bg-white/8 mb-8" />
+
+            {/* Word hero */}
+            <div className="mb-6">
+              {current.vocab.article && (
+                <p className="text-[#7c6df2] text-sm font-bold uppercase tracking-widest mb-1">
+                  {current.vocab.article} · {current.vocab.type === 'NOMEN' ? 'Noun' : current.vocab.type.charAt(0) + current.vocab.type.slice(1).toLowerCase()}
+                </p>
+              )}
+              <h2 className="text-4xl font-extrabold text-[#e8e6f0] mb-1">{current.vocab.word}</h2>
+              <p className="text-[#9b98b0] text-base">🇬🇧 {current.vocab.translation_en}</p>
+              <span className="inline-block mt-2 text-[0.72rem] font-bold tracking-widest uppercase bg-[#7c6df2]/15 text-[#9b8cf5] px-3 py-1 rounded-full">
+                {current.vocab.level}
+              </span>
+            </div>
+
+            {/* Explanation */}
+            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5 mb-4">
+              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Explanation</p>
+              <p className="text-[#e8e6f0] text-sm leading-relaxed">{current.vocab.explanation_en}</p>
+            </div>
+
+            {/* Declension table — nouns only */}
+            {current.vocab.type === 'NOMEN' && current.vocab.article && (
+              <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5 mb-4">
+                <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Declension</p>
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="text-left text-[#9b98b0] text-xs pb-2 pr-4">Case</th>
+                      <th className="text-left text-[#9b98b0] text-xs pb-2 pr-4">Singular</th>
+                      <th className="text-left text-[#9b98b0] text-xs pb-2">Plural</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Nom.', sg: current.vocab.nom_sg, pl: current.vocab.nom_pl },
+                      { label: 'Akk.', sg: current.vocab.akk_sg, pl: current.vocab.akk_pl },
+                      { label: 'Dat.', sg: current.vocab.dat_sg, pl: current.vocab.dat_pl },
+                      { label: 'Gen.', sg: current.vocab.gen_sg, pl: current.vocab.gen_pl },
+                    ].map(({ label, sg, pl }) => (
+                      <tr key={label} className="border-t border-white/5">
+                        <td className="py-2 pr-4 font-bold text-[#7c6df2] text-xs">{label}</td>
+                        <td className="py-2 pr-4 text-[#e8e6f0] text-sm">{sg || '—'}</td>
+                        <td className="py-2 text-[#e8e6f0] text-sm">{pl || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Link to full page */}
+            <Link
+              href={`/vocab/${current.vocab.slug}`}
+              className="inline-flex items-center gap-2 text-sm text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
+            >
+              Open full word page →
+            </Link>
+
+            <div className="h-8" />
+          </div>
+        )}
       </div>
 
-      {/* Bottom input area */}
-      <div className="bg-[#0f0e17] border-t border-white/5">
+      {/* Bottom bar — sticky */}
+      <div className="sticky bottom-0 z-10 bg-[#0f0e17] border-t border-white/5">
         {!answered ? (
           <div className="px-5 py-4 flex gap-3 max-w-xl mx-auto w-full">
             <input
@@ -816,28 +908,55 @@ function ClozeSession({
             </button>
           </div>
         ) : (
-          <div className="px-5 py-4 max-w-xl mx-auto w-full space-y-3">
+          <div className="px-5 pt-3 pb-4 max-w-xl mx-auto w-full space-y-2.5">
+            {/* Three action buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => { setAnswered(false); setInput(''); setShowInfo(false) }}
+                className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 text-sm font-medium transition-colors"
+              >
+                <span>↩</span> Undo
+              </button>
+              {current.kind === 'vocab_new' ? (
+                <button
+                  onClick={() => setShowInfo(v => !v)}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                    showInfo
+                      ? 'bg-[#7c6df2]/20 border-[#7c6df2]/40 text-[#9b8cf5]'
+                      : 'bg-white/5 border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10'
+                  }`}
+                >
+                  <span>ℹ</span> {showInfo ? 'Hide Info' : 'Show Info'}
+                </button>
+              ) : (
+                <div /> /* spacer for grammar */
+              )}
+              <button
+                onClick={handleNext}
+                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
+                  isCorrect
+                    ? 'border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10'
+                    : 'border-[#f87171]/40 text-[#f87171] hover:bg-[#f87171]/10'
+                }`}
+              >
+                {index + 1 >= items.length ? 'Done ✓' : 'Next →'}
+              </button>
+            </div>
+            {/* Answer result bar */}
             <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
               isCorrect ? 'bg-[#4ade80]/5 border-[#4ade80]/20' : 'bg-[#f87171]/5 border-[#f87171]/20'
             }`}>
-              <span className={`text-lg font-bold ${isCorrect ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
-                {isCorrect ? '✓' : '✗'}
+              {sentence?.audio_file && <AudioButton key={index} filename={sentence.audio_file} size="sm" />}
+              <span className={`flex-1 text-base font-bold ${isCorrect ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+                {isCorrect ? `✓ ${clozeWord}` : `✗  ${clozeWord}`}
               </span>
-              <span className={`text-sm font-medium ${isCorrect ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
-                {isCorrect ? 'Correct!' : `Answer: ${clozeWord}`}
-              </span>
+              <button
+                onClick={handleNext}
+                className={`text-lg font-bold px-2 transition-opacity hover:opacity-70 ${isCorrect ? 'text-[#4ade80]' : 'text-[#f87171]'}`}
+              >
+                →
+              </button>
             </div>
-            <button
-              onClick={handleNext}
-              className={`w-full py-3.5 rounded-xl border-2 font-bold text-base transition-colors flex items-center justify-center gap-2 ${
-                isCorrect
-                  ? 'border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10'
-                  : 'border-[#f87171]/40 text-[#f87171] hover:bg-[#f87171]/10'
-              }`}
-            >
-              {index + 1 >= items.length ? 'Done ✓' : 'Next →'}
-              <span className="text-xs opacity-60">(Enter)</span>
-            </button>
           </div>
         )}
       </div>
