@@ -139,6 +139,20 @@ function getDeclension(artikel: string, word: string, genitiv: string | null) {
   ]
 }
 
+/** Derive a grey placeholder hint for the grammar blank based on topic category/title */
+function getGrammarPlaceholder(topic: GrammarTopic): string {
+  const title = (topic.title ?? '').toLowerCase()
+  const cat   = (topic.category ?? '').toLowerCase()
+  if (title.includes('w-frage') || cat.includes('w_question') || cat.includes('question'))
+    return 'question-word'
+  if (cat.includes('verb'))   return 'verb form'
+  if (cat.includes('article') || cat.includes('artikel')) return 'article'
+  if (cat.includes('adj'))    return 'adjective'
+  if (cat.includes('prep'))   return 'preposition'
+  if (cat.includes('modal'))  return 'modal verb'
+  return 'answer'
+}
+
 // Simple markdown: **bold** and \n → <br>
 function renderMd(text: string): string {
   return text
@@ -757,14 +771,21 @@ function ClozeSession({
             <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
               {clozeParts[0]}
               <span className="inline-block relative align-middle">
-                <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
+                <span className={`inline-block min-w-[140px] border-b-2 px-2 text-center transition-colors ${
                   !answered
-                    ? 'border-[#7c6df2] text-[#9b8cf5]'
+                    ? 'border-[#7c6df2]'
                     : isCorrect
-                      ? 'border-[#4ade80] text-[#4ade80]'
-                      : 'border-[#f87171] text-[#f87171]'
+                      ? 'border-[#4ade80] text-[#4ade80] font-bold'
+                      : 'border-[#f87171] text-[#f87171] font-bold'
                 }`}>
-                  {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
+                  {answered
+                    ? clozeWord
+                    : input
+                      ? <span className="font-bold text-[#9b8cf5]">{input}</span>
+                      : current.kind === 'grammar'
+                        ? <span className="text-[#4d4a65] font-normal italic text-2xl">{getGrammarPlaceholder(current.topic)}</span>
+                        : <span className="opacity-0">{'x'.repeat(8)}</span>
+                  }
                 </span>
                 {/* Grammar hint label below the blank */}
                 {current.kind === 'grammar' && (

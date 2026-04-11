@@ -63,8 +63,6 @@ export default function Navbar() {
           { count: grammarCount },
           { count: vocabCount },
           { data: activePaths },
-          { data: vocabReviewed },
-          { data: grammarReviewed },
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
@@ -72,29 +70,20 @@ export default function Navbar() {
           supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
           supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
           // Active paths (for learn count)
-          supabase.from('gwc_user_paths').select('path_id, daily_goal').eq('session_id', sessionId).eq('active', true),
-          // Items done today (vocab)
-          supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).gte('reviewed_at', todayStart),
-          // Items done today (grammar)
-          supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).gte('updated_at', todayStart),
+          supabase.from('gwc_user_paths').select('path_id, batch_size').eq('session_id', sessionId).eq('active', true),
           getOrCreateProgress(sessionId),
         ])
         const dueCount = (grammarCount ?? 0) + (vocabCount ?? 0)
 
         if (user?.email) setUserEmail(user.email)
 
-        // Learn count: sum of per-path daily_goal minus items done today
-        // (same metric the dashboard Learn box shows)
-        const pathsDailyGoal = (activePaths || []).reduce((s: number, p: { daily_goal: number }) => s + (p.daily_goal ?? 0), 0)
-        const vocabDoneCount   = vocabReviewed   ?? 0
-        const grammarDoneCount = grammarReviewed ?? 0
-        const doneToday = (vocabDoneCount as number) + (grammarDoneCount as number)
-        setLearnCount(Math.max(0, pathsDailyGoal - doneToday))
+        // Learn count: sum of "new cards per day" across all active paths
+        const totalBatch = (activePaths || []).reduce((s: number, p: { batch_size: number }) => s + (p.batch_size ?? 0), 0)
+        setLearnCount(totalBatch)
         setReviewCount(dueCount || 0)
 
         // Load user's XP level for the level badge
-        const progress = await getOrCreateProgress(sessionId)
-        if (progress) setUserLevel(getLevelFromXP(progress.xp_total))
+        if (progressData) setUserLevel(getLevelFromXP(progressData.xp_total))
       } catch (e) {
         console.error('Navbar load error:', e)
       }

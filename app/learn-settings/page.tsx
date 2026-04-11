@@ -37,7 +37,6 @@ function PathSettingsModal({ userPath, onClose, onUpdate, onRemove }: PathSettin
   const [tab, setTab] = useState<'overview' | 'learn' | 'review'>('overview')
 
   // Local copies of editable settings (synced to DB on change)
-  const [dailyGoal, setDailyGoal]     = useState(userPath.daily_goal)
   const [batchSize, setBatchSize]     = useState(userPath.batch_size)
   const [lessonOrder, setLessonOrder] = useState(userPath.lesson_order)
   const [saving, setSaving]           = useState(false)
@@ -55,16 +54,16 @@ function PathSettingsModal({ userPath, onClose, onUpdate, onRemove }: PathSettin
     onUpdate(changes)
   }
 
-  // Save dailyGoal + batchSize together when user clicks "Save Changes"
+  // Save batchSize when user clicks "Save Changes"
   async function saveChanges() {
     setSaving(true)
     setSaved(false)
     await supabase
       .from('gwc_user_paths')
-      .update({ daily_goal: dailyGoal, batch_size: batchSize, updated_at: new Date().toISOString() })
+      .update({ batch_size: batchSize, updated_at: new Date().toISOString() })
       .eq('id', userPath.id)
     setSaving(false)
-    onUpdate({ daily_goal: dailyGoal, batch_size: batchSize })
+    onUpdate({ batch_size: batchSize })
     // Show "Saved!" for 2 seconds
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -119,32 +118,10 @@ function PathSettingsModal({ userPath, onClose, onUpdate, onRemove }: PathSettin
           {tab === 'overview' && (
             <div className="space-y-6">
 
-              {/* Daily Goal */}
+              {/* New Cards per Day */}
               <div>
-                <p className="text-sm font-medium text-[#e8e6f0] mb-0.5">Daily New Cards</p>
-                <p className="text-xs text-[#9b98b0] mb-4">New sentences to learn per day from this deck.</p>
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setDailyGoal(v => Math.max(1, v - 1))}
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-[#e8e6f0] hover:bg-white/10 transition-colors text-xl font-bold"
-                  >
-                    −
-                  </button>
-                  <span className="text-3xl font-bold text-[#e8e6f0] w-14 text-center tabular-nums">{dailyGoal}</span>
-                  <button
-                    onClick={() => setDailyGoal(v => Math.min(100, v + 1))}
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-[#e8e6f0] hover:bg-white/10 transition-colors text-xl font-bold"
-                  >
-                    +
-                  </button>
-                  <span className="text-sm text-[#9b98b0]">per day</span>
-                </div>
-              </div>
-
-              {/* Batch Size */}
-              <div>
-                <p className="text-sm font-medium text-[#e8e6f0] mb-0.5">Batch Size</p>
-                <p className="text-xs text-[#9b98b0] mb-4">How many new items to teach per learn session.</p>
+                <p className="text-sm font-medium text-[#e8e6f0] mb-0.5">New Cards per Day</p>
+                <p className="text-xs text-[#9b98b0] mb-4">How many new items to learn from this deck each day.</p>
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setBatchSize(v => Math.max(1, v - 1))}
@@ -154,16 +131,16 @@ function PathSettingsModal({ userPath, onClose, onUpdate, onRemove }: PathSettin
                   </button>
                   <span className="text-3xl font-bold text-[#e8e6f0] w-14 text-center tabular-nums">{batchSize}</span>
                   <button
-                    onClick={() => setBatchSize(v => Math.min(20, v + 1))}
+                    onClick={() => setBatchSize(v => Math.min(50, v + 1))}
                     className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-[#e8e6f0] hover:bg-white/10 transition-colors text-xl font-bold"
                   >
                     +
                   </button>
-                  <span className="text-sm text-[#9b98b0]">items</span>
+                  <span className="text-sm text-[#9b98b0]">per day</span>
                 </div>
               </div>
 
-              {/* Save Changes — persists daily_goal + batch_size to DB */}
+              {/* Save Changes — persists batch_size to DB */}
               <button
                 onClick={saveChanges}
                 disabled={saving}
@@ -382,7 +359,7 @@ function PathRow({
             </span>
           </div>
           <p className="text-xs text-[#9b98b0]">
-            {userPath.daily_goal} new/day · Batch: {userPath.batch_size}
+            {userPath.batch_size} new/day
           </p>
         </div>
       </div>
@@ -446,8 +423,8 @@ export default function LearnSettingsPage() {
         session_id:     sessionId,
         path_id:        pathId,
         queue_position: nextPosition,
-        daily_goal:     10,
-        batch_size:     5,
+        daily_goal:     2,
+        batch_size:     2,
         lesson_order:   'default',
         active:         true,
         updated_at:     new Date().toISOString(),
