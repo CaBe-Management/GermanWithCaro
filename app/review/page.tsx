@@ -50,6 +50,10 @@ interface GwcVocab {
   id: string; slug: string; word: string; type: string; article: string | null
   plural: string | null; level: string; frequency_rank: number | null
   translation_en: string; explanation_en: string
+  usage_notes: string | null
+  fun_fact: string | null
+  synonyms: string | null
+  related_words: string | null
   nom_sg: string | null; nom_pl: string | null
   akk_sg: string | null; akk_pl: string | null
   dat_sg: string | null; dat_pl: string | null
@@ -88,105 +92,245 @@ function typColor(typ: string) {
   }
 }
 
-// ─── Info Panels ──────────────────────────────────────────────────────────────
+// ─── Info Panels (auto-shown after answer, no toggle) ─────────────────────────
+
+function RegisterDots({ level }: { level: number | null }) {
+  if (level == null) return null
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3].map(i => (
+        <div key={i} className={`w-2 h-2 rounded-full ${i <= level ? 'bg-[#7c6df2]' : 'bg-white/10'}`} />
+      ))}
+    </div>
+  )
+}
+
+function highlightStructure(text: string) {
+  const parts = text.split(/(\[[^\]]+\])/g)
+  return parts.map((part, i) =>
+    part.startsWith('[') && part.endsWith(']')
+      ? <span key={i} className="text-[#9b8cf5] font-semibold">{part}</span>
+      : <span key={i} className="text-[#e8e6f0]">{part}</span>
+  )
+}
 
 function GrammarInfoPanel({ topic, sentence }: { topic: GrammarTopic; sentence: GrammarSentence }) {
-  const [open, setOpen] = useState(false)
+  const hasRegister = topic.register_formal != null || topic.register_standard != null || topic.register_casual != null
   return (
-    <div className="border-t border-white/8">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-center gap-2 py-4 text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm font-medium"
-      >
-        <span className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>↑</span>
-        {open ? 'Hide grammar info' : 'Show grammar info'}
-      </button>
-      {open && (
-        <div className="px-6 pb-6 pt-2 border-t border-white/5">
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">Grammar</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{topic.level}</span>
-            {sentence.person && (
-              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{sentence.person}</span>
-            )}
-          </div>
-          <p className="text-sm font-bold text-[#e8e6f0] mb-2">{topic.title}</p>
-          <div
-            className="text-xs text-[#9b98b0] leading-relaxed"
-            dangerouslySetInnerHTML={{
-              __html: topic.explanation_en
-                .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#c5c3d4]">$1</strong>')
-                .replace(/\n/g, '<br />')
-            }}
-          />
-          <Link
-            href={`/grammar/${topic.slug}`}
-            className="mt-3 block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
-          >
-            View topic: {topic.title} →
-          </Link>
+    <div className="border-t border-white/8 px-5 py-6 space-y-4 max-w-xl mx-auto w-full">
+
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">Grammar</span>
+          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{topic.level}</span>
+          {sentence.person && (
+            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{sentence.person}</span>
+          )}
+        </div>
+        <p className="text-lg font-bold text-[#e8e6f0]">{topic.title}</p>
+        {topic.translation_en && (
+          <p className="text-sm text-[#9b8cf5] mt-0.5">{topic.translation_en}</p>
+        )}
+      </div>
+
+      {/* Structure */}
+      {topic.structure && (
+        <div className="bg-[#1a1830] border border-white/5 rounded-xl p-4">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Structure</p>
+          <p className="font-mono text-sm">{highlightStructure(topic.structure)}</p>
         </div>
       )}
+
+      {/* Explanation */}
+      <div className="bg-[#1a1830] border border-white/5 rounded-xl p-4">
+        <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Explanation</p>
+        <div
+          className="text-sm text-[#c8c5d8] leading-relaxed"
+          dangerouslySetInnerHTML={{
+            __html: topic.explanation_en
+              .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#e8e6f0]">$1</strong>')
+              .replace(/\n/g, '<br />')
+          }}
+        />
+      </div>
+
+      {/* Fun Fact */}
+      {topic.fun_fact && (
+        <div className="bg-gradient-to-br from-[#7c6df2]/10 to-[#7c6df2]/5 border border-[#7c6df2]/20 rounded-xl p-4">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#7c6df2] mb-2">Fun Fact</p>
+          <p className="text-sm text-[#c8c5d8] leading-relaxed">{topic.fun_fact}</p>
+        </div>
+      )}
+
+      {/* Register */}
+      {hasRegister && (
+        <div className="bg-[#1a1830] border border-white/5 rounded-xl p-4">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Register</p>
+          <div className="space-y-2 text-sm">
+            {[
+              { label: 'Formal',   val: topic.register_formal },
+              { label: 'Standard', val: topic.register_standard },
+              { label: 'Casual',   val: topic.register_casual },
+            ].map(({ label, val }) => val != null && (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-[#9b98b0]">{label}</span>
+                <RegisterDots level={val} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Related forms */}
+      {topic.related_forms && (
+        <div>
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Related Forms</p>
+          <div className="flex flex-wrap gap-2">
+            {topic.related_forms.split(',').map(f => (
+              <span key={f} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{f.trim()}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Link
+        href={`/grammar/${topic.slug}`}
+        className="block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors pt-1"
+      >
+        View full topic: {topic.title} →
+      </Link>
     </div>
   )
 }
 
 function VocabNewInfoPanel({ vocab, grammaticalCase }: { vocab: GwcVocab; grammaticalCase: string | null }) {
-  const [open, setOpen] = useState(false)
-  const KASUS_LABELS_FULL: Record<string, string> = {
-    NOMINATIV: 'Nominativ', AKKUSATIV: 'Akkusativ', DATIV: 'Dativ', GENITIV: 'Genitiv',
+  const CASE_LABEL: Record<string, string> = {
+    NOMINATIV: 'Nominative', AKKUSATIV: 'Accusative', DATIV: 'Dative', GENITIV: 'Genitive',
   }
-  // Declension rows: only for nouns
-  const declRows = vocab.article ? [
-    { label: 'Nominativ', value: vocab.nom_sg },
-    { label: 'Akkusativ', value: vocab.akk_sg },
-    { label: 'Dativ',     value: vocab.dat_sg },
-    { label: 'Genitiv',   value: vocab.gen_sg },
+  const CASE_COLOR: Record<string, string> = {
+    NOMINATIV: 'bg-[#7c6df2]/15 border-[#7c6df2]/30 text-[#9b8cf5]',
+    AKKUSATIV: 'bg-[#3bd395]/10 border-[#3bd395]/30 text-[#3bd395]',
+    DATIV:     'bg-[#ffa550]/10 border-[#ffa550]/30 text-[#ffa550]',
+    GENITIV:   'bg-[#ffc850]/10 border-[#ffc850]/30 text-[#ffc850]',
+  }
+  const isNoun = vocab.article != null
+  const declRows = isNoun ? [
+    { key: 'NOMINATIV', sg: vocab.nom_sg, pl: vocab.nom_pl },
+    { key: 'AKKUSATIV', sg: vocab.akk_sg, pl: vocab.akk_pl },
+    { key: 'DATIV',     sg: vocab.dat_sg, pl: vocab.dat_pl },
+    { key: 'GENITIV',   sg: vocab.gen_sg, pl: vocab.gen_pl },
   ] : []
+
   return (
-    <div className="border-t border-white/8">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-center gap-2 py-4 text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm font-medium"
-      >
-        <span className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>↑</span>
-        {open ? 'Hide word info' : 'Show word info'}
-      </button>
-      {open && (
-        <div className="px-6 pb-6 pt-2 border-t border-white/5">
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">{vocab.type}</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">{vocab.level}</span>
-            {grammaticalCase && (
-              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                {KASUS_LABELS_FULL[grammaticalCase] ?? grammaticalCase}
-              </span>
-            )}
-          </div>
-          <p className="text-sm font-bold text-[#e8e6f0] mb-1">{vocab.word}</p>
-          <p className="text-xs text-[#9b98b0] mb-3">{vocab.translation_en}</p>
-          {declRows.length > 0 && (
-            <div className="grid grid-cols-2 gap-1.5 text-xs mb-3">
-              {declRows.map(row => (
-                <div key={row.label} className={`rounded-lg p-2 border ${
-                  grammaticalCase && KASUS_LABELS_FULL[grammaticalCase] === row.label
-                    ? 'bg-blue-500/10 border-blue-500/30'
-                    : 'bg-[#252340] border-white/5'
-                }`}>
-                  <p className="text-[#9b98b0] uppercase tracking-wider mb-0.5">{row.label}</p>
-                  <p className="text-[#e8e6f0] font-bold">{row.value ?? '—'}</p>
-                </div>
-              ))}
-            </div>
+    <div className="border-t border-white/8 px-5 py-6 space-y-4 max-w-xl mx-auto w-full">
+
+      {/* Hero */}
+      <div>
+        {vocab.article && (
+          <p className="text-[#7c6df2] text-xs font-bold uppercase tracking-widest mb-1">
+            {vocab.article} · Noun
+          </p>
+        )}
+        <p className="text-2xl font-extrabold text-[#e8e6f0]">{vocab.word}</p>
+        {vocab.plural && (
+          <p className="text-[#9b98b0] text-xs mt-0.5">Plural: <span className="text-[#c8c5d8]">die {vocab.plural}</span></p>
+        )}
+        <p className="text-sm text-[#9b98b0] mt-1">🇬🇧 {vocab.translation_en}</p>
+        <div className="flex items-center gap-2 flex-wrap mt-2">
+          <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-[#7c6df2]/15 text-[#9b8cf5] px-2.5 py-1 rounded-full">{vocab.level}</span>
+          {vocab.frequency_rank && (
+            <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-[#3bd395]/10 text-[#3bd395] px-2.5 py-1 rounded-full">
+              ⚡ Rank #{vocab.frequency_rank}
+            </span>
           )}
-          <Link
-            href={`/vocab/${vocab.slug}`}
-            className="block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
-          >
-            All sentences for „{vocab.word}" →
-          </Link>
+          {grammaticalCase && (
+            <span className={`text-[0.65rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border ${CASE_COLOR[grammaticalCase] ?? 'bg-white/5 border-white/10 text-[#9b98b0]'}`}>
+              {CASE_LABEL[grammaticalCase] ?? grammaticalCase}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Explanation */}
+      <div className="bg-[#1a1830] border border-white/5 rounded-xl p-4">
+        <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Meaning & Explanation</p>
+        <p className="text-sm text-[#c8c5d8] leading-relaxed">{vocab.explanation_en}</p>
+        {vocab.usage_notes && (
+          <p className="text-xs text-[#9b98b0] leading-relaxed mt-3 pt-3 border-t border-white/5">
+            💡 <strong className="text-[#e8e6f0]">Usage:</strong> {vocab.usage_notes}
+          </p>
+        )}
+      </div>
+
+      {/* Fun Fact */}
+      {vocab.fun_fact && (
+        <div className="bg-gradient-to-br from-[#7c6df2]/10 to-[#7c6df2]/5 border border-[#7c6df2]/20 rounded-xl p-4">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#7c6df2] mb-2">Fun Fact</p>
+          <p className="text-sm text-[#c8c5d8] leading-relaxed">{vocab.fun_fact}</p>
         </div>
       )}
+
+      {/* Declension table */}
+      {isNoun && declRows.length > 0 && (
+        <div className="bg-[#1a1830] border border-white/5 rounded-xl p-4">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Declension</p>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr>
+                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-2 pr-3">Case</th>
+                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-2 pr-3">Singular</th>
+                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-2">Plural</th>
+              </tr>
+            </thead>
+            <tbody>
+              {declRows.map(({ key, sg, pl }) => (
+                <tr key={key} className={`border-t border-white/5 ${grammaticalCase === key ? 'bg-[#7c6df2]/8' : ''}`}>
+                  <td className={`py-2 pr-3 text-xs font-bold ${grammaticalCase === key ? 'text-[#9b8cf5]' : 'text-[#7c6df2]'}`}>
+                    {CASE_LABEL[key]}
+                  </td>
+                  <td className="py-2 pr-3 text-[#e8e6f0]">{sg || '—'}</td>
+                  <td className="py-2 text-[#e8e6f0]">{pl || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Related words */}
+      {(vocab.synonyms || vocab.related_words) && (
+        <div className="bg-[#1a1830] border border-white/5 rounded-xl p-4 space-y-3">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0]">Related Words</p>
+          {vocab.synonyms && (
+            <div>
+              <p className="text-xs text-[#9b98b0] mb-1.5">Synonyms</p>
+              <div className="flex flex-wrap gap-2">
+                {vocab.synonyms.split(',').map(s => (
+                  <span key={s} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{s.trim()}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {vocab.related_words && (
+            <div>
+              <p className="text-xs text-[#9b98b0] mb-1.5">Related forms</p>
+              <div className="flex flex-wrap gap-2">
+                {vocab.related_words.split(',').map(r => (
+                  <span key={r} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{r.trim()}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Link
+        href={`/vocab/${vocab.slug}`}
+        className="block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors pt-1"
+      >
+        Open full word page for „{vocab.word}" →
+      </Link>
     </div>
   )
 }
@@ -206,8 +350,10 @@ function ReviewCardView({
   mistakes: number
   onResult: (wasCorrect: boolean) => void
 }) {
-  const [input, setInput]     = useState('')
+  const [input, setInput]       = useState('')
   const [answered, setAnswered] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
 
   // Resolve card-type-specific fields
   const sentence    = card.sentence
@@ -240,7 +386,13 @@ function ReviewCardView({
     return () => window.removeEventListener('keydown', handler)
   }, [answered, handleCheck, handleNext])
 
-  useEffect(() => { setInput(''); setAnswered(false) }, [card.reviewId])
+  useEffect(() => { setInput(''); setAnswered(false); setShowInfo(false) }, [card.reviewId])
+
+  useEffect(() => {
+    if (showInfo && infoRef.current) {
+      setTimeout(() => infoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+    }
+  }, [showInfo])
 
   const wordsLeft = total - (cardNumber - 1)
   const progress  = (cardNumber - 1) / total
@@ -381,22 +533,38 @@ function ReviewCardView({
                 <span className="text-xs text-[#9b98b0]">You typed: <span className="font-bold text-[#f87171]">{input}</span></span>
               )}
             </div>
-            {/* Next button */}
-            <button
-              onClick={handleNext}
-              className={`w-full py-3.5 rounded-xl border-2 font-bold text-base transition-colors flex items-center justify-center gap-2 ${
-                isCorrect ? 'border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10'
-                          : 'border-[#f87171]/40 text-[#f87171] hover:bg-[#f87171]/10'
-              }`}
-            >
-              Next → <span className="text-xs opacity-60">(Enter)</span>
-            </button>
+            {/* Action row: More Info + Next */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowInfo(v => !v)}
+                className={`flex-none flex items-center justify-center gap-1.5 px-4 py-3.5 rounded-xl border text-sm font-medium transition-colors ${
+                  showInfo
+                    ? 'bg-[#7c6df2]/20 border-[#7c6df2]/40 text-[#9b8cf5]'
+                    : 'bg-white/5 border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10'
+                }`}
+              >
+                ℹ {showInfo ? 'Hide' : 'More Info'}
+              </button>
+              <button
+                onClick={handleNext}
+                className={`flex-1 py-3.5 rounded-xl border-2 font-bold text-base transition-colors flex items-center justify-center gap-2 ${
+                  isCorrect ? 'border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10'
+                            : 'border-[#f87171]/40 text-[#f87171] hover:bg-[#f87171]/10'
+                }`}
+              >
+                Next → <span className="text-xs opacity-60">(Enter)</span>
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Info panel */}
-        {card.kind === 'vocab_new' && <VocabNewInfoPanel vocab={card.vocab} grammaticalCase={card.sentence.grammatical_case ?? null} />}
-        {card.kind === 'grammar'   && <GrammarInfoPanel topic={card.topic} sentence={card.sentence} />}
+        {/* Info panel — shown when user clicks More Info */}
+        {answered && showInfo && card.kind === 'vocab_new' && (
+          <div ref={infoRef}><VocabNewInfoPanel vocab={card.vocab} grammaticalCase={card.sentence.grammatical_case ?? null} /></div>
+        )}
+        {answered && showInfo && card.kind === 'grammar' && (
+          <div ref={infoRef}><GrammarInfoPanel topic={card.topic} sentence={card.sentence} /></div>
+        )}
       </div>
     </div>
   )

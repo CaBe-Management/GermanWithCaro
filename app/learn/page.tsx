@@ -30,6 +30,10 @@ interface GwcVocab {
   id: string; slug: string; word: string; type: string; article: string | null
   plural: string | null; level: string; frequency_rank: number | null
   translation_en: string; explanation_en: string
+  usage_notes: string | null
+  fun_fact: string | null
+  synonyms: string | null
+  related_words: string | null
   nom_sg: string | null; nom_pl: string | null
   akk_sg: string | null; akk_pl: string | null
   dat_sg: string | null; dat_pl: string | null
@@ -818,70 +822,212 @@ function ClozeSession({
           )}
         </div>
 
-        {/* ── Inline vocab info panel ─────────────────────────────── */}
-        {showInfo && answered && current.kind === 'vocab_new' && (
-          <div ref={infoRef} className="max-w-2xl w-full mt-10 mb-4 text-left">
+        {/* ── Info panel — shown when user clicks More Info ────────── */}
+        {answered && showInfo && (
+          <div ref={infoRef} className="max-w-2xl w-full mt-10 mb-4">
             <div className="h-px bg-white/8 mb-8" />
+            {current.kind === 'vocab_new' && (() => {
+              const v = current.vocab
+              const isNoun = v.type === 'NOMEN' && v.article != null
+              const CASE_LABEL: Record<string, string> = {
+                NOMINATIV: 'Nominative', AKKUSATIV: 'Accusative', DATIV: 'Dative', GENITIV: 'Genitive',
+              }
+              return (
+                <div className="space-y-4 text-left">
+                  {/* Hero */}
+                  <div>
+                    {v.article && (
+                      <p className="text-[#7c6df2] text-xs font-bold uppercase tracking-widest mb-1">
+                        {v.article} · {v.type === 'NOMEN' ? 'Noun' : v.type.charAt(0) + v.type.slice(1).toLowerCase()}
+                      </p>
+                    )}
+                    <h2 className="text-3xl font-extrabold text-[#e8e6f0]">{v.word}</h2>
+                    {v.plural && <p className="text-[#9b98b0] text-xs mt-0.5">Plural: <span className="text-[#c8c5d8]">die {v.plural}</span></p>}
+                    <p className="text-[#9b98b0] text-sm mt-1">🇬🇧 {v.translation_en}</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-2">
+                      <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-[#7c6df2]/15 text-[#9b8cf5] px-2.5 py-1 rounded-full">{v.level}</span>
+                      {v.frequency_rank && (
+                        <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-[#3bd395]/10 text-[#3bd395] px-2.5 py-1 rounded-full">⚡ Rank #{v.frequency_rank}</span>
+                      )}
+                    </div>
+                  </div>
 
-            {/* Word hero */}
-            <div className="mb-6">
-              {current.vocab.article && (
-                <p className="text-[#7c6df2] text-sm font-bold uppercase tracking-widest mb-1">
-                  {current.vocab.article} · {current.vocab.type === 'NOMEN' ? 'Noun' : current.vocab.type.charAt(0) + current.vocab.type.slice(1).toLowerCase()}
-                </p>
-              )}
-              <h2 className="text-4xl font-extrabold text-[#e8e6f0] mb-1">{current.vocab.word}</h2>
-              <p className="text-[#9b98b0] text-base">🇬🇧 {current.vocab.translation_en}</p>
-              <span className="inline-block mt-2 text-[0.72rem] font-bold tracking-widest uppercase bg-[#7c6df2]/15 text-[#9b8cf5] px-3 py-1 rounded-full">
-                {current.vocab.level}
-              </span>
-            </div>
+                  {/* Explanation */}
+                  <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                    <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Meaning & Explanation</p>
+                    <p className="text-sm text-[#c8c5d8] leading-relaxed">{v.explanation_en}</p>
+                    {v.usage_notes && (
+                      <p className="text-xs text-[#9b98b0] leading-relaxed mt-3 pt-3 border-t border-white/5">
+                        💡 <strong className="text-[#e8e6f0]">Usage:</strong> {v.usage_notes}
+                      </p>
+                    )}
+                  </div>
 
-            {/* Explanation */}
-            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5 mb-4">
-              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Explanation</p>
-              <p className="text-[#e8e6f0] text-sm leading-relaxed">{current.vocab.explanation_en}</p>
-            </div>
+                  {/* Fun Fact */}
+                  {v.fun_fact && (
+                    <div className="bg-gradient-to-br from-[#7c6df2]/10 to-[#7c6df2]/5 border border-[#7c6df2]/20 rounded-2xl p-5">
+                      <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#7c6df2] mb-2">Fun Fact</p>
+                      <p className="text-sm text-[#c8c5d8] leading-relaxed">{v.fun_fact}</p>
+                    </div>
+                  )}
 
-            {/* Declension table — nouns only */}
-            {current.vocab.type === 'NOMEN' && current.vocab.article && (
-              <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5 mb-4">
-                <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Declension</p>
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="text-left text-[#9b98b0] text-xs pb-2 pr-4">Case</th>
-                      <th className="text-left text-[#9b98b0] text-xs pb-2 pr-4">Singular</th>
-                      <th className="text-left text-[#9b98b0] text-xs pb-2">Plural</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { label: 'Nom.', sg: current.vocab.nom_sg, pl: current.vocab.nom_pl },
-                      { label: 'Akk.', sg: current.vocab.akk_sg, pl: current.vocab.akk_pl },
-                      { label: 'Dat.', sg: current.vocab.dat_sg, pl: current.vocab.dat_pl },
-                      { label: 'Gen.', sg: current.vocab.gen_sg, pl: current.vocab.gen_pl },
-                    ].map(({ label, sg, pl }) => (
-                      <tr key={label} className="border-t border-white/5">
-                        <td className="py-2 pr-4 font-bold text-[#7c6df2] text-xs">{label}</td>
-                        <td className="py-2 pr-4 text-[#e8e6f0] text-sm">{sg || '—'}</td>
-                        <td className="py-2 text-[#e8e6f0] text-sm">{pl || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  {/* Declension */}
+                  {isNoun && (
+                    <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                      <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Declension</p>
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr>
+                            <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-2 pr-4">Case</th>
+                            <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-2 pr-4">Singular</th>
+                            <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-2">Plural</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { key: 'NOMINATIV', sg: v.nom_sg, pl: v.nom_pl },
+                            { key: 'AKKUSATIV', sg: v.akk_sg, pl: v.akk_pl },
+                            { key: 'DATIV',     sg: v.dat_sg, pl: v.dat_pl },
+                            { key: 'GENITIV',   sg: v.gen_sg, pl: v.gen_pl },
+                          ].map(({ key, sg, pl }) => (
+                            <tr key={key} className="border-t border-white/5">
+                              <td className="py-2 pr-4 font-bold text-[#7c6df2] text-xs">{CASE_LABEL[key]}</td>
+                              <td className="py-2 pr-4 text-[#e8e6f0]">{sg || '—'}</td>
+                              <td className="py-2 text-[#e8e6f0]">{pl || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
 
-            {/* Link to full page */}
-            <Link
-              href={`/vocab/${current.vocab.slug}`}
-              className="inline-flex items-center gap-2 text-sm text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
-            >
-              Open full word page →
-            </Link>
+                  {/* Related words */}
+                  {(v.synonyms || v.related_words) && (
+                    <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5 space-y-3">
+                      <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0]">Related Words</p>
+                      {v.synonyms && (
+                        <div>
+                          <p className="text-xs text-[#9b98b0] mb-1.5">Synonyms</p>
+                          <div className="flex flex-wrap gap-2">
+                            {v.synonyms.split(',').map(s => (
+                              <span key={s} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{s.trim()}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {v.related_words && (
+                        <div>
+                          <p className="text-xs text-[#9b98b0] mb-1.5">Related forms</p>
+                          <div className="flex flex-wrap gap-2">
+                            {v.related_words.split(',').map(r => (
+                              <span key={r} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{r.trim()}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-            <div className="h-8" />
+                  <Link href={`/vocab/${v.slug}`} className="inline-flex items-center gap-2 text-sm text-[#7c6df2] hover:text-[#9b8cf5] transition-colors">
+                    Open full word page →
+                  </Link>
+                  <div className="h-4" />
+                </div>
+              )
+            })()}
+
+            {current.kind === 'grammar' && (() => {
+              const t = current.topic
+              const hasRegister = t.register_formal != null || t.register_standard != null || t.register_casual != null
+              return (
+                <div className="space-y-4 text-left">
+                  {/* Header */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">Grammar</span>
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{t.level}</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-[#e8e6f0]">{t.title}</h2>
+                    {t.translation_en && <p className="text-sm text-[#9b8cf5] mt-0.5">{t.translation_en}</p>}
+                  </div>
+
+                  {/* Structure */}
+                  {t.structure && (
+                    <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                      <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Structure</p>
+                      <p className="font-mono text-sm">
+                        {t.structure.split(/(\[[^\]]+\])/g).map((part, i) =>
+                          part.startsWith('[') && part.endsWith(']')
+                            ? <span key={i} className="text-[#9b8cf5] font-semibold">{part}</span>
+                            : <span key={i} className="text-[#e8e6f0]">{part}</span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Explanation */}
+                  <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                    <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Explanation</p>
+                    <div
+                      className="text-sm text-[#c8c5d8] leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html: t.explanation_en
+                          .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#e8e6f0]">$1</strong>')
+                          .replace(/\n/g, '<br />')
+                      }}
+                    />
+                  </div>
+
+                  {/* Fun Fact */}
+                  {t.fun_fact && (
+                    <div className="bg-gradient-to-br from-[#7c6df2]/10 to-[#7c6df2]/5 border border-[#7c6df2]/20 rounded-2xl p-5">
+                      <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#7c6df2] mb-2">Fun Fact</p>
+                      <p className="text-sm text-[#c8c5d8] leading-relaxed">{t.fun_fact}</p>
+                    </div>
+                  )}
+
+                  {/* Register */}
+                  {hasRegister && (
+                    <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                      <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-3">Register</p>
+                      <div className="space-y-2 text-sm">
+                        {[
+                          { label: 'Formal',   val: t.register_formal },
+                          { label: 'Standard', val: t.register_standard },
+                          { label: 'Casual',   val: t.register_casual },
+                        ].map(({ label, val }) => val != null && (
+                          <div key={label} className="flex items-center justify-between">
+                            <span className="text-[#9b98b0]">{label}</span>
+                            <div className="flex gap-1">
+                              {[1,2,3].map(i => (
+                                <div key={i} className={`w-2 h-2 rounded-full ${i <= val ? 'bg-[#7c6df2]' : 'bg-white/10'}`} />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Related forms */}
+                  {t.related_forms && (
+                    <div>
+                      <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">Related Forms</p>
+                      <div className="flex flex-wrap gap-2">
+                        {t.related_forms.split(',').map(f => (
+                          <span key={f} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">{f.trim()}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Link href={`/grammar/${t.slug}`} className="inline-flex items-center gap-2 text-sm text-[#7c6df2] hover:text-[#9b8cf5] transition-colors">
+                    View full topic: {t.title} →
+                  </Link>
+                  <div className="h-4" />
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>
@@ -916,20 +1062,16 @@ function ClozeSession({
               >
                 <span>↩</span> Undo
               </button>
-              {current.kind === 'vocab_new' ? (
-                <button
-                  onClick={() => setShowInfo(v => !v)}
-                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
-                    showInfo
-                      ? 'bg-[#7c6df2]/20 border-[#7c6df2]/40 text-[#9b8cf5]'
-                      : 'bg-white/5 border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10'
-                  }`}
-                >
-                  <span>ℹ</span> {showInfo ? 'Hide Info' : 'Show Info'}
-                </button>
-              ) : (
-                <div /> /* spacer for grammar */
-              )}
+              <button
+                onClick={() => setShowInfo(v => !v)}
+                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                  showInfo
+                    ? 'bg-[#7c6df2]/20 border-[#7c6df2]/40 text-[#9b8cf5]'
+                    : 'bg-white/5 border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10'
+                }`}
+              >
+                <span>ℹ</span> {showInfo ? 'Hide' : 'More Info'}
+              </button>
               <button
                 onClick={handleNext}
                 className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
