@@ -14,7 +14,7 @@ export interface PathDef {
   level: string       // 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'
   icon: string        // emoji
   description: string
-  type: 'mixed' | 'grammar' | 'vocab' | 'verb'
+  type: 'mixed' | 'grammar' | 'vocab'
   badge: string       // short label shown on card
   filterByLevel: boolean
 }
@@ -214,89 +214,20 @@ export const VOCAB_PATHS: PathDef[] = [
   },
 ]
 
-// ─── Verb Paths (gwc_verbs filtered by level, ordered by frequency_rank) ──────
-
-export const VERB_PATHS: PathDef[] = [
-  {
-    id: 'verbs-a1',
-    name: 'Verb Conjugation',
-    level: 'A1',
-    icon: '🔤',
-    description: 'Master A1 verbs across all tenses. Tenses unlock as your level grows.',
-    type: 'verb',
-    badge: 'Verbs',
-    filterByLevel: true,
-  },
-  {
-    id: 'verbs-a2',
-    name: 'Verb Conjugation',
-    level: 'A2',
-    icon: '🔤',
-    description: 'Master A2 verbs: Perfekt, separable verbs, and modal constructions.',
-    type: 'verb',
-    badge: 'Verbs',
-    filterByLevel: true,
-  },
-  {
-    id: 'verbs-b1',
-    name: 'Verb Conjugation',
-    level: 'B1',
-    icon: '🔤',
-    description: 'Master B1 verbs: Präteritum, Futur I, and complex conjugation patterns.',
-    type: 'verb',
-    badge: 'Verbs',
-    filterByLevel: true,
-  },
-  {
-    id: 'verbs-b2',
-    name: 'Verb Conjugation',
-    level: 'B2',
-    icon: '🔤',
-    description: 'Master B2 verbs: Konjunktiv II, Plusquamperfekt, and advanced tenses.',
-    type: 'verb',
-    badge: 'Verbs',
-    filterByLevel: true,
-  },
-  {
-    id: 'verbs-c1',
-    name: 'Verb Conjugation',
-    level: 'C1',
-    icon: '🔤',
-    description: 'Master C1 verbs: Futur II, rare tenses, and nuanced verb usage.',
-    type: 'verb',
-    badge: 'Verbs',
-    filterByLevel: true,
-  },
-  {
-    id: 'verbs-c2',
-    name: 'Verb Conjugation',
-    level: 'C2',
-    icon: '🔤',
-    description: 'Master C2 verbs: complete conjugation mastery across all tenses and forms.',
-    type: 'verb',
-    badge: 'Verbs',
-    filterByLevel: true,
-  },
-]
-
 // ─── ALL_PATHS (flat list — used for lookup, navbar, path detail page) ─────────
 
 export const ALL_PATHS: PathDef[] = [
   ...CAROS_PATHS,
   ...GRAMMAR_PATHS,
   ...VOCAB_PATHS,
-  ...VERB_PATHS,
 ]
 
 // Legacy aliases — kept so existing gwc_user_active_paths rows still resolve.
-// These IDs might be stored in the DB for existing users.
 const LEGACY_PATHS: PathDef[] = [
-  { id: 'a1-grammar',    name: 'A1 Grammar',          level: 'A1', icon: '📝', type: 'grammar', badge: 'Grammar', filterByLevel: true,
+  { id: 'a1-grammar',    name: 'A1 Grammar',    level: 'A1', icon: '📝', type: 'grammar', badge: 'Grammar', filterByLevel: true,
     description: 'All A1 grammar topics in teaching order.' },
-  { id: 'a1-vocabulary', name: 'A1 Vocabulary',        level: 'A1', icon: '📚', type: 'vocab',   badge: 'Vocab',   filterByLevel: true,
+  { id: 'a1-vocabulary', name: 'A1 Vocabulary', level: 'A1', icon: '📚', type: 'vocab',   badge: 'Vocab',   filterByLevel: true,
     description: 'All A1 vocabulary words ordered by frequency.' },
-  { id: 'a1-verbs',      name: 'A1 Verb Conjugation',  level: 'A1', icon: '🔤', type: 'verb',    badge: 'Verbs',   filterByLevel: true,
-    description: 'Master A1 verb conjugation across all tenses.' },
 ]
 
 export const ALL_PATHS_WITH_LEGACY: PathDef[] = [...ALL_PATHS, ...LEGACY_PATHS]
@@ -323,10 +254,9 @@ export const LEVEL_COLORS: Record<string, { bg: string; text: string; border: st
 
 /** Color scheme for each type */
 export const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  mixed:   { bg: 'bg-[#7c6df2]/20',  text: 'text-[#9b8cf5]' },
-  grammar: { bg: 'bg-blue-500/15',   text: 'text-blue-300' },
-  vocab:   { bg: 'bg-teal-500/15',   text: 'text-teal-300' },
-  verb:    { bg: 'bg-orange-500/15', text: 'text-orange-300' },
+  mixed:   { bg: 'bg-[#7c6df2]/20', text: 'text-[#9b8cf5]' },
+  grammar: { bg: 'bg-blue-500/15',  text: 'text-blue-300' },
+  vocab:   { bg: 'bg-teal-500/15',  text: 'text-teal-300' },
 }
 
 /**

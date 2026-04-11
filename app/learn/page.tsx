@@ -25,29 +25,6 @@ interface GrammarLearnItem {
   sentence: GrammarSentence
 }
 
-interface VerbWord {
-  id: string; slug: string; word: string; translation_en: string
-  level: string; category: string; frequency_rank: number | null
-  explanation_en: string; usage_notes: string | null
-  fun_fact: string | null; synonyms: string | null; related_words: string | null
-  auxiliary: string | null; partizip_ii: string | null
-  praes_ich: string | null; praes_du: string | null; praes_er: string | null
-  praes_wir: string | null; praes_ihr: string | null; praes_sie: string | null
-  praet_ich: string | null; praet_du: string | null; praet_er: string | null
-  praet_wir: string | null; praet_ihr: string | null; praet_sie: string | null
-  konj2_ich: string | null; konj2_du: string | null; konj2_er: string | null
-  konj2_wir: string | null; konj2_ihr: string | null; konj2_sie: string | null
-}
-interface VerbSentence {
-  id: string; verb_id: string; sentence_de: string; sentence_en: string
-  cloze_word: string; tense: string; person: string
-  min_level: string; sort_order: number; audio_file: string | null
-}
-interface VerbLearnItem {
-  type: 'verb'; verb: VerbWord; sentences: VerbSentence[]
-}
-
-// Unified cloze item
 // New vocab system (gwc_vocab + gwc_vocab_sentences)
 interface GwcVocab {
   id: string; slug: string; word: string; type: string; article: string | null
@@ -65,9 +42,8 @@ interface GwcVocabSentence {
 }
 
 type ClozeItem =
-  | { kind: 'vocab_new'; vocab: GwcVocab;   sentence: GwcVocabSentence }
+  | { kind: 'vocab_new'; vocab: GwcVocab;     sentence: GwcVocabSentence }
   | { kind: 'grammar';   topic: GrammarTopic; sentence: GrammarSentence }
-  | { kind: 'verb';      verb: VerbWord;    sentence: VerbSentence; tense: string }
 
 interface UserPath {
   id: string
@@ -81,11 +57,9 @@ interface UserPath {
 
 interface ClozeResult {
   id: string           // sentence ID
-  type: 'vocab_new' | 'grammar' | 'verb'
+  type: 'vocab_new' | 'grammar'
   correct: boolean
   vocabId?: string     // vocab_new only — uuid of gwc_vocab row
-  verbId?: string      // verb only — uuid of gwc_verbs row
-  verbTense?: string   // verb only — tense string
 }
 
 interface CompletionData {
@@ -134,25 +108,6 @@ function normalize(s: string) {
 
 function createCloze(sentence: string, clozeWord: string): string {
   return sentence.replace(new RegExp(clozeWord, 'i'), '___')
-}
-
-// For compound tenses: splits the ORIGINAL sentence into 3 parts
-// so we can show TWO blanks — one for the auxiliary, one for the participle/infinitive.
-// Returns [beforeAux, betweenAuxAndStrip, afterStrip] or null if positions not found.
-function createCompoundCloze(
-  sentence: string,
-  auxWord: string,
-  stripPhrase: string
-): [string, string, string] | null {
-  const lc       = sentence.toLowerCase()
-  const auxIdx   = lc.indexOf(auxWord.toLowerCase())
-  const stripIdx = lc.indexOf(stripPhrase.toLowerCase())
-  if (auxIdx === -1 || stripIdx === -1 || stripIdx <= auxIdx) return null
-  return [
-    sentence.slice(0, auxIdx),
-    sentence.slice(auxIdx + auxWord.length, stripIdx),
-    sentence.slice(stripIdx + stripPhrase.length),
-  ]
 }
 
 function getDeclension(artikel: string, word: string, genitiv: string | null) {
@@ -263,66 +218,6 @@ async function fetchGrammarItems(
       topic: topicMap[s.topic_id],
       sentence: s,
     }))
-}
-
-// ─── Fetch Verbs ──────────────────────────────────────────────────────────────
-
-const TENSE_MIN_LEVEL: Record<string, string> = {
-  'PRÄSENS': 'A1', 'PERFEKT': 'A2', 'PRÄTERITUM': 'B1',
-  'FUTUR I': 'B1', 'KONJUNKTIV II': 'B2', 'PLUSQUAMPERFEKT': 'B2', 'FUTUR II': 'C1',
-}
-const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-function levelGte(a: string, b: string) {
-  return LEVEL_ORDER.indexOf(a) >= LEVEL_ORDER.indexOf(b)
-}
-
-// Map path IDs to the gwc_verbs column that stores position in that path
-const VERB_PATH_COL: Record<string, string> = {
-  'a1-verbs':      'path_a1_verbs',
-  'caros-path-a1': 'path_caros_path',
-}
-
-async function fetchVerbItems(sessionId: string, batchSize: number, userLevel = 'A1', pathId?: string): Promise<VerbLearnItem[]> {
-  // One SRS card per verb. A verb is "new" if it has no row in gwc_verb_reviews yet.
-  const { data: reviewRows } = await supabase
-    .from('gwc_verb_reviews')
-    .select('verb_id')
-    .eq('session_id', sessionId)
-  const learnedVerbIds = new Set((reviewRows || []).map((r: { verb_id: string }) => r.verb_id))
-
-  const pathCol = pathId ? VERB_PATH_COL[pathId] : null
-
-  let query = supabase.from('gwc_verbs').select('*')
-  if (pathCol) {
-    query = query.not(pathCol, 'is', null).order(pathCol, { ascending: true })
-  } else {
-    query = query.order('frequency_rank', { ascending: true, nullsFirst: false })
-  }
-  const { data: verbs } = await query.limit(200)
-  if (!verbs || verbs.length === 0) return []
-
-  const newVerbs = (verbs as VerbWord[]).filter(v => !learnedVerbIds.has(v.id))
-  if (newVerbs.length === 0) return []
-
-  const verbIds = newVerbs.slice(0, batchSize).map(v => v.id)
-  const { data: sentences } = await supabase
-    .from('gwc_verb_sentences')
-    .select('*')
-    .in('verb_id', verbIds)
-    .order('sort_order', { ascending: true })
-
-  const result: VerbLearnItem[] = []
-  for (const verb of newVerbs.slice(0, batchSize)) {
-    // All sentences unlocked for current level — the rotation happens in reviews
-    const unlockedSents = ((sentences || []) as VerbSentence[]).filter(s =>
-      s.verb_id === verb.id &&
-      levelGte(userLevel, TENSE_MIN_LEVEL[s.tense] ?? 'A1')
-    )
-    if (unlockedSents.length > 0) {
-      result.push({ type: 'verb', verb, sentences: unlockedSents })
-    }
-  }
-  return result
 }
 
 // ─── Quiz Time Modal ──────────────────────────────────────────────────────────
@@ -605,105 +500,7 @@ function GrammarExplainer({ topic, sentence, onContinue, onBack, current: idx, t
   )
 }
 
-// ─── Verb Intro (shown before first cloze of each new verb × tense) ──────────
-
-const TENSE_LABEL_MAP: Record<string, string> = {
-  'PRÄSENS':        'Präsens',
-  'PERFEKT':        'Perfekt',
-  'PRÄTERITUM':     'Präteritum',
-  'FUTUR I':        'Futur I',
-  'KONJUNKTIV II':  'Konjunktiv II',
-  'PLUSQUAMPERFEKT':'Plusquamperfekt',
-  'FUTUR II':       'Futur II',
-}
-
-// When to use each tense — shown in VerbIntroScreen
-const TENSE_USAGE: Record<string, { when: string; examples: string[] }> = {
-  'PRÄSENS': {
-    when: 'Used for current actions, habits, general truths, and the near future. The most common tense in everyday German.',
-    examples: ['Ich lerne Deutsch. (I am learning German.)', 'Die Sonne geht jeden Morgen auf. (The sun rises every morning.)', 'Morgen fahre ich nach Berlin. (Tomorrow I\'m going to Berlin.)'],
-  },
-  'PERFEKT': {
-    when: 'The standard past tense in spoken German. Used for completed actions in everyday conversation — even when English uses the simple past.',
-    examples: ['Ich habe gegessen. (I ate / I have eaten.)', 'Wir sind nach Hause gegangen. (We went home.)', 'Was hast du gestern gemacht? (What did you do yesterday?)'],
-  },
-  'PRÄTERITUM': {
-    when: 'A written narrative past tense used in stories, news, and literature. Also commonly used for sein, haben, and modal verbs even in speech.',
-    examples: ['Er war sehr müde. (He was very tired.)', 'Sie hatte keine Zeit. (She had no time.)', 'Es war einmal… (Once upon a time…)'],
-  },
-  'FUTUR I': {
-    when: 'Used for predictions, intentions, and promises. Often replaced by Präsens + time word in casual speech.',
-    examples: ['Es wird morgen regnen. (It will rain tomorrow.)', 'Ich werde das erledigen. (I will take care of it.)', 'Du wirst es schaffen! (You will make it!)'],
-  },
-  'KONJUNKTIV II': {
-    when: 'Used for hypothetical situations, polite requests, and wishes. Essential for saying what "would" happen.',
-    examples: ['Ich würde gerne helfen. (I would like to help.)', 'Wenn ich Zeit hätte… (If I had time…)', 'Könnten Sie mir bitte helfen? (Could you please help me?)'],
-  },
-  'PLUSQUAMPERFEKT': {
-    when: 'The "past perfect" — used for actions that were completed before another past event. Always in combination with another past tense.',
-    examples: ['Er hatte schon gegessen, als sie ankam. (He had already eaten when she arrived.)', 'Ich war noch nie dort gewesen. (I had never been there before.)'],
-  },
-  'FUTUR II': {
-    when: 'Used for actions that will be completed by a future point in time, or to express an assumption about something that has happened.',
-    examples: ['Bis morgen werde ich fertig sein. (By tomorrow I will have finished.)', 'Er wird wohl eingeschlafen sein. (He has probably fallen asleep.)'],
-  },
-}
-
-function getConjRows(verb: VerbWord, tense: string): { person: string; form: string }[] {
-  const persons = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie']
-  const futAux  = ['werde', 'wirst', 'wird', 'werden', 'werdet', 'werden']
-  const plusqAux = verb.auxiliary === 'sein'
-    ? ['war','warst','war','waren','wart','waren']
-    : ['hatte','hattest','hatte','hatten','hattet','hatten']
-
-  switch (tense) {
-    case 'PRÄSENS':
-      return [
-        { person: 'ich',       form: verb.praes_ich ?? '—' },
-        { person: 'du',        form: verb.praes_du  ?? '—' },
-        { person: 'er/sie/es', form: verb.praes_er  ?? '—' },
-        { person: 'wir',       form: verb.praes_wir ?? '—' },
-        { person: 'ihr',       form: verb.praes_ihr ?? '—' },
-        { person: 'sie/Sie',   form: verb.praes_sie ?? '—' },
-      ]
-    case 'PERFEKT':
-      return persons.map((p, i) => ({
-        person: p,
-        form: `${verb.auxiliary === 'sein'
-          ? ['bin','bist','ist','sind','seid','sind'][i]
-          : ['habe','hast','hat','haben','habt','haben'][i]} ${verb.partizip_ii ?? '…'}`,
-      }))
-    case 'PRÄTERITUM':
-      return [
-        { person: 'ich',       form: verb.praet_ich ?? '—' },
-        { person: 'du',        form: verb.praet_du  ?? '—' },
-        { person: 'er/sie/es', form: verb.praet_er  ?? '—' },
-        { person: 'wir',       form: verb.praet_wir ?? '—' },
-        { person: 'ihr',       form: verb.praet_ihr ?? '—' },
-        { person: 'sie/Sie',   form: verb.praet_sie ?? '—' },
-      ]
-    case 'FUTUR I':
-      return persons.map((p, i) => ({ person: p, form: `${futAux[i]} ${verb.word}` }))
-    case 'KONJUNKTIV II':
-      return verb.konj2_ich ? [
-        { person: 'ich',       form: verb.konj2_ich ?? '—' },
-        { person: 'du',        form: verb.konj2_du  ?? '—' },
-        { person: 'er/sie/es', form: verb.konj2_er  ?? '—' },
-        { person: 'wir',       form: verb.konj2_wir ?? '—' },
-        { person: 'ihr',       form: verb.konj2_ihr ?? '—' },
-        { person: 'sie/Sie',   form: verb.konj2_sie ?? '—' },
-      ] : persons.map(p => ({ person: p, form: `würde ${verb.word}` }))
-    case 'PLUSQUAMPERFEKT':
-      return persons.map((p, i) => ({ person: p, form: `${plusqAux[i]} ${verb.partizip_ii ?? '…'}` }))
-    case 'FUTUR II':
-      return persons.map((p, i) => ({
-        person: p,
-        form: `${futAux[i]} ${verb.partizip_ii ?? '…'} ${verb.auxiliary ?? 'haben'}`,
-      }))
-    default:
-      return []
-  }
-}
+// ─── Vocab Intro Screen ── (verb intro removed, verbs are now grammar/vocab) ──
 
 // ─── Vocab Intro Screen ───────────────────────────────────────────────────────
 
@@ -819,113 +616,6 @@ function VocabIntroScreen({ vocab, sentence, onContinue, onBack, current: idx, t
   )
 }
 
-function VerbIntroScreen({ verb, tense, onContinue, onBack, current: idx, total }: {
-  verb: VerbWord
-  tense: string
-  onContinue: () => void
-  onBack?: () => void
-  current: number
-  total: number
-}) {
-  const rows = getConjRows(verb, tense)
-  const tenseLabel = TENSE_LABEL_MAP[tense] ?? tense
-  const minLevel = TENSE_MIN_LEVEL[tense] ?? 'A1'
-  const usage = TENSE_USAGE[tense]
-  const isLast = idx === total - 1
-
-  return (
-    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
-      <div className="flex items-center px-5 py-3 border-b border-white/5">
-        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
-          ← Dashboard
-        </Link>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-6 py-10">
-
-          {/* Badges */}
-          <div className="flex items-center gap-2 mb-4 justify-center flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">Verb</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/20">{tenseLabel}</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{minLevel}</span>
-          </div>
-
-          {/* Verb name */}
-          <h2 className="text-4xl font-bold text-[#7c6df2] text-center mb-1">{verb.word}</h2>
-          <p className="text-[#9b98b0] text-center italic mb-6">{verb.translation_en}</p>
-
-          {/* When to use */}
-          {usage && (
-            <div className="bg-[#1a1830] rounded-2xl border border-[#7c6df2]/15 px-5 py-4 mb-4">
-              <p className="text-xs text-[#9b8cf5] uppercase tracking-wider font-bold mb-2">📌 When to use</p>
-              <p className="text-[#c5c3d4] text-sm leading-relaxed mb-3">{usage.when}</p>
-              <div className="space-y-1">
-                {usage.examples.map((ex, i) => (
-                  <p key={i} className="text-xs text-[#9b98b0] leading-relaxed">→ {ex}</p>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Conjugation table */}
-          <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden mb-4">
-            <div className="px-5 py-3 border-b border-white/5">
-              <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold">{tenseLabel} — {verb.word}</p>
-            </div>
-            <table className="w-full">
-              <tbody>
-                {rows.map(({ person, form }) => (
-                  <tr key={person} className="border-t border-white/5 first:border-0">
-                    <td className="py-2.5 px-5 text-[#9b98b0] text-sm w-28">{person}</td>
-                    <td className="py-2.5 px-5 text-[#e8e6f0] font-semibold">{form}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Fun fact */}
-          {verb.fun_fact && (
-            <div className="bg-[#1a1830] rounded-2xl border border-[#ffc850]/15 px-5 py-4 mb-4">
-              <p className="text-xs text-[#ffc850] uppercase tracking-wider mb-1.5 font-bold">✨ Fun Fact</p>
-              <p className="text-[#c5c3d4] text-sm leading-relaxed">{verb.fun_fact}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom nav */}
-      <div className="bg-[#0f0e17] border-t border-white/5 px-5 py-4">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-1.5 mb-4">
-          {Array.from({ length: total }).map((_, i) => (
-            <div key={i} className={`rounded-full transition-all duration-300 ${
-              i === idx ? 'w-5 h-2 bg-[#7c6df2]' : i < idx ? 'w-2 h-2 bg-[#7c6df2]/40' : 'w-2 h-2 bg-white/15'
-            }`} />
-          ))}
-        </div>
-        <div className="flex gap-3 max-w-lg mx-auto">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="flex-1 py-3 rounded-xl border border-white/10 text-[#9b98b0] hover:text-[#e8e6f0] hover:border-white/20 transition-colors font-semibold"
-            >
-              ← Previous
-            </button>
-          )}
-          <button
-            onClick={onContinue}
-            className="flex-1 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-all shadow-lg shadow-[#7c6df2]/20"
-          >
-            {isLast ? 'Start Quiz →' : 'Next →'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Unified Cloze Session ────────────────────────────────────────────────────
 
 function ClozeSession({
@@ -938,7 +628,6 @@ function ClozeSession({
   const [index, setIndex]                 = useState(0)
   const [input, setInput]                 = useState('')
   const [answered, setAnswered]           = useState(false)
-  const [showFormationHint, setShowFormationHint] = useState(false)
   const [showEN, setShowEN]               = useState(false)
   const [results, setResults]             = useState<ClozeResult[]>([])
 
@@ -948,53 +637,14 @@ function ClozeSession({
   useEffect(() => {
     setInput('')
     setAnswered(false)
-    setShowFormationHint(false)
     setShowEN(false)
   }, [index])
 
   const sentence   = current?.kind === 'grammar' ? current.sentence
                    : current?.sentence
 
-  // For compound verb tenses:
-  //   PERFEKT / PLUSQUAMPERFEKT : aux + Partizip II  (e.g. "bin gewesen")
-  //   FUTUR I                   : werden + Infinitiv  (e.g. "werde gehen")
-  //   FUTUR II                  : werden + Partizip II + aux (e.g. "werde gewesen sein")
-  //
-  // Strategy: show TWO blanks in the original sentence — one at the auxiliary position,
-  // one at the participle/infinitive position. User types the full compound into one field.
-  let clozeWord  = sentence?.cloze_word ?? ''
-  let stripPhrase: string | null = null
-
-  if (current?.kind === 'verb' && sentence) {
-    const verb = current.verb
-    if (current.tense === 'PERFEKT' || current.tense === 'PLUSQUAMPERFEKT') {
-      stripPhrase = verb.partizip_ii ?? null
-    } else if (current.tense === 'FUTUR I') {
-      stripPhrase = verb.word
-    } else if (current.tense === 'FUTUR II') {
-      if (verb.partizip_ii && verb.auxiliary) {
-        stripPhrase = `${verb.partizip_ii} ${verb.auxiliary}`
-      }
-    } else if (current.tense === 'KONJUNKTIV II') {
-      // "würde + Infinitiv" construction: cloze_word is one of the würde-forms
-      const WUERDE = ['würde', 'würdest', 'würden', 'würdet']
-      if (WUERDE.includes(sentence.cloze_word.toLowerCase())) {
-        stripPhrase = verb.word
-      }
-    }
-    if (stripPhrase) {
-      clozeWord = `${sentence.cloze_word} ${stripPhrase}`
-    }
-  }
-
-  // compoundParts = [beforeAux, betweenAuxAndStrip, afterStrip] — two blanks
-  // clozeParts    = [before, after] — single blank (simple tenses / fallback)
-  const compoundParts = (stripPhrase && sentence)
-    ? createCompoundCloze(sentence.sentence_de, sentence.cloze_word, stripPhrase)
-    : null
-  const clozeParts = compoundParts
-    ? null
-    : createCloze(sentence?.sentence_de ?? '', sentence?.cloze_word ?? '').split('___')
+  const clozeWord  = sentence?.cloze_word ?? ''
+  const clozeParts = createCloze(sentence?.sentence_de ?? '', sentence?.cloze_word ?? '').split('___')
 
   const isCorrect =
     normalize(input) === normalize(clozeWord) ||
@@ -1016,14 +666,10 @@ function ClozeSession({
   const handleNext = useCallback(() => {
     if (!sentence) return
     const r: ClozeResult = {
-      id:        sentence.id,
-      type:      current.kind === 'vocab_new' ? 'vocab_new'
-               : current.kind === 'grammar'   ? 'grammar'
-               : 'verb',
-      correct:   isCorrect,
-      vocabId:   current.kind === 'vocab_new' ? current.vocab.id : undefined,
-      verbId:    current.kind === 'verb'       ? current.verb.id : undefined,
-      verbTense: current.kind === 'verb'       ? current.tense   : undefined,
+      id:      sentence.id,
+      type:    current.kind === 'vocab_new' ? 'vocab_new' : 'grammar',
+      correct: isCorrect,
+      vocabId: current.kind === 'vocab_new' ? current.vocab.id : undefined,
     }
     const newResults = [...results, r]
     setResults(newResults)
@@ -1042,60 +688,12 @@ function ClozeSession({
 
   const progress = results.length / items.length
 
-  // Badge shown in top-right of card
-  const cardBadge = current.kind === 'vocab_new' ? current.vocab.word
-                  : current.kind === 'grammar'   ? current.topic.title
-                  : current.verb.word
+  // Small context badge: grammar → person
+  const personBadge = current.kind === 'grammar' ? (current.sentence.person || null) : null
 
-  // Small context badges: grammar → person, verb → tense + person
-  const personBadge = current.kind === 'grammar' ? (current.sentence.person || null)
-                    : current.kind === 'verb'    ? (current.sentence.person || null)
-                    : null
-  const tenseBadge  = current.kind === 'verb' ? current.tense : null
-
-  // Hint 1 (big box translation): for vocab_new/grammar/verb show translation in card label area
+  // Hint box translation
   const hint1 = current.kind === 'vocab_new' ? current.vocab.translation_en
-              : current.kind === 'grammar'   ? current.topic.translation_en
-              : current.verb.translation_en
-
-  // Formation hint: specific forms for compound tenses, generic for others
-  const PERSONS_LIST  = ['ich', 'du', 'er/sie/es', 'wir', 'ihr', 'sie/Sie']
-  const HABEN_CONJ    = ['habe', 'hast', 'hat', 'haben', 'habt', 'haben']
-  const SEIN_CONJ     = ['bin',  'bist', 'ist', 'sind',  'seid', 'sind']
-  const HATTEN_CONJ   = ['hatte','hattest','hatte','hatten','hattet','hatten']
-  const WAREN_CONJ    = ['war',  'warst', 'war', 'waren', 'wart',  'waren']
-
-  function auxFormForPerson(conj: string[], person: string): string {
-    const idx = PERSONS_LIST.indexOf(person)
-    return idx === -1 ? conj[2] : conj[idx]
-  }
-
-  // formationHint: string to show below hint box
-  // For PERFEKT / PLUSQUAMPERFEKT — show the concrete form (e.g. "bin + gewesen")
-  // so the learner knows WHICH auxiliary and WHERE the Partizip II goes
-  let formationHint: string | null = null
-  if (current.kind === 'verb') {
-    const verb    = current.verb
-    const person  = current.sentence.person ?? 'er/sie/es'
-    const partII  = verb.partizip_ii ?? '…'
-    if (current.tense === 'PERFEKT') {
-      const auxConj = verb.auxiliary === 'sein'
-        ? auxFormForPerson(SEIN_CONJ,   person)
-        : auxFormForPerson(HABEN_CONJ,  person)
-      formationHint = `${auxConj}  +  ${partII}`
-    } else if (current.tense === 'PLUSQUAMPERFEKT') {
-      const auxConj = verb.auxiliary === 'sein'
-        ? auxFormForPerson(WAREN_CONJ,  person)
-        : auxFormForPerson(HATTEN_CONJ, person)
-      formationHint = `${auxConj}  +  ${partII}`
-    } else if (current.tense === 'FUTUR I') {
-      formationHint = 'werden  +  Infinitiv'
-    } else if (current.tense === 'KONJUNKTIV II') {
-      formationHint = 'Konj. II-Form  oder  würde + Infinitiv'
-    } else if (current.tense === 'FUTUR II') {
-      formationHint = `werden  +  ${partII}  +  ${verb.auxiliary ?? 'haben'}`
-    }
-  }
+              : current.topic.translation_en
 
   // EN translation display
   function renderEN() {
@@ -1118,17 +716,6 @@ function ClozeSession({
               Grammar
             </span>
           )}
-          {current.kind === 'verb' && (
-            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">
-              Verb
-            </span>
-          )}
-          {/* Tense badge (verb only) */}
-          {tenseBadge && (
-            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/20">
-              {tenseBadge}
-            </span>
-          )}
           {personBadge && (
             <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">
               {personBadge}
@@ -1148,84 +735,29 @@ function ClozeSession({
         <div className="max-w-2xl w-full text-center space-y-6">
 
 
-          {/* Hint box — verb: show tense + translation in structured card */}
-          {current.kind === 'verb' ? (
-            <div className="w-full max-w-md mx-auto space-y-2">
-              <div className="bg-[#252340] rounded-xl border border-white/5 overflow-hidden">
-                {/* Tense row */}
-                <div className="flex items-center justify-between px-5 py-2.5 border-b border-white/5">
-                  <span className="text-xs font-bold text-[#60a5fa] uppercase tracking-wider">
-                    {current.verb.word} · {current.tense}
-                  </span>
-                  <span className="text-xs text-[#9b98b0]">{current.sentence.person}</span>
-                </div>
-                {/* Translation row */}
-                <div className="px-5 py-3">
-                  <p className="text-[#e8e6f0] text-xl font-semibold italic">{current.verb.translation_en}</p>
-                </div>
-              </div>
-
-              {/* Formation hint reveal button — only for complex tenses */}
-              {formationHint && (
-                <div className="flex justify-center">
-                  {showFormationHint ? (
-                    <p className="text-xs text-[#9b98b0] italic px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-                      {formationHint}
-                    </p>
-                  ) : (
-                    <button
-                      onClick={() => setShowFormationHint(true)}
-                      className="text-xs text-[#9b98b0] hover:text-[#e8e6f0] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-                    >
-                      💡 Bildung zeigen
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : hint1 ? (
+          {/* Hint box — translation */}
+          {hint1 && (
             <div className="w-full max-w-md mx-auto">
               <div className="bg-[#252340] rounded-xl px-5 py-3 border border-white/5">
                 <p className="text-[#e8e6f0] text-xl font-semibold italic">{hint1}</p>
               </div>
             </div>
-          ) : null}
+          )}
 
-          {/* German sentence with gap(s) */}
+          {/* German sentence with gap */}
           <div className="flex items-center justify-center gap-3">
             <p className="text-[#e8e6f0] text-3xl md:text-4xl leading-relaxed font-light">
-              {compoundParts ? (() => {
-                // Compound tense: two blanks — aux at position 2, participle/infinitive at end
-                const color  = !answered ? 'border-[#7c6df2] text-[#9b8cf5]'
-                             : isCorrect  ? 'border-[#4ade80] text-[#4ade80]'
-                             :              'border-[#f87171] text-[#f87171]'
-                const spanCls = `inline-block min-w-[80px] border-b-2 px-1 font-bold text-center transition-colors ${color}`
-                const [pre, mid, post] = compoundParts
-                const auxWord   = sentence!.cloze_word
-                const stripWord = stripPhrase!
-                return <>
-                  {pre}
-                  <span className={spanCls}>{answered ? auxWord   : '\u00a0\u00a0\u00a0\u00a0\u00a0'}</span>
-                  {mid}
-                  <span className={spanCls}>{answered ? stripWord : '\u00a0\u00a0\u00a0\u00a0\u00a0'}</span>
-                  {post}
-                </>
-              })() : (
-                // Simple tense: single blank
-                <>
-                  {clozeParts![0]}
-                  <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
-                    !answered
-                      ? 'border-[#7c6df2] text-[#9b8cf5]'
-                      : isCorrect
-                        ? 'border-[#4ade80] text-[#4ade80]'
-                        : 'border-[#f87171] text-[#f87171]'
-                  }`}>
-                    {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
-                  </span>
-                  {clozeParts![1]}
-                </>
-              )}
+              {clozeParts[0]}
+              <span className={`inline-block min-w-[120px] border-b-2 px-2 font-bold text-center transition-colors ${
+                !answered
+                  ? 'border-[#7c6df2] text-[#9b8cf5]'
+                  : isCorrect
+                    ? 'border-[#4ade80] text-[#4ade80]'
+                    : 'border-[#f87171] text-[#f87171]'
+              }`}>
+                {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
+              </span>
+              {clozeParts[1]}
             </p>
           </div>
 
@@ -1582,49 +1114,34 @@ export default function LearnPage() {
           totalGoal += path.daily_goal
 
           const pathGrammar: GrammarLearnItem[] = []
-          const pathVerbs: VerbLearnItem[]      = []
           const pathVocab: { vocab: GwcVocab; sentences: GwcVocabSentence[] }[] = []
 
           if (def.type === 'grammar' || def.type === 'mixed') {
             const g = await fetchGrammarItems(sessionId, path.batch_size)
             pathGrammar.push(...g)
           }
-          if (def.type === 'verb' || def.type === 'mixed') {
-            const v = await fetchVerbItems(sessionId, path.batch_size, userLevel, path.path_id)
-            pathVerbs.push(...v)
-          }
           if (def.type === 'vocab' || def.type === 'mixed') {
             const voc = await fetchNewVocabItems(sessionId)
             pathVocab.push(...voc)
           }
 
-          if (pathGrammar.length === 0 && pathVerbs.length === 0 && pathVocab.length === 0) continue
+          if (pathGrammar.length === 0 && pathVocab.length === 0) continue
 
-          // Build cloze items for this path: grammar → verbs → vocab
+          // Build cloze items for this path: grammar → vocab
           const clozeItems: ClozeItem[] = [
             ...pathGrammar.map(g => ({ kind: 'grammar' as const, topic: g.topic, sentence: g.sentence })),
-            ...pathVerbs.flatMap(v => {
-              const tenses = [...new Set(v.sentences.map(s => s.tense))]
-              return tenses.map(tense => {
-                const s = v.sentences.find(s2 => s2.tense === tense && s2.person === 'ich') ?? v.sentences.find(s2 => s2.tense === tense)!
-                return { kind: 'verb' as const, verb: v.verb, sentence: s, tense }
-              })
-            }),
             ...pathVocab.map(item => {
               const nomSent = item.sentences.find(s => s.grammatical_case === 'NOMINATIV') ?? item.sentences[0]
               return { kind: 'vocab_new' as const, vocab: item.vocab, sentence: nomSent }
             }),
           ]
 
-          // Build intro items (one per unique topic/verb×tense/vocab)
+          // Build intro items (one per unique topic/vocab)
           const seenIntros = new Set<string>()
           const introItems: ClozeItem[] = []
           for (const item of clozeItems) {
             if (item.kind === 'grammar' && !seenIntros.has(item.topic.id)) {
               seenIntros.add(item.topic.id); introItems.push(item)
-            } else if (item.kind === 'verb') {
-              const key = `${item.verb.id}__${item.tense}`
-              if (!seenIntros.has(key)) { seenIntros.add(key); introItems.push(item) }
             } else if (item.kind === 'vocab_new' && !seenIntros.has(item.vocab.id)) {
               seenIntros.add(item.vocab.id); introItems.push(item)
             }
@@ -1663,11 +1180,8 @@ export default function LearnPage() {
   // ── Save results and award XP ─────────────────────────────────────────────
   async function handleClozeComplete(results: ClozeResult[]) {
     const sessionId = getOrCreateSessionId()
-    const now = new Date().toISOString()
-
     const vocabNewResults = results.filter(r => r.type === 'vocab_new')
     const grammarResults  = results.filter(r => r.type === 'grammar')
-    const verbResults     = results.filter(r => r.type === 'verb')
 
     // Save vocab reviews — one row per vocab word.
     // Sentences rotate via last_sentence_idx; new cases appear automatically when level goes up.
@@ -1757,32 +1271,6 @@ export default function LearnPage() {
             correct_streak:   r.correct ? 1 : 0,
           })
           .eq('id', existingMap[topicId])
-      }
-    }
-
-    // Save verb reviews — one row per verb (tense rotation happens in reviews via last_sentence_idx)
-    if (verbResults.length > 0) {
-      const verbMap = new Map<string, ClozeResult>()
-      for (const r of verbResults) {
-        if (r.verbId) verbMap.set(r.verbId, r)
-      }
-      for (const r of verbMap.values()) {
-        const srs = calculateNextReview(r.correct, 0)
-        await supabase.from('gwc_verb_reviews').upsert(
-          {
-            session_id:       sessionId,
-            verb_id:          r.verbId,
-            interval_days:    Math.ceil(srs.intervalDays),
-            ease_factor:      2.5,
-            repetitions:      srs.newSrsLevel,
-            next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
-            reviewed_at:      now,
-            last_sentence_idx: 1,  // start rotation from sentence 1 on next review
-            total_reviews:    1,
-            correct_reviews:  r.correct ? 1 : 0,
-          },
-          { onConflict: 'session_id,verb_id', ignoreDuplicates: false }
-        )
       }
     }
 
@@ -1932,18 +1420,6 @@ export default function LearnPage() {
         <GrammarExplainer
           topic={item.topic}
           sentence={item.sentence}
-          onContinue={advanceIntro}
-          onBack={introIndex > 0 ? goBackIntro : undefined}
-          current={introIndex}
-          total={introQueue.length}
-        />
-      )
-    }
-    if (item.kind === 'verb') {
-      return (
-        <VerbIntroScreen
-          verb={item.verb}
-          tense={item.tense}
           onContinue={advanceIntro}
           onBack={introIndex > 0 ? goBackIntro : undefined}
           current={introIndex}

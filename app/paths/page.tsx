@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
-import { CAROS_PATHS, GRAMMAR_PATHS, VOCAB_PATHS, VERB_PATHS, ALL_LEVELS, LEVEL_COLORS, TYPE_COLORS } from '@/lib/paths'
+import { CAROS_PATHS, GRAMMAR_PATHS, VOCAB_PATHS, ALL_LEVELS, LEVEL_COLORS, TYPE_COLORS } from '@/lib/paths'
 import type { PathDef } from '@/lib/paths'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -17,7 +17,6 @@ interface LevelStats {
 interface AllStats {
   vocab:   Record<string, LevelStats>
   grammar: Record<string, LevelStats>
-  verb:    Record<string, LevelStats>
 }
 
 function emptyLevelStats(): Record<string, LevelStats> {
@@ -30,34 +29,26 @@ async function fetchAllStats(sessionId: string): Promise<AllStats> {
   const stats: AllStats = {
     vocab:   emptyLevelStats(),
     grammar: emptyLevelStats(),
-    verb:    emptyLevelStats(),
   }
 
   const [
-    vocabRes, grammarRes, verbRes,
-    grammarSentRes,
-    vocabRevRes, grammarRevRes, verbRevRes,
+    vocabRes, grammarRes,
+    vocabRevRes, grammarRevRes,
   ] = await Promise.all([
     supabase.from('gwc_vocab').select('id, level'),
     supabase.from('gwc_grammar_topics').select('id, level'),
-    supabase.from('gwc_verbs').select('id, level'),
-    supabase.from('gwc_grammar_sentences').select('id, topic_id'),
     supabase.from('gwc_vocab_reviews').select('vocab_id').eq('session_id', sessionId),
     supabase.from('gwc_grammar_reviews').select('topic_id').eq('session_id', sessionId),
-    supabase.from('gwc_verb_reviews').select('verb_id').eq('session_id', sessionId),
   ])
 
-  const vocabToLevel = new Map((vocabRes.data    || []).map((v: { id: string; level: string }) => [v.id, v.level]))
-  const topicToLevel = new Map((grammarRes.data || []).map((t: { id: string; level: string }) => [t.id, t.level]))
-  const verbToLevel  = new Map((verbRes.data    || []).map((v: { id: string; level: string }) => [v.id, v.level]))
+  const vocabToLevel  = new Map((vocabRes.data   || []).map((v: { id: string; level: string }) => [v.id, v.level]))
+  const topicToLevel  = new Map((grammarRes.data || []).map((t: { id: string; level: string }) => [t.id, t.level]))
 
-  for (const v of vocabRes.data || [])   { if (stats.vocab[v.level])   stats.vocab[v.level].total++ }
+  for (const v of vocabRes.data   || []) { if (stats.vocab[v.level])   stats.vocab[v.level].total++ }
   for (const t of grammarRes.data || []) { if (stats.grammar[t.level]) stats.grammar[t.level].total++ }
-  for (const v of verbRes.data || [])   { if (stats.verb[v.level])    stats.verb[v.level].total++ }
 
   const lVocab:   Record<string, Set<string>> = Object.fromEntries(ALL_LEVELS.map(l => [l, new Set<string>()]))
   const lGrammar: Record<string, Set<string>> = Object.fromEntries(ALL_LEVELS.map(l => [l, new Set<string>()]))
-  const lVerb:    Record<string, Set<string>> = Object.fromEntries(ALL_LEVELS.map(l => [l, new Set<string>()]))
 
   for (const r of vocabRevRes.data || []) {
     const lv = vocabToLevel.get(r.vocab_id); if (lv && lVocab[lv]) lVocab[lv].add(r.vocab_id)
@@ -65,14 +56,10 @@ async function fetchAllStats(sessionId: string): Promise<AllStats> {
   for (const r of grammarRevRes.data || []) {
     const lv = topicToLevel.get(r.topic_id); if (lv && lGrammar[lv]) lGrammar[lv].add(r.topic_id)
   }
-  for (const r of verbRevRes.data || []) {
-    const lv = verbToLevel.get(r.verb_id); if (lv && lVerb[lv]) lVerb[lv].add(r.verb_id)
-  }
 
   for (const level of ALL_LEVELS) {
     stats.vocab[level].learned   = lVocab[level].size
     stats.grammar[level].learned = lGrammar[level].size
-    stats.verb[level].learned    = lVerb[level].size
   }
 
   return stats
@@ -116,12 +103,10 @@ async function removeFromQueue(sessionId: string, pathId: string) {
 function getPathStats(path: PathDef, allStats: AllStats): LevelStats {
   const v = allStats.vocab[path.level]   || { total: 0, learned: 0 }
   const g = allStats.grammar[path.level] || { total: 0, learned: 0 }
-  const b = allStats.verb[path.level]    || { total: 0, learned: 0 }
   switch (path.type) {
     case 'vocab':   return v
     case 'grammar': return g
-    case 'verb':    return b
-    case 'mixed':   return { total: v.total + g.total + b.total, learned: v.learned + g.learned + b.learned }
+    case 'mixed':   return { total: v.total + g.total, learned: v.learned + g.learned }
   }
 }
 
@@ -193,7 +178,7 @@ function PathCard({
             }
           </div>
           {path.type === 'mixed' && (
-            <p className="text-[0.65rem] text-[#6b6880]">Vocab · Grammar · Verbs</p>
+            <p className="text-[0.65rem] text-[#6b6880]">Vocab · Grammar</p>
           )}
         </div>
       </div>
@@ -353,20 +338,9 @@ export default function PathsPage() {
         <div className="space-y-12">
           <PathSection
             title="Caro's Path"
-            subtitle="Curated mix of vocab, grammar & verbs — recommended starting point"
+            subtitle="Curated mix of vocab & grammar — recommended starting point"
             icon="⭐"
             paths={CAROS_PATHS}
-            stats={stats}
-            queueIds={queueIds}
-            queueSize={queueIds.size}
-            loading={loading}
-            onToggleQueue={handleToggleQueue}
-          />
-          <PathSection
-            title="Verb Conjugation"
-            subtitle="Master every tense — tenses unlock as your level grows"
-            icon="🔤"
-            paths={VERB_PATHS}
             stats={stats}
             queueIds={queueIds}
             queueSize={queueIds.size}

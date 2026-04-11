@@ -13,17 +13,6 @@ interface WordWithReviewCount extends VocabWord {
   reviewCount: number
 }
 
-interface VerbResult {
-  id: string
-  slug: string
-  word: string
-  translation_en: string
-  level: string
-  category: string
-  auxiliary: string | null
-  partizip_ii: string | null
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -50,19 +39,17 @@ function levelColor(level: string): string {
 
 export default function SearchPage() {
   const [query, setQuery]   = useState('')
-  const [filter, setFilter] = useState<'all' | 'vocab' | 'grammar' | 'verbs'>('all')
+  const [filter, setFilter] = useState<'all' | 'vocab' | 'grammar'>('all')
   const [loading, setLoading] = useState(false)
 
   const [wordResults,    setWordResults]    = useState<WordWithReviewCount[]>([])
   const [grammarResults, setGrammarResults] = useState<GrammarTopic[]>([])
-  const [verbResults,    setVerbResults]    = useState<VerbResult[]>([])
 
   useEffect(() => {
     const search = async () => {
       if (query.trim().length === 0) {
         setWordResults([])
         setGrammarResults([])
-        setVerbResults([])
         return
       }
 
@@ -120,24 +107,6 @@ export default function SearchPage() {
           setGrammarResults([])
         }
 
-        // ── Verbs — match German word OR English translation ──────────────────
-        if (filter === 'all' || filter === 'verbs') {
-          const [{ data: byDE }, { data: byEN }] = await Promise.all([
-            supabase.from('gwc_verbs').select('id,slug,word,translation_en,level,category,auxiliary,partizip_ii').ilike('word', `%${q}%`).limit(20),
-            supabase.from('gwc_verbs').select('id,slug,word,translation_en,level,category,auxiliary,partizip_ii').ilike('translation_en', `%${q}%`).limit(20),
-          ])
-
-          const merged: VerbResult[] = []
-          const seen = new Set<string>()
-          for (const v of [...(byDE || []), ...(byEN || [])]) {
-            if (!seen.has(v.id)) { seen.add(v.id); merged.push(v) }
-          }
-          merged.sort((a, b) => a.word.localeCompare(b.word))
-          setVerbResults(merged)
-        } else {
-          setVerbResults([])
-        }
-
       } catch (e) {
         console.error('Search error:', e)
       } finally {
@@ -149,7 +118,7 @@ export default function SearchPage() {
     return () => clearTimeout(timer)
   }, [query, filter])
 
-  const hasResults = wordResults.length > 0 || grammarResults.length > 0 || verbResults.length > 0
+  const hasResults = wordResults.length > 0 || grammarResults.length > 0
   const isEmpty    = query.trim().length === 0
 
   return (
@@ -159,7 +128,7 @@ export default function SearchPage() {
         {/* ── Header ── */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#e8e6f0] mb-1">Search</h1>
-          <p className="text-[#9b98b0] text-sm">Search in German or English — words, grammar and verbs.</p>
+          <p className="text-[#9b98b0] text-sm">Search in German or English — words and grammar.</p>
         </div>
 
         {/* ── Search input ── */}
@@ -179,7 +148,6 @@ export default function SearchPage() {
           {([
             { id: 'all',     label: 'All' },
             { id: 'vocab',   label: 'Words' },
-            { id: 'verbs',   label: 'Verbs' },
             { id: 'grammar', label: 'Grammar' },
           ] as const).map(f => (
             <button
@@ -231,43 +199,6 @@ export default function SearchPage() {
             <div className="space-y-3">
               {wordResults.map(word => (
                 <WordRow key={word.id} word={word} reviewCount={word.reviewCount} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Verb results ── */}
-        {!loading && verbResults.length > 0 && (
-          <div className="mb-8">
-            {filter === 'all' && (
-              <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3">
-                Verbs ({verbResults.length})
-              </p>
-            )}
-            <div className="space-y-3">
-              {verbResults.map(verb => (
-                <Link
-                  key={verb.id}
-                  href={`/verbs/${verb.slug}`}
-                  className="flex items-center gap-4 bg-[#1a1830] rounded-2xl px-4 py-3.5 border border-white/5 hover:border-[#7c6df2]/40 transition-all group"
-                >
-                  {/* Level badge */}
-                  <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-bold border ${levelColor(verb.level)}`}>
-                    {verb.level}
-                  </span>
-                  {/* Verb + translation */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#e8e6f0] group-hover:text-[#9b8cf5] transition-colors">
-                      {verb.word}
-                    </p>
-                    <p className="text-sm text-[#9b98b0] truncate">{verb.translation_en}</p>
-                  </div>
-                  {/* Category */}
-                  <span className="shrink-0 px-2 py-0.5 rounded-md text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                    {verb.category}
-                  </span>
-                  <span className="text-[#7c6df2] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">→</span>
-                </Link>
               ))}
             </div>
           </div>

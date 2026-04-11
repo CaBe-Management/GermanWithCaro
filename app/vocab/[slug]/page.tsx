@@ -9,21 +9,8 @@ import { getOrCreateSessionId } from '@/lib/session'
 import { SrsProgressCard } from '@/components/SrsProgressCard'
 import type { SrsReviewData } from '@/components/SrsProgressCard'
 
-type GermanLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 type Tab = 'details' | 'declension' | 'sentences'
 type GrammaticalCase = 'NOMINATIV' | 'AKKUSATIV' | 'DATIV' | 'GENITIV'
-
-const LEVEL_ORDER: GermanLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-const CASE_MIN_LEVEL: Record<GrammaticalCase, GermanLevel> = {
-  NOMINATIV: 'A1',
-  AKKUSATIV: 'A1',
-  DATIV:     'A2',
-  GENITIV:   'B1',
-}
-
-function levelGte(a: GermanLevel, b: GermanLevel) {
-  return LEVEL_ORDER.indexOf(a) >= LEVEL_ORDER.indexOf(b)
-}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -79,14 +66,6 @@ function TabBtn({ label, active, onClick }: { label: string; active: boolean; on
     >
       {label}
     </button>
-  )
-}
-
-function LevelGate({ minLevel }: { minLevel: GermanLevel }) {
-  return (
-    <span className="inline-flex items-center gap-1 bg-[#ffc850]/10 border border-[#ffc850]/20 text-[#ffc850] text-[0.65rem] font-bold px-2 py-0.5 rounded-full tracking-wide">
-      from {minLevel}
-    </span>
   )
 }
 
@@ -147,21 +126,13 @@ export default function VocabDetailPage() {
   const [tab, setTab]             = useState<Tab>('details')
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
-  const [userLevel, setUserLevel] = useState<GermanLevel>('A1')
   const [srsData, setSrsData]     = useState<SrsReviewData | null>(null)
   const [addState, setAddState]   = useState<'idle' | 'adding' | 'added'>('idle')
 
   useEffect(() => {
     async function load() {
       try {
-        // Load user's German level from Supabase
         const sessionId = getOrCreateSessionId()
-        const { data: prog } = await supabase
-          .from('gwc_user_progress')
-          .select('german_level')
-          .eq('session_id', sessionId)
-          .maybeSingle()
-        if (prog?.german_level) setUserLevel(prog.german_level as GermanLevel)
 
         // Load word
         const { data: wordData, error: wErr } = await supabase
@@ -384,23 +355,17 @@ export default function VocabDetailPage() {
                 </thead>
                 <tbody>
                   {([
-                    { label: 'Nominative', sg: word.nom_sg, pl: word.nom_pl, minLevel: 'A1' as GermanLevel },
-                    { label: 'Accusative', sg: word.akk_sg, pl: word.akk_pl, minLevel: 'A1' as GermanLevel },
-                    { label: 'Dative',     sg: word.dat_sg, pl: word.dat_pl, minLevel: 'A2' as GermanLevel },
-                    { label: 'Genitive',   sg: word.gen_sg, pl: word.gen_pl, minLevel: 'B1' as GermanLevel },
-                  ]).map(({ label, sg, pl, minLevel }) => {
-                    const unlocked = levelGte(userLevel, minLevel)
-                    return (
-                      <tr key={label} className={`border-t border-white/5 ${!unlocked ? 'opacity-40' : ''}`}>
-                        <td className="py-3 pr-4 font-bold text-[#7c6df2] text-xs whitespace-nowrap">
-                          {label}
-                          {!unlocked && <span className="ml-1.5"><LevelGate minLevel={minLevel} /></span>}
-                        </td>
-                        <td className="py-3 pr-4 text-[#e8e6f0]">{sg || '—'}</td>
-                        <td className="py-3 text-[#e8e6f0]">{pl || '—'}</td>
-                      </tr>
-                    )
-                  })}
+                    { label: 'Nominative', sg: word.nom_sg, pl: word.nom_pl },
+                    { label: 'Accusative', sg: word.akk_sg, pl: word.akk_pl },
+                    { label: 'Dative',     sg: word.dat_sg, pl: word.dat_pl },
+                    { label: 'Genitive',   sg: word.gen_sg, pl: word.gen_pl },
+                  ]).map(({ label, sg, pl }) => (
+                    <tr key={label} className="border-t border-white/5">
+                      <td className="py-3 pr-4 font-bold text-[#7c6df2] text-xs whitespace-nowrap">{label}</td>
+                      <td className="py-3 pr-4 text-[#e8e6f0]">{sg || '—'}</td>
+                      <td className="py-3 text-[#e8e6f0]">{pl || '—'}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -420,8 +385,8 @@ export default function VocabDetailPage() {
                 <tbody className="text-[#e8e6f0]">
                   {word.nom_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Nom.</td><td className="py-2 pr-3">{word.nom_sg}</td><td className="py-2 pr-3">{word.nom_sg.replace(/^(der|die|das) /, 'ein ')}</td><td className="py-2">{word.nom_sg.replace(/^(der|die|das) /, 'kein ')}</td></tr>}
                   {word.akk_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Akk.</td><td className="py-2 pr-3">{word.akk_sg}</td><td className="py-2 pr-3">{word.akk_sg.replace(/^(den|die|das) /, 'einen ').replace(/^(den) /, 'einen ')}</td><td className="py-2">{word.akk_sg.replace(/^(den|die|das) /, 'keinen ').replace(/^(den) /, 'keinen ')}</td></tr>}
-                  {word.dat_sg && <tr className={`border-t border-white/5 ${!levelGte(userLevel, 'A2') ? 'opacity-40' : ''}`}><td className="py-2 pr-3 text-[#9b98b0] font-bold">Dat.</td><td className="py-2 pr-3">{word.dat_sg}</td><td className="py-2 pr-3">{word.dat_sg.replace(/^(dem|der) /, 'einem ')}</td><td className="py-2">{word.dat_sg.replace(/^(dem|der) /, 'keinem ')}</td></tr>}
-                  {word.gen_sg && <tr className={`border-t border-white/5 ${!levelGte(userLevel, 'B1') ? 'opacity-40' : ''}`}><td className="py-2 pr-3 text-[#9b98b0] font-bold">Gen.</td><td className="py-2 pr-3">{word.gen_sg}</td><td className="py-2 pr-3">{word.gen_sg.replace(/^(des|der) /, 'eines ')}</td><td className="py-2">{word.gen_sg.replace(/^(des|der) /, 'keines ')}</td></tr>}
+                  {word.dat_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Dat.</td><td className="py-2 pr-3">{word.dat_sg}</td><td className="py-2 pr-3">{word.dat_sg.replace(/^(dem|der) /, 'einem ')}</td><td className="py-2">{word.dat_sg.replace(/^(dem|der) /, 'keinem ')}</td></tr>}
+                  {word.gen_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Gen.</td><td className="py-2 pr-3">{word.gen_sg}</td><td className="py-2 pr-3">{word.gen_sg.replace(/^(des|der) /, 'eines ')}</td><td className="py-2">{word.gen_sg.replace(/^(des|der) /, 'keines ')}</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -435,17 +400,11 @@ export default function VocabDetailPage() {
               (['NOMINATIV', 'AKKUSATIV', 'DATIV', 'GENITIV'] as GrammaticalCase[]).map(cas => {
                 const caseSentences = sentencesByCase[cas]
                 if (!caseSentences || caseSentences.length === 0) return null
-                const minLevel = CASE_MIN_LEVEL[cas]
-                const unlocked = levelGte(userLevel, minLevel)
                 return (
-                  <div key={cas} className={!unlocked ? 'opacity-50' : ''}>
+                  <div key={cas}>
                     <div className="flex items-center gap-3 mb-3">
                       <CaseBadge cas={cas} />
                       <div className="flex-1 h-px bg-white/6" />
-                      {!unlocked
-                        ? <LevelGate minLevel={minLevel} />
-                        : <span className="text-[0.68rem] font-bold tracking-widest uppercase text-[#9b98b0]">{minLevel}</span>
-                      }
                     </div>
                     <div className="space-y-2.5">
                       {caseSentences.map(s => <SentenceCard key={s.id} sentence={s} />)}

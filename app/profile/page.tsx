@@ -9,7 +9,6 @@ import {
   getXPProgress,
   checkAndAwardBadges,
   saveDailyGoal,
-  saveGermanLevel,
   BADGE_DEFS,
   getBadgeStat,
   todayStr,
@@ -225,170 +224,6 @@ function DailyGoalControl({ initialGoal }: { initialGoal: number }) {
   )
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const GERMAN_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
-type GermanLevel = typeof GERMAN_LEVELS[number]
-
-
-const LEVEL_DESCRIPTIONS: Record<GermanLevel, string> = {
-  A1: 'Complete Beginner',
-  A2: 'Elementary',
-  B1: 'Intermediate',
-  B2: 'Upper Intermediate',
-  C1: 'Advanced',
-  C2: 'Mastery',
-}
-
-// What NEW content gets unlocked AT each level (shown when going up to or through that level)
-const LEVEL_UNLOCKS: Record<GermanLevel, string[]> = {
-  A1: ['Present tense conjugation', 'A1 vocab & sentences'],
-  A2: ['Perfect tense (bin/habe + Partizip II)', 'A2 vocab & grammar'],
-  B1: ['Simple past (Präteritum)', 'Future I (werde + infinitive)', 'B1 sentences & grammar'],
-  B2: ['Konjunktiv II (wäre, würde …)', 'Past perfect', 'Complex case forms', 'B2 content'],
-  C1: ['Future II (werde … gemacht haben)', 'C1 sentences & grammar'],
-  C2: ['All C2 content & mastery exercises'],
-}
-
-// ─── Level Selector component ────────────────────────────────────────────────
-
-function LevelSelector({
-  savedLevel,
-  onSave,
-}: {
-  savedLevel: GermanLevel
-  onSave: (l: GermanLevel) => Promise<void>
-}) {
-  const [selected, setSelected]   = useState<GermanLevel>(savedLevel)
-  const [saving, setSaving]       = useState(false)
-  const [justSaved, setJustSaved] = useState(false)
-
-  const savedIdx   = GERMAN_LEVELS.indexOf(savedLevel)
-  const selectedIdx = GERMAN_LEVELS.indexOf(selected)
-  const isDirty    = selected !== savedLevel
-  const goingUp    = selectedIdx > savedIdx
-  const goingDown  = selectedIdx < savedIdx
-
-  // Collect features that change between savedLevel and selected
-  const changedFeatures: string[] = []
-  if (goingUp) {
-    for (let i = savedIdx + 1; i <= selectedIdx; i++) {
-      changedFeatures.push(...LEVEL_UNLOCKS[GERMAN_LEVELS[i]])
-    }
-  } else if (goingDown) {
-    for (let i = selectedIdx + 1; i <= savedIdx; i++) {
-      changedFeatures.push(...LEVEL_UNLOCKS[GERMAN_LEVELS[i]])
-    }
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    await onSave(selected)
-    setSaving(false)
-    setJustSaved(true)
-    setTimeout(() => setJustSaved(false), 2000)
-  }
-
-  return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-sm font-bold text-[#e8e6f0]">Your German Level</p>
-        <span className="text-xs text-[#9b98b0]">{LEVEL_DESCRIPTIONS[selected]}</span>
-      </div>
-      <p className="text-xs text-[#9b98b0] mb-3">
-        Determines which sentences, verb forms and exercises are shown to you
-      </p>
-
-      {/* Level buttons */}
-      <div className="grid grid-cols-6 gap-2 mb-3">
-        {GERMAN_LEVELS.map(l => {
-          const isSaved    = l === savedLevel
-          const isSelected = l === selected
-          return (
-            <button
-              key={l}
-              onClick={() => setSelected(l)}
-              className={`py-2.5 rounded-xl text-sm font-bold transition-all relative ${
-                isSelected
-                  ? goingUp
-                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
-                    : goingDown
-                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30'
-                      : 'bg-[#7c6df2] text-white shadow-md shadow-[#7c6df2]/30'
-                  : 'bg-white/5 text-[#9b98b0] hover:bg-white/10 hover:text-[#e8e6f0] border border-white/5'
-              }`}
-            >
-              {l}
-              {/* dot = currently saved level when something else is selected */}
-              {isSaved && !isSelected && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#7c6df2] border border-[#1a1830]" />
-              )}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Info message when level changed */}
-      {isDirty && (
-        <div className={`rounded-xl p-3.5 mb-3 border text-sm leading-relaxed ${
-          goingUp
-            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
-            : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
-        }`}>
-          {goingUp ? (
-            <>
-              <p className="font-bold mb-1.5">🔓 Unlocks:</p>
-              <ul className="space-y-0.5 text-xs">
-                {changedFeatures.map(f => (
-                  <li key={f} className="flex items-start gap-1.5">
-                    <span className="mt-px shrink-0">✓</span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <>
-              <p className="font-bold mb-1.5">🔒 Will be hidden:</p>
-              <ul className="space-y-0.5 text-xs">
-                {changedFeatures.map(f => (
-                  <li key={f} className="flex items-start gap-1.5">
-                    <span className="mt-px shrink-0">–</span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Save button — only visible when something changed */}
-      {isDirty && (
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
-            goingUp
-              ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-sm shadow-emerald-500/30'
-              : 'bg-amber-500 hover:bg-amber-400 text-white shadow-sm shadow-amber-500/30'
-          } disabled:opacity-60`}
-        >
-          {saving ? 'Saving …' : `Set level to ${selected}`}
-        </button>
-      )}
-
-      {/* Brief success confirmation */}
-      {justSaved && !isDirty && (
-        <p className="text-xs text-emerald-400 text-center mt-2">✓ Saved</p>
-      )}
-    </div>
-  )
-}
-
-
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -400,14 +235,6 @@ export default function ProfilePage() {
   const [activeDays, setActiveDays]       = useState<Set<string>>(new Set())
   const [unlockedBadges, setUnlockedBadges] = useState<UnlockedBadge[]>([])
   const [userEmail, setUserEmail]         = useState<string | null>(null)
-  const [germanLevel, setGermanLevel]     = useState<GermanLevel>('A1')
-
-  async function handleSaveGermanLevel(level: GermanLevel) {
-    const sessionId = getOrCreateSessionId()
-    setGermanLevel(level)
-    await saveGermanLevel(sessionId, level)
-    // No backfill needed — review cards rotate through all sentences for the current level automatically
-  }
 
   useEffect(() => {
     async function load() {
@@ -459,7 +286,6 @@ export default function ProfilePage() {
         // ── User progress (XP, streak, daily goal, german level) ────────────
         const prog = await getOrCreateProgress(sessionId)
         setProgress(prog)
-        if (prog?.german_level) setGermanLevel(prog.german_level as GermanLevel)
         const daysStudied = prog?.days_studied ?? 0
 
         setStats({ totalReviews, correctRate, learnedWords, daysStudied })
@@ -574,11 +400,6 @@ export default function ProfilePage() {
           </div>
           {/* XP progress bar */}
           <XPBar xp={xp} />
-        </div>
-
-        {/* ── German Level ──────────────────────────────────────────────────── */}
-        <div className="bg-[#1a1830] rounded-2xl px-6 py-5 border border-white/5">
-          <LevelSelector savedLevel={germanLevel} onSave={handleSaveGermanLevel} />
         </div>
 
         {/* ── Streak + Week view ────────────────────────────────────────────── */}

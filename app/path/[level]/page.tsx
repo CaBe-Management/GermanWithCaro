@@ -29,18 +29,7 @@ interface GrammarItem {
   sort_order: number | null
 }
 
-interface VerbItem {
-  kind: 'verb'
-  id: string
-  slug: string
-  word: string
-  translation_en: string
-  level: string
-  category: string
-  frequency_rank: number | null
-}
-
-type PathItem = VocabItem | GrammarItem | VerbItem
+type PathItem = VocabItem | GrammarItem
 
 const TYP_LABELS: Record<string, string> = {
   NOMEN: 'Noun', VERB: 'Verb', ADJEKTIV: 'Adj',
@@ -174,30 +163,7 @@ export default function PathPage() {
         }
       }
 
-      // ── Verbs ───────────────────────────────────────────────────────────────
-      if (path!.type === 'verb' || path!.type === 'mixed') {
-        const { data } = await supabase
-          .from('gwc_verbs')
-          .select('id, slug, word, translation_en, level, category, frequency_rank')
-          .eq('level', level)
-          .order('frequency_rank', { ascending: true, nullsFirst: false })
-          .limit(500)
-
-        for (const row of (data || []) as any[]) {
-          results.push({
-            kind:           'verb',
-            id:             row.id,
-            slug:           row.slug,
-            word:           row.word,
-            translation_en: row.translation_en,
-            level:          row.level,
-            category:       row.category,
-            frequency_rank: row.frequency_rank,
-          })
-        }
-      }
-
-      // For mixed paths: group by type section (vocab → grammar → verbs)
+      // For mixed paths: group by type section (vocab → grammar)
       // Keep them as separate sections rather than interleaving in browse view.
       setItems(results)
       setFiltered(results)
@@ -213,7 +179,6 @@ export default function PathPage() {
       items.filter(item => {
         if (item.kind === 'vocab')   return item.word.toLowerCase().includes(q)
         if (item.kind === 'grammar') return item.title.toLowerCase().includes(q)
-        if (item.kind === 'verb')    return item.word.toLowerCase().includes(q) || item.translation_en.toLowerCase().includes(q)
         return false
       })
     )
@@ -236,7 +201,6 @@ export default function PathPage() {
   // Split mixed items by kind for section headers
   const vocabItems   = filtered.filter(i => i.kind === 'vocab')
   const grammarItems = filtered.filter(i => i.kind === 'grammar')
-  const verbItems    = filtered.filter(i => i.kind === 'verb')
 
   function renderList(list: PathItem[]) {
     return list.map((item, i) => {
@@ -279,29 +243,6 @@ export default function PathPage() {
         </Link>
       )
 
-      if (item.kind === 'verb') return (
-        <Link
-          key={item.id}
-          href={`/verbs/${item.slug}`}
-          className="flex items-center gap-4 bg-[#1a1830] border border-white/5 rounded-xl px-4 py-3 hover:border-[#7c6df2]/25 transition-colors group"
-        >
-          <span className="text-[#6b6880] text-xs w-7 text-right shrink-0 tabular-nums">
-            {item.frequency_rank ?? i + 1}
-          </span>
-          <div className="flex-1 min-w-0 flex items-center gap-2">
-            <span className="text-[#e8e6f0] font-semibold">{item.word}</span>
-            <span className="text-[#9b98b0] text-xs">—</span>
-            <span className="text-[#9b98b0] text-sm truncate">{item.translation_en}</span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="px-1.5 py-0.5 rounded text-[0.65rem] font-bold bg-orange-500/10 text-orange-300">
-              {CAT_LABELS[item.category] ?? item.category}
-            </span>
-            <span className="text-[#6b6880] group-hover:text-[#9b8cf5] transition-colors text-sm">→</span>
-          </div>
-        </Link>
-      )
-
       return null
     })
   }
@@ -309,7 +250,6 @@ export default function PathPage() {
   const totalItems = items.length
   const vocabCount   = items.filter(i => i.kind === 'vocab').length
   const grammarCount = items.filter(i => i.kind === 'grammar').length
-  const verbCount    = items.filter(i => i.kind === 'verb').length
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
@@ -354,8 +294,6 @@ export default function PathPage() {
                   <span>{vocabCount} words</span>
                   <span className="text-white/10">·</span>
                   <span>{grammarCount} grammar</span>
-                  <span className="text-white/10">·</span>
-                  <span>{verbCount} verbs</span>
                 </>
               )}
             </div>
@@ -397,8 +335,7 @@ export default function PathPage() {
             placeholder={
               path.type === 'grammar' ? 'Search grammar topics...' :
               path.type === 'vocab'   ? 'Search words...' :
-              path.type === 'verb'    ? 'Search verbs...' :
-              'Search words, grammar, verbs...'
+              'Search words and grammar...'
             }
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -435,14 +372,6 @@ export default function PathPage() {
                   <span>📝</span> Grammar ({grammarItems.length})
                 </h3>
                 <div className="space-y-2">{renderList(grammarItems)}</div>
-              </div>
-            )}
-            {verbItems.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold text-[#9b98b0] uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <span>🔤</span> Verb Conjugation ({verbItems.length})
-                </h3>
-                <div className="space-y-2">{renderList(verbItems)}</div>
               </div>
             )}
           </div>

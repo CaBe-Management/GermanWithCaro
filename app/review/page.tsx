@@ -6,9 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
-import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW, getOrCreateProgress } from '@/lib/gamification'
+import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW } from '@/lib/gamification'
 
-const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
 import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 
 // ─── TTS Hook ─────────────────────────────────────────────────────────────────
@@ -31,30 +30,11 @@ function useTTS() {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface VerbWord {
-  id: string; slug: string; word: string; translation_en: string; level: string; category: string
-  auxiliary: string | null; partizip_ii: string | null
-}
-interface VerbSentence {
-  id: string; verb_id: string; sentence_de: string; sentence_en: string
-  cloze_word: string; tense: string; person: string; sort_order: number
-}
-
 interface GrammarCard {
   kind: 'grammar'
   reviewId: string
   topic: GrammarTopic
   sentence: GrammarSentence
-  srsLevel: number
-}
-
-interface VerbCard {
-  kind: 'verb'
-  reviewId: string
-  verb: VerbWord
-  sentence: VerbSentence
-  tense: string
-  lastSentenceIdx: number  // for cycling to next sentence after review
   srsLevel: number
 }
 
@@ -81,7 +61,7 @@ interface VocabNewCard {
   srsLevel: number
 }
 
-type ReviewCard = GrammarCard | VerbCard | VocabNewCard
+type ReviewCard = GrammarCard | VocabNewCard
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -98,12 +78,6 @@ function typColor(typ: string) {
     case 'ADVERB':    return 'bg-orange-500/20 text-orange-300 border-orange-500/30'
     default:          return 'bg-white/10 text-[#9b98b0] border-white/10'
   }
-}
-
-const TENSE_LABELS: Record<string, string> = {
-  'PRÄSENS': 'Präsens', 'PERFEKT': 'Perfekt', 'PRÄTERITUM': 'Präteritum',
-  'FUTUR I': 'Futur I', 'FUTUR II': 'Futur II',
-  'KONJUNKTIV II': 'Konj. II', 'PLUSQUAMPERFEKT': 'Plusquam.',
 }
 
 // ─── Info Panels ──────────────────────────────────────────────────────────────
@@ -142,50 +116,6 @@ function GrammarInfoPanel({ topic, sentence }: { topic: GrammarTopic; sentence: 
             className="mt-3 block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
           >
             View topic: {topic.title} →
-          </Link>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function VerbInfoPanel({ verb, tense }: { verb: VerbWord; tense: string }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="border-t border-white/8">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-center gap-2 py-4 text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm font-medium"
-      >
-        <span className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>↑</span>
-        {open ? 'Hide verb info' : 'Show verb info'}
-      </button>
-      {open && (
-        <div className="px-6 pb-6 pt-2 border-t border-white/5">
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">Verb</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{verb.level}</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{verb.category}</span>
-          </div>
-          <p className="text-sm font-bold text-[#e8e6f0] mb-1">{verb.word}</p>
-          <p className="text-xs text-[#9b98b0] mb-3">{verb.translation_en}</p>
-          {verb.auxiliary && verb.partizip_ii && (
-            <div className="flex gap-2 text-xs">
-              <div className="bg-[#252340] rounded-xl p-2 border border-white/5">
-                <p className="text-[#9b98b0] uppercase tracking-wider mb-0.5">Aux</p>
-                <p className="text-[#e8e6f0] font-bold">{verb.auxiliary}</p>
-              </div>
-              <div className="bg-[#252340] rounded-xl p-2 border border-white/5">
-                <p className="text-[#9b98b0] uppercase tracking-wider mb-0.5">Partizip II</p>
-                <p className="text-[#e8e6f0] font-bold">{verb.partizip_ii}</p>
-              </div>
-            </div>
-          )}
-          <Link
-            href={`/verbs/${verb.slug}`}
-            className="mt-3 block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors"
-          >
-            Full conjugation: {verb.word} →
           </Link>
         </div>
       )}
@@ -316,8 +246,7 @@ function ReviewCardView({
   // Topic label shown above the sentence
   const topicLabel =
     card.kind === 'vocab_new' ? card.vocab.word :
-    card.kind === 'grammar'   ? card.topic.title :
-    `${card.verb.word} — ${TENSE_LABELS[card.tense] ?? card.tense}`
+    card.topic.title
 
   // SRS level badge
   const srsLabel = `SRS ${card.srsLevel}`
@@ -340,11 +269,6 @@ function ReviewCardView({
           {/* Type badge */}
           {card.kind === 'grammar' && (
             <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">Grammar</span>
-          )}
-          {card.kind === 'verb' && (
-            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">
-              {TENSE_LABELS[card.tense] ?? card.tense}
-            </span>
           )}
           {card.kind === 'vocab_new' && card.sentence.grammatical_case && (
             <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
@@ -439,7 +363,7 @@ function ReviewCardView({
                 ))}
               </div>
               <span className="text-xs text-[#9b98b0] font-medium shrink-0">
-                {card.kind === 'verb' ? card.verb.word : card.kind === 'vocab_new' ? card.vocab.word : card.topic.title}
+                {card.kind === 'vocab_new' ? card.vocab.word : card.topic.title}
               </span>
             </div>
             {/* Next button */}
@@ -458,7 +382,6 @@ function ReviewCardView({
         {/* Info panel */}
         {card.kind === 'vocab_new' && <VocabNewInfoPanel vocab={card.vocab} grammaticalCase={card.sentence.grammatical_case ?? null} />}
         {card.kind === 'grammar'   && <GrammarInfoPanel topic={card.topic} sentence={card.sentence} />}
-        {card.kind === 'verb'      && <VerbInfoPanel verb={card.verb} tense={card.tense} />}
       </div>
     </div>
   )
@@ -504,7 +427,7 @@ function EmptyState() {
 
 function ReviewPageInner() {
   const searchParams = useSearchParams()
-  const typeFilter   = searchParams.get('type') as 'all' | 'vocab_new' | 'grammar' | 'verb' | null ?? 'all'
+  const typeFilter   = searchParams.get('type') as 'all' | 'vocab_new' | 'grammar' | null ?? 'all'
 
   const [loading, setLoading] = useState(true)
   const [cards, setCards]     = useState<ReviewCard[]>([])
@@ -563,63 +486,8 @@ function ReviewPageInner() {
           }
         }
 
-        // ── Verb reviews — one card per verb, sentences rotate through full pool ──
-        if (typeFilter === 'all' || typeFilter === 'verb') {
-          const { data: verbReviews } = await supabase
-            .from('gwc_verb_reviews')
-            .select('*')
-            .eq('session_id', sessionId)
-            .lte('next_review_at', now)
-            .order('next_review_at', { ascending: true })
-            .limit(50)
-
-          if (verbReviews && verbReviews.length > 0) {
-            const verbIds = verbReviews.map((r: { verb_id: string }) => r.verb_id)
-
-            // Load german_level to know which tenses are unlocked
-            const progress = await getOrCreateProgress(sessionId)
-            const germanLevel = progress?.german_level ?? 'A1'
-            const unlockedLevels = LEVEL_ORDER.slice(0, LEVEL_ORDER.indexOf(germanLevel as typeof LEVEL_ORDER[number]) + 1)
-
-            const [{ data: verbs }, { data: verbSentences }] = await Promise.all([
-              supabase.from('gwc_verbs').select('id, slug, word, translation_en, level, category, auxiliary, partizip_ii').in('id', verbIds),
-              supabase.from('gwc_verb_sentences').select('*').in('verb_id', verbIds).in('min_level', unlockedLevels).order('sort_order', { ascending: true }),
-            ])
-
-            const verbMap = Object.fromEntries((verbs || []).map((v: VerbWord) => [v.id, v]))
-            // Pool: verbId → all unlocked sentences
-            const sentPool: Record<string, VerbSentence[]> = {}
-            for (const s of (verbSentences as VerbSentence[] || [])) {
-              if (!sentPool[s.verb_id]) sentPool[s.verb_id] = []
-              sentPool[s.verb_id].push(s)
-            }
-
-            for (const r of verbReviews) {
-              const verb = verbMap[r.verb_id]
-              if (!verb) continue
-              const pool = sentPool[r.verb_id] || []
-              if (pool.length === 0) continue
-              const idx = (r.last_sentence_idx ?? 0) % pool.length
-              const sentence = pool[idx]
-              built.push({
-                kind: 'verb',
-                reviewId: r.id,
-                verb,
-                sentence,
-                tense: sentence.tense,
-                lastSentenceIdx: r.last_sentence_idx ?? 0,
-                srsLevel: r.repetitions ?? 0,
-              })
-            }
-          }
-        }
-
         // ── Vocab reviews — one card per word, sentences rotate through all cases ──
         if (typeFilter === 'all' || typeFilter === 'vocab_new') {
-          const progress = await getOrCreateProgress(sessionId)
-          const germanLevel = progress?.german_level ?? 'A1'
-          const unlockedLevels = LEVEL_ORDER.slice(0, LEVEL_ORDER.indexOf(germanLevel as typeof LEVEL_ORDER[number]) + 1)
-
           const { data: vocabReviews } = await supabase
             .from('gwc_vocab_reviews')
             .select('*')
@@ -633,7 +501,7 @@ function ReviewPageInner() {
 
             const [{ data: vocabs }, { data: vocabSentences }] = await Promise.all([
               supabase.from('gwc_vocab').select('*').in('id', vocabIds),
-              supabase.from('gwc_vocab_sentences').select('*').in('vocab_id', vocabIds).in('min_level', unlockedLevels).order('sort_order', { ascending: true }),
+              supabase.from('gwc_vocab_sentences').select('*').in('vocab_id', vocabIds).order('sort_order', { ascending: true }),
             ])
 
             const vocabMap = Object.fromEntries((vocabs || []).map((v: GwcVocab) => [v.id, v]))
@@ -661,8 +529,7 @@ function ReviewPageInner() {
           }
         }
 
-        // Shuffle vocab/grammar/verb together for variety
-        // (stable sort: verbs interleaved with vocab/grammar)
+        // Shuffle vocab/grammar together for variety
         setCards(built)
       } catch (e) {
         setError('Could not load reviews.')
@@ -714,24 +581,6 @@ function ReviewPageInner() {
         total_reviews:    (cur?.total_reviews ?? 0) + 1,
         correct_reviews:  (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
         updated_at:       now,
-      }).eq('id', card.reviewId).eq('session_id', sessionId)
-
-    } else if (card.kind === 'verb') {
-      const { data: cur } = await supabase
-        .from('gwc_verb_reviews')
-        .select('total_reviews, correct_reviews')
-        .eq('id', card.reviewId)
-        .single()
-
-      await supabase.from('gwc_verb_reviews').update({
-        reviewed_at:       now,
-        next_review_at:    nextAt,
-        ease_factor:       2.5,
-        interval_days:     Math.ceil(srs.intervalDays),
-        repetitions:       srs.newSrsLevel,
-        last_sentence_idx: card.lastSentenceIdx + 1,  // advance rotation
-        total_reviews:     (cur?.total_reviews   ?? 0) + 1,
-        correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
       }).eq('id', card.reviewId).eq('session_id', sessionId)
 
     } else if (card.kind === 'vocab_new') {
