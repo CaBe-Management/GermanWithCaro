@@ -793,12 +793,6 @@ function ClozeSession({
                         : <span className="opacity-0">{'x'.repeat(8)}</span>
                   }
                 </span>
-                {/* Grammar hint label below the blank */}
-                {current.kind === 'grammar' && (
-                  <span className="absolute left-0 right-0 text-center text-[0.65rem] font-semibold tracking-wide text-[#9b8cf5] top-full mt-0.5 whitespace-nowrap">
-                    {current.topic.title}
-                  </span>
-                )}
               </span>
               {clozeParts[1]}
             </p>
@@ -809,8 +803,8 @@ function ClozeSession({
             <p className="text-[#9b98b0] text-base">
               {current.kind === 'vocab_new'
                 ? highlightTranslation(sentence.sentence_en, current.vocab.translation_en)
-                : current.topic.translation_en
-                  ? highlightTranslation(sentence.sentence_en, current.topic.translation_en)
+                : (current.sentence as GrammarSentence).highlight_en
+                  ? highlightTranslation(sentence.sentence_en, (current.sentence as GrammarSentence).highlight_en!)
                   : <span>{sentence.sentence_en}</span>
               }
             </p>

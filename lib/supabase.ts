@@ -100,6 +100,7 @@ export interface GrammarSentence {
   sentence_de: string
   sentence_en: string | null
   cloze_word: string
+  highlight_en: string | null  // exact English word/phrase to highlight in purple in sentence_en
   person: string | null   // ich/du/er/wir/ihr/sie
   tense: string | null    // präsens/perfekt/präteritum
   sort_order: number
