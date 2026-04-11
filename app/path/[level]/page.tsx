@@ -12,6 +12,7 @@ import { getOrCreateSessionId } from '@/lib/session'
 interface VocabItem {
   kind: 'vocab'
   id: string
+  slug: string
   word: string
   artikel: string | null
   typ: string
@@ -124,7 +125,7 @@ export default function PathPage() {
       if (path!.type === 'vocab' || path!.type === 'mixed') {
         const { data } = await supabase
           .from('gwc_vocab')
-          .select('id, word, article, type, level, frequency_rank')
+          .select('id, slug, word, article, type, level, frequency_rank')
           .eq('level', level)
           .order('frequency_rank', { ascending: true, nullsFirst: false })
           .limit(1000)
@@ -133,6 +134,7 @@ export default function PathPage() {
           results.push({
             kind:         'vocab',
             id:           row.id,
+            slug:         row.slug,
             word:         row.word,
             artikel:      row.article,
             typ:          row.type,
@@ -205,21 +207,22 @@ export default function PathPage() {
   function renderList(list: PathItem[]) {
     return list.map((item, i) => {
       if (item.kind === 'vocab') return (
-        <div
+        <Link
           key={item.id}
-          className="flex items-center gap-4 bg-[#1a1830] border border-white/5 rounded-xl px-4 py-3 hover:border-[#7c6df2]/25 transition-colors"
+          href={`/vocab/${item.slug}`}
+          className="flex items-center gap-4 bg-[#1a1830] border border-white/5 rounded-xl px-4 py-3 hover:border-[#7c6df2]/25 transition-colors group"
         >
           <span className="text-[#6b6880] text-xs w-7 text-right shrink-0 tabular-nums">
             {item.frequenz_rang ?? i + 1}
           </span>
           <div className="flex-1 min-w-0 flex items-center gap-2">
             {item.artikel && <span className="text-[#9b98b0] text-sm">{item.artikel}</span>}
-            <span className="text-[#e8e6f0] font-semibold">{item.word}</span>
+            <span className="text-[#e8e6f0] font-semibold group-hover:text-[#9b8cf5] transition-colors">{item.word}</span>
           </div>
           <span className="px-1.5 py-0.5 rounded text-[0.65rem] font-bold bg-[#7c6df2]/10 text-[#9b8cf5] shrink-0">
             {TYP_LABELS[item.typ] ?? item.typ}
           </span>
-        </div>
+        </Link>
       )
 
       if (item.kind === 'grammar') return (

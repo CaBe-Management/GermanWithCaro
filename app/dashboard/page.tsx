@@ -341,15 +341,15 @@ export default function Dashboard() {
 
   const todayDateStr = offsetDateStr(0)
 
-  // Header "Learn X/Y": sum of per-path daily goals vs sum of per-path done today
-  const pathsDailyGoal = activePaths.reduce((sum, p) => sum + (p.daily_goal ?? 0), 0)
+  // Header "Learn X/Y": sum of per-path batch_size vs sum of per-path done today
+  const pathsDailyGoal = activePaths.reduce((sum, p) => sum + (p.batch_size ?? 0), 0)
   const pathsDoneToday = activePaths.reduce((sum, p) => {
     const def = getPathById(p.path_id)
     if (!def) return sum
     const done = def.type === 'vocab'   ? vocabDoneToday
                : def.type === 'grammar' ? grammarDoneToday
                : vocabDoneToday + grammarDoneToday
-    return sum + Math.min(done, p.daily_goal ?? 0)
+    return sum + Math.min(done, p.batch_size ?? 0)
   }, 0)
   const dailyGoal  = pathsDailyGoal
   const doneCapped = pathsDoneToday
@@ -469,7 +469,7 @@ export default function Dashboard() {
                         const pathDone = def.type === 'vocab'   ? vocabDoneToday
                                        : def.type === 'grammar' ? grammarDoneToday
                                        : vocabDoneToday + grammarDoneToday
-                        const doneClamped = Math.min(pathDone, path.daily_goal)
+                        const doneClamped = Math.min(pathDone, path.batch_size)
                         return (
                           <Link
                             key={path.id}
@@ -482,9 +482,9 @@ export default function Dashboard() {
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30 shrink-0">
                               {def.badge}
                             </span>
-                            {/* done / daily_goal */}
+                            {/* done / batch_size */}
                             <span className="text-xs text-[#9b98b0] font-bold shrink-0 min-w-[36px] text-right">
-                              {doneClamped}/{path.daily_goal}
+                              {doneClamped}/{path.batch_size}
                             </span>
                           </Link>
                         )

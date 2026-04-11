@@ -60,6 +60,7 @@ interface ClozeResult {
   type: 'vocab_new' | 'grammar'
   correct: boolean
   vocabId?: string     // vocab_new only — uuid of gwc_vocab row
+  topicId?: string     // grammar only — uuid of gwc_grammar_topics row
 }
 
 interface CompletionData {
@@ -652,9 +653,11 @@ function VocabIntroScreen({ vocab, sentence, onContinue, onBack, current: idx, t
 function ClozeSession({
   items,
   onComplete,
+  onAnswer,
 }: {
   items: ClozeItem[]
   onComplete: (results: ClozeResult[]) => void
+  onAnswer: (result: ClozeResult) => void
 }) {
   const [index, setIndex]                 = useState(0)
   const [input, setInput]                 = useState('')
@@ -710,11 +713,14 @@ function ClozeSession({
       type:    current.kind === 'vocab_new' ? 'vocab_new' : 'grammar',
       correct: isCorrect,
       vocabId: current.kind === 'vocab_new' ? current.vocab.id : undefined,
+      topicId: current.kind === 'grammar'   ? current.topic.id : undefined,
     }
+    // Save this item to the DB immediately — marks it as "learned" right away
+    onAnswer(r)
     const newResults = [...results, r]
     setResults(newResults)
     advance(newResults)
-  }, [results, sentence, current, isCorrect, index, items.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [results, sentence, current, isCorrect, index, items.length, onAnswer]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1229,7 +1235,7 @@ export default function LearnPage() {
           const def = getPathById(path.path_id)
           if (!def) continue
 
-          totalGoal += path.daily_goal
+          totalGoal += path.batch_size
 
           const pathGrammar: GrammarLearnItem[] = []
           const pathVocab: { vocab: GwcVocab; sentences: GwcVocabSentence[] }[] = []
@@ -1240,7 +1246,8 @@ export default function LearnPage() {
           }
           if (def.type === 'vocab' || def.type === 'mixed') {
             const voc = await fetchNewVocabItems(sessionId)
-            pathVocab.push(...voc)
+            // Limit to batch_size items per session
+            pathVocab.push(...voc.slice(0, path.batch_size))
           }
 
           if (pathGrammar.length === 0 && pathVocab.length === 0) continue
@@ -1295,108 +1302,70 @@ export default function LearnPage() {
   }, [loadKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
-  // ── Save results and award XP ─────────────────────────────────────────────
-  async function handleClozeComplete(results: ClozeResult[]) {
+  // ── Save a single cloze result immediately when card is answered ─────────
+  const saveLearnResult = useCallback(async (r: ClozeResult) => {
     const sessionId = getOrCreateSessionId()
-    const vocabNewResults = results.filter(r => r.type === 'vocab_new')
-    const grammarResults  = results.filter(r => r.type === 'grammar')
+    const srs = calculateNextReview(r.correct, 0)
+    const nextReview = new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString()
 
-    // Save vocab reviews — one row per vocab word.
-    // Sentences rotate via last_sentence_idx; new cases appear automatically when level goes up.
-    if (vocabNewResults.length > 0) {
-      const uniqueVocabIds = [...new Set(vocabNewResults.map(r => r.vocabId!).filter(Boolean))]
-      for (const vocabId of uniqueVocabIds) {
-        const r = vocabNewResults.find(x => x.vocabId === vocabId)!
-        const srs = calculateNextReview(r.correct, 0)
-        await supabase.from('gwc_vocab_reviews').upsert(
-          {
-            session_id:       sessionId,
-            vocab_id:         vocabId,
-            interval_days:    Math.ceil(srs.intervalDays),
-            ease_factor:      2.5,
-            repetitions:      srs.newSrsLevel,
-            next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
-            last_sentence_idx: 1,
-            total_reviews:    1,
-            correct_reviews:  r.correct ? 1 : 0,
-          },
-          { onConflict: 'session_id,vocab_id', ignoreDuplicates: false }
-        )
-      }
-    }
-
-    // Save grammar reviews — some may already exist (via "Add to Reviews" on topic page)
-    if (grammarResults.length > 0) {
-      // Fetch grammar sentences to get topic_id for each result
-      const { data: sentenceData } = await supabase
-        .from('gwc_grammar_sentences')
-        .select('id, topic_id')
-        .in('id', grammarResults.map(r => r.id))
-
-      const sentenceTopicMap = Object.fromEntries(
-        (sentenceData || []).map((s: { id: string; topic_id: string }) => [s.id, s.topic_id])
+    if (r.type === 'vocab_new' && r.vocabId) {
+      await supabase.from('gwc_vocab_reviews').upsert(
+        {
+          session_id:        sessionId,
+          vocab_id:          r.vocabId,
+          interval_days:     Math.ceil(srs.intervalDays),
+          ease_factor:       2.5,
+          repetitions:       srs.newSrsLevel,
+          next_review_at:    nextReview,
+          last_sentence_idx: 1,
+          total_reviews:     1,
+          correct_reviews:   r.correct ? 1 : 0,
+        },
+        { onConflict: 'session_id,vocab_id', ignoreDuplicates: false }
       )
-
-      // Check for existing grammar reviews (using topic_id now)
-      const topicIds = grammarResults
-        .map(r => sentenceTopicMap[r.id])
-        .filter((topicId): topicId is string => !!topicId)
-
+    } else if (r.type === 'grammar' && r.topicId) {
       const { data: existing } = await supabase
         .from('gwc_grammar_reviews')
-        .select('id, topic_id')
+        .select('id')
         .eq('session_id', sessionId)
-        .in('topic_id', topicIds)
+        .eq('topic_id', r.topicId)
+        .maybeSingle()
 
-      const existingMap = Object.fromEntries(
-        (existing || []).map((e: { id: string; topic_id: string }) => [e.topic_id, e.id])
-      )
-
-      const toInsert = grammarResults.filter(r => !existingMap[sentenceTopicMap[r.id]])
-      const toUpdate = grammarResults.filter(r => !!existingMap[sentenceTopicMap[r.id]])
-
-      if (toInsert.length > 0) {
-        await supabase.from('gwc_grammar_reviews').insert(
-          toInsert.map(r => {
-            const topicId = sentenceTopicMap[r.id]
-            const srs = calculateNextReview(r.correct, 0)
-            return {
-              session_id:       sessionId,
-              topic_id:         topicId,
-              next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
-              last_sentence_idx: 0,
-              repetitions:      srs.newSrsLevel,
-              ease_factor:      2.5,
-              interval_days:    Math.ceil(srs.intervalDays),
-              correct_streak:   r.correct ? 1 : 0,
-              total_reviews:    1,
-              correct_reviews:  r.correct ? 1 : 0,
-            }
-          })
-        )
-      }
-
-      for (const r of toUpdate) {
-        const topicId = sentenceTopicMap[r.id]
-        const srs = calculateNextReview(r.correct, 0)
-        await supabase
-          .from('gwc_grammar_reviews')
-          .update({
-            next_review_at:   new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString(),
-            ease_factor:      2.5,
-            interval_days:    Math.ceil(srs.intervalDays),
-            repetitions:      srs.newSrsLevel,
-            correct_streak:   r.correct ? 1 : 0,
-          })
-          .eq('id', existingMap[topicId])
+      if (existing) {
+        await supabase.from('gwc_grammar_reviews').update({
+          next_review_at:  nextReview,
+          repetitions:     srs.newSrsLevel,
+          ease_factor:     2.5,
+          interval_days:   Math.ceil(srs.intervalDays),
+          correct_streak:  r.correct ? 1 : 0,
+          total_reviews:   1,
+          correct_reviews: r.correct ? 1 : 0,
+        }).eq('id', existing.id)
+      } else {
+        await supabase.from('gwc_grammar_reviews').insert({
+          session_id:        sessionId,
+          topic_id:          r.topicId,
+          next_review_at:    nextReview,
+          last_sentence_idx: 0,
+          repetitions:       srs.newSrsLevel,
+          ease_factor:       2.5,
+          interval_days:     Math.ceil(srs.intervalDays),
+          correct_streak:    r.correct ? 1 : 0,
+          total_reviews:     1,
+          correct_reviews:   r.correct ? 1 : 0,
+        })
       }
     }
 
-    // Award XP and update daily cards for this batch
-    const correctCount = results.filter(r => r.correct).length
-    const wrongCount   = results.length - correctCount
-    const xpGained     = correctCount * XP_CORRECT_LEARN + wrongCount * XP_WRONG_LEARN
-    await awardXPAndUpdateStreak(sessionId, xpGained)
+    // Award XP per card immediately
+    await awardXPAndUpdateStreak(getOrCreateSessionId(), r.correct ? XP_CORRECT_LEARN : XP_WRONG_LEARN)
+  }, [])
+
+  // ── Batch complete — each card was already saved via saveLearnResult ────────
+  async function handleClozeComplete(results: ClozeResult[]) {
+    const sessionId = getOrCreateSessionId()
+    // XP and daily cards were already awarded per-card in saveLearnResult.
+    // Just update the daily card count total and get the latest streak.
     await updateDailyCards(sessionId, results.length)
 
     // Accumulate results across all batches
@@ -1594,6 +1563,7 @@ export default function LearnPage() {
       <ClozeSession
         items={clozeItems}
         onComplete={handleClozeComplete}
+        onAnswer={saveLearnResult}
       />
     )
   }

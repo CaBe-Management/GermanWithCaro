@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -30,29 +30,34 @@ function levelColor(level: string) {
   }
 }
 
-// ─── TTS Hook ─────────────────────────────────────────────────────────────────
+// ─── Audio Button ─────────────────────────────────────────────────────────────
 
-function useTTS() {
-  const [speaking, setSpeaking] = useState(false)
-
-  function speak(text: string) {
-    if (!window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utt = new SpeechSynthesisUtterance(text)
-    utt.lang = 'de-DE'
-    utt.rate = 0.85
-    utt.onstart = () => setSpeaking(true)
-    utt.onend = () => setSpeaking(false)
-    utt.onerror = () => setSpeaking(false)
-    window.speechSynthesis.speak(utt)
+function AudioButton({ url }: { url?: string | null }) {
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  useEffect(() => () => { audioRef.current?.pause() }, [])
+  if (!url) return null
+  function toggle() {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(url!)
+      audioRef.current.onended = () => setPlaying(false)
+    }
+    if (playing) { audioRef.current.pause(); audioRef.current.currentTime = 0; setPlaying(false) }
+    else { audioRef.current.play(); setPlaying(true) }
   }
-
-  function stop() {
-    window.speechSynthesis?.cancel()
-    setSpeaking(false)
-  }
-
-  return { speak, stop, speaking }
+  return (
+    <button
+      onClick={toggle}
+      className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+        playing
+          ? 'bg-[#7c6df2]/20 border-[#7c6df2]/50 text-[#9b8cf5]'
+          : 'bg-white/5 border-white/10 text-[#9b98b0] hover:border-[#7c6df2]/40 hover:text-[#e8e6f0]'
+      }`}
+    >
+      <span>{playing ? '⏹' : '🔊'}</span>
+      <span>{playing ? 'Stop' : 'Listen'}</span>
+    </button>
+  )
 }
 
 // ─── Native Audio Player ──────────────────────────────────────────────────────
@@ -89,7 +94,6 @@ export default function StoryPage() {
   const [prevNext, setPrevNext] = useState<{ prev: Story | null; next: Story | null }>({ prev: null, next: null })
   const [loading, setLoading] = useState(true)
   const [showTranslation, setShowTranslation] = useState(false)
-  const { speak, stop, speaking } = useTTS()
 
   useEffect(() => {
     async function load() {
@@ -179,18 +183,8 @@ export default function StoryPage() {
               {story.title}
             </h1>
 
-            {/* Listen button */}
-            <button
-              onClick={() => speaking ? stop() : speak((story.content ?? '').replace(/\n/g, ' '))}
-              className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                speaking
-                  ? 'bg-[#7c6df2]/20 border-[#7c6df2]/50 text-[#9b8cf5]'
-                  : 'bg-white/5 border-white/10 text-[#9b98b0] hover:border-[#7c6df2]/40 hover:text-[#e8e6f0]'
-              }`}
-            >
-              <span>{speaking ? '⏹' : '🔊'}</span>
-              <span>{speaking ? 'Stop' : 'Listen'}</span>
-            </button>
+            {/* Listen button — only shown if audio uploaded */}
+            <AudioButton url={story.audio_url} />
           </div>
         </div>
 
@@ -202,16 +196,7 @@ export default function StoryPage() {
           {deParagraphs.map((paragraph, i) => (
             <div key={i}>
               {/* German paragraph */}
-              <div className="group flex gap-3">
-                <p className="text-[#e8e6f0] text-lg leading-8 flex-1">{paragraph}</p>
-                <button
-                  onClick={() => speak(paragraph)}
-                  className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-lg text-[#9b98b0] hover:text-[#9b8cf5] hover:bg-white/5 mt-1 text-xs"
-                  title="Listen to this paragraph"
-                >
-                  🔊
-                </button>
-              </div>
+              <p className="text-[#e8e6f0] text-lg leading-8">{paragraph}</p>
 
               {/* English translation for this paragraph */}
               {showTranslation && enParagraphs[i] && (
@@ -241,12 +226,6 @@ export default function StoryPage() {
 
         {/* Divider */}
         <div className="h-px bg-white/5 mt-10 mb-8" />
-
-        {/* Native audio (if uploaded) */}
-        {story.audio_url && <NativeAudioPlayer url={story.audio_url} />}
-
-        {/* Divider */}
-        <div className="h-px bg-white/5 mt-8 mb-8" />
 
         {/* Prev / Next navigation */}
         <div className="flex items-center justify-between gap-4">
