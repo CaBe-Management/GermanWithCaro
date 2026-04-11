@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -10,22 +10,29 @@ import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW } from '@/li
 
 import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 
-// ─── TTS Hook ─────────────────────────────────────────────────────────────────
+// ─── Audio Button ─────────────────────────────────────────────────────────────
 
-function useTTS() {
+function AudioButton({ filename }: { filename?: string | null }) {
   const [playing, setPlaying] = useState(false)
-  function speak(text: string) {
-    if (!window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'de-DE'; u.rate = 0.85
-    u.onstart = () => setPlaying(true)
-    u.onend = () => setPlaying(false)
-    u.onerror = () => setPlaying(false)
-    window.speechSynthesis.speak(u)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  useEffect(() => () => { audioRef.current?.pause() }, [])
+  if (!filename) return null
+  function toggle() {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(`/audio/${filename}`)
+      audioRef.current.onended = () => setPlaying(false)
+    }
+    if (playing) { audioRef.current.pause(); audioRef.current.currentTime = 0; setPlaying(false) }
+    else { audioRef.current.play(); setPlaying(true) }
   }
-  function stop() { window.speechSynthesis?.cancel(); setPlaying(false) }
-  return { speak, stop, playing }
+  return (
+    <button
+      onClick={toggle}
+      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors font-bold ${
+        playing ? 'bg-[#7c6df2] text-white' : 'bg-white/10 text-[#9b98b0] hover:bg-[#7c6df2]/30 hover:text-[#9b8cf5]'
+      }`}
+    >{playing ? '⏸' : '▶'}</button>
+  )
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -51,6 +58,7 @@ interface GwcVocab {
 interface GwcVocabSentence {
   id: string; vocab_id: string; sentence_de: string; sentence_en: string
   cloze_word: string; grammatical_case: string | null; min_level: string; sort_order: number
+  audio_file?: string | null
 }
 interface VocabNewCard {
   kind: 'vocab_new'
@@ -200,13 +208,13 @@ function ReviewCardView({
 }) {
   const [input, setInput]     = useState('')
   const [answered, setAnswered] = useState(false)
-  const tts = useTTS()
 
   // Resolve card-type-specific fields
   const sentence    = card.sentence
   const clozeWord   = sentence.cloze_word
   const sentenceDE  = sentence.sentence_de
   const sentenceEN  = 'sentence_en' in sentence ? sentence.sentence_en : null
+  const audioFile   = 'audio_file' in sentence ? sentence.audio_file : null
 
   // Build cloze parts: split sentence on the cloze word
   const clozeParts = sentenceDE.replace(new RegExp(clozeWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '___').split('___')
@@ -221,11 +229,9 @@ function ReviewCardView({
   }, [input, answered])
 
   const handleNext = useCallback(() => {
-    tts.stop()
     onResult(isCorrect)
-  }, [isCorrect, onResult, tts])
+  }, [isCorrect, onResult])
 
-  useEffect(() => { if (answered) tts.speak(sentenceDE) }, [answered]) // eslint-disable-line
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Enter') answered ? handleNext() : handleCheck()
@@ -234,7 +240,7 @@ function ReviewCardView({
     return () => window.removeEventListener('keydown', handler)
   }, [answered, handleCheck, handleNext])
 
-  useEffect(() => { setInput(''); setAnswered(false); tts.stop() }, [card.reviewId]) // eslint-disable-line
+  useEffect(() => { setInput(''); setAnswered(false) }, [card.reviewId])
 
   const wordsLeft = total - (cardNumber - 1)
   const progress  = (cardNumber - 1) / total
@@ -346,25 +352,17 @@ function ReviewCardView({
           </div>
         ) : (
           <div className="px-5 py-4 max-w-xl mx-auto w-full space-y-3">
-            {/* TTS bar */}
+            {/* Result bar */}
             <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
               isCorrect ? 'bg-[#4ade80]/5 border-[#4ade80]/20' : 'bg-[#f87171]/5 border-[#f87171]/20'
             }`}>
-              <button
-                onClick={() => tts.playing ? tts.stop() : tts.speak(sentenceDE)}
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors font-bold ${
-                  tts.playing ? 'bg-[#7c6df2] text-white' : 'bg-white/10 text-[#9b98b0] hover:bg-[#7c6df2]/30 hover:text-[#9b8cf5]'
-                }`}
-              >{tts.playing ? '⏸' : '▶'}</button>
-              <div className="flex items-center gap-0.5 flex-1">
-                {Array.from({ length: 28 }).map((_, i) => (
-                  <div key={i} className={`rounded-full flex-1 transition-all ${tts.playing ? 'bg-[#7c6df2]' : 'bg-white/15'}`}
-                    style={{ height: `${6 + Math.sin(i * 0.8) * 5}px` }} />
-                ))}
-              </div>
-              <span className="text-xs text-[#9b98b0] font-medium shrink-0">
-                {card.kind === 'vocab_new' ? card.vocab.word : card.topic.title}
+              <AudioButton filename={audioFile} />
+              <span className={`flex-1 font-bold text-base ${isCorrect ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+                {isCorrect ? `✓ ${clozeWord}` : `✗  ${clozeWord}`}
               </span>
+              {!isCorrect && (
+                <span className="text-xs text-[#9b98b0]">You typed: <span className="font-bold text-[#f87171]">{input}</span></span>
+              )}
             </div>
             {/* Next button */}
             <button
