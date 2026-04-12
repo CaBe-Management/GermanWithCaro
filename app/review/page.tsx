@@ -318,13 +318,15 @@ function ReviewCardView({
   cardNumber,
   total,
   mistakes,
+  onAnswer,
   onResult,
 }: {
   card: ReviewCard
   cardNumber: number
   total: number
   mistakes: number
-  onResult: (wasCorrect: boolean) => void
+  onAnswer: (wasCorrect: boolean) => void  // called immediately on Check — saves to DB
+  onResult: () => void                     // called on Next — advances index
 }) {
   const [input, setInput]       = useState('')
   const [answered, setAnswered] = useState(false)
@@ -348,11 +350,12 @@ function ReviewCardView({
   const handleCheck = useCallback(() => {
     if (!input.trim() || answered) return
     setAnswered(true)
-  }, [input, answered])
+    onAnswer(isCorrect)   // ← save to DB immediately, don't wait for Next
+  }, [input, answered, isCorrect, onAnswer])
 
   const handleNext = useCallback(() => {
-    onResult(isCorrect)
-  }, [isCorrect, onResult])
+    onResult()
+  }, [onResult])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -467,7 +470,10 @@ function ReviewCardView({
               : isCorrect ? 'border-[#4ade80] text-[#4ade80]'
               : 'border-[#f87171] text-[#f87171]'
             }`}>
-              {answered ? clozeWord : (input || '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0')}
+              {answered
+                ? clozeWord
+                : input || <span className="text-[#4d4a65] font-normal">{clozeWord}</span>
+              }
             </span>
             {clozeParts[1]}
           </p>
@@ -700,17 +706,14 @@ function ReviewPageInner() {
     load()
   }, [typeFilter])
 
-  async function handleResult(wasCorrect: boolean) {
+  // ── Called immediately when user clicks Check — saves SRS result to DB ───────
+  async function handleAnswer(wasCorrect: boolean) {
     const card = cards[index]
     const sessionId = getOrCreateSessionId()
 
-    const newCorrect  = wasCorrect ? correct + 1 : correct
-    const newMistakes = wasCorrect ? mistakes : mistakes + 1
-
-    // Bunpro SRS: pass current SRS level (from repetitions column)
-    const srs = calculateNextReview(wasCorrect, card.srsLevel)
+    const srs   = calculateNextReview(wasCorrect, card.srsLevel)
     const nextAt = new Date(Date.now() + srs.intervalHours * 3_600_000).toISOString()
-    const now = new Date().toISOString()
+    const now    = new Date().toISOString()
 
     if (card.kind === 'grammar') {
       const { data: cur } = await supabase
@@ -720,26 +723,25 @@ function ReviewPageInner() {
         .single()
 
       const newStreak = wasCorrect ? (cur?.correct_streak ?? 0) + 1 : 0
-      // Advance sentence index
       const { data: sents } = await supabase
         .from('gwc_grammar_sentences')
         .select('id')
         .eq('topic_id', card.topic.id)
         .order('sort_order', { ascending: true })
-      const sentCount = sents?.length ?? 1
-      const nextSentIdx = ((cur?.last_sentence_idx ?? -1) + 1) % sentCount
+      const sentCount    = sents?.length ?? 1
+      const nextSentIdx  = ((cur?.last_sentence_idx ?? -1) + 1) % sentCount
 
       await supabase.from('gwc_grammar_reviews').update({
-        reviewed_at:      now,
-        next_review_at:   nextAt,
-        ease_factor:      2.5,
-        interval_days:    Math.ceil(srs.intervalDays),
-        repetitions:      srs.newSrsLevel,
+        reviewed_at:       now,
+        next_review_at:    nextAt,
+        ease_factor:       2.5,
+        interval_days:     Math.ceil(srs.intervalDays),
+        repetitions:       srs.newSrsLevel,
         last_sentence_idx: nextSentIdx,
-        correct_streak:   newStreak,
-        total_reviews:    (cur?.total_reviews ?? 0) + 1,
-        correct_reviews:  (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
-        updated_at:       now,
+        correct_streak:    newStreak,
+        total_reviews:     (cur?.total_reviews ?? 0) + 1,
+        correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
+        updated_at:        now,
       }).eq('id', card.reviewId).eq('session_id', sessionId)
 
     } else if (card.kind === 'vocab_new') {
@@ -754,7 +756,7 @@ function ReviewPageInner() {
         ease_factor:       2.5,
         interval_days:     Math.ceil(srs.intervalDays),
         repetitions:       srs.newSrsLevel,
-        last_sentence_idx: card.lastSentenceIdx + 1,  // advance rotation
+        last_sentence_idx: card.lastSentenceIdx + 1,
         correct_streak:    wasCorrect ? ((cur?.correct_streak ?? 0) + 1) : 0,
         total_reviews:     (cur?.total_reviews   ?? 0) + 1,
         correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
@@ -762,10 +764,17 @@ function ReviewPageInner() {
       }).eq('id', card.reviewId).eq('session_id', sessionId)
     }
 
-    if (wasCorrect) setCorrect(newCorrect); else setMistakes(newMistakes)
+    if (wasCorrect) setCorrect(c => c + 1); else setMistakes(m => m + 1)
+  }
+
+  // ── Called when user clicks Next — advances to next card, awards XP at end ──
+  async function handleAdvance() {
+    const sessionId = getOrCreateSessionId()
 
     if (index + 1 >= cards.length) {
-      const xpGained = newCorrect * XP_CORRECT_REVIEW + newMistakes * XP_WRONG_REVIEW
+      // Re-read final counts from state via functional updater isn't possible here,
+      // so derive from accumulated correct/mistakes + this card's result
+      const xpGained = correct * XP_CORRECT_REVIEW + mistakes * XP_WRONG_REVIEW
       await awardXPAndUpdateStreak(sessionId, xpGained)
       setDone(true)
     } else {
@@ -805,7 +814,8 @@ function ReviewPageInner() {
       cardNumber={index + 1}
       total={cards.length}
       mistakes={mistakes}
-      onResult={handleResult}
+      onAnswer={handleAnswer}
+      onResult={handleAdvance}
     />
   )
 }
