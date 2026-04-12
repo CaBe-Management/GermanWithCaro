@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import type { VocabWord, VocabSentence } from '@/lib/supabase'
+import type { VocabWord, VocabSentence, GrammarResource } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { SrsProgressCard } from '@/components/SrsProgressCard'
 import type { SrsReviewData } from '@/components/SrsProgressCard'
 import AudioButton from '@/components/AudioButton'
 
-type Tab = 'details' | 'declension' | 'sentences'
+type Tab = 'details' | 'sentences' | 'resources'
 type GrammaticalCase = 'NOMINATIV' | 'AKKUSATIV' | 'DATIV' | 'GENITIV'
 
 const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
@@ -74,6 +74,46 @@ function SentenceCard({ sentence }: { sentence: VocabSentence }) {
       </div>
       <AudioButton filename={sentence.audio_file} size="sm" />
     </div>
+  )
+}
+
+// ─── Resource helpers ─────────────────────────────────────────────────────────
+
+function parseResources(raw: GrammarResource[] | null | undefined): GrammarResource[] {
+  if (!raw) return []
+  return raw
+}
+
+function ResourceCard({ resource }: { resource: GrammarResource }) {
+  const icons:      Record<string, string> = { youtube: '▶', tiktok: '♪', website: '🔗' }
+  const colors:     Record<string, string> = {
+    youtube: 'bg-red-500/10 border-red-500/20 hover:border-red-500/40',
+    tiktok:  'bg-[#9b8cf5]/10 border-[#9b8cf5]/20 hover:border-[#9b8cf5]/40',
+    website: 'bg-white/5 border-white/10 hover:border-white/20',
+  }
+  const iconColors: Record<string, string> = {
+    youtube: 'text-red-400 bg-red-500/15',
+    tiktok:  'text-[#9b8cf5] bg-[#9b8cf5]/15',
+    website: 'text-[#9b98b0] bg-white/10',
+  }
+  return (
+    <a
+      href={resource.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-start gap-4 p-4 rounded-xl border transition-colors ${colors[resource.type] ?? colors.website}`}
+    >
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${iconColors[resource.type] ?? iconColors.website}`}>
+        {icons[resource.type] ?? icons.website}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[#e8e6f0] font-semibold text-sm leading-snug">{resource.title}</p>
+        {resource.description && (
+          <p className="text-[#9b98b0] text-xs mt-0.5 leading-relaxed">{resource.description}</p>
+        )}
+        <p className="text-[#9b98b0] text-xs mt-1 truncate opacity-50">{resource.url}</p>
+      </div>
+    </a>
   )
 }
 
@@ -247,9 +287,15 @@ export default function VocabDetailPage() {
 
         {/* ── Tabs ─────────────────────────────────────────────────── */}
         <div className="flex gap-1 bg-[#1a1830] p-1 rounded-2xl mb-6">
-          <TabBtn label="Details"    active={tab === 'details'}    onClick={() => setTab('details')} />
-          {isNoun && <TabBtn label="Declension" active={tab === 'declension'} onClick={() => setTab('declension')} />}
-          <TabBtn label="Sentences"  active={tab === 'sentences'}  onClick={() => setTab('sentences')} />
+          <TabBtn label="Details"   active={tab === 'details'}   onClick={() => setTab('details')} />
+          <TabBtn label="Sentences" active={tab === 'sentences'} onClick={() => setTab('sentences')} />
+          {parseResources(word.resources).length > 0 && (
+            <TabBtn
+              label={`Resources (${parseResources(word.resources).length})`}
+              active={tab === 'resources'}
+              onClick={() => setTab('resources')}
+            />
+          )}
         </div>
 
         {/* ════════ DETAILS TAB ════════════════════════════════════ */}
@@ -266,6 +312,83 @@ export default function VocabDetailPage() {
                 </p>
               )}
             </div>
+
+            {/* ── Noun: declension table + article overview ── */}
+            {isNoun && (
+              <>
+                <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                  <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Declension</p>
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Case</th>
+                        <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Singular</th>
+                        <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3">Plural</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {([
+                        { label: 'Nominative', sg: word.nom_sg, pl: word.nom_pl },
+                        { label: 'Accusative', sg: word.akk_sg, pl: word.akk_pl },
+                        { label: 'Dative',     sg: word.dat_sg, pl: word.dat_pl },
+                        { label: 'Genitive',   sg: word.gen_sg, pl: word.gen_pl },
+                      ]).filter(r => r.sg || r.pl).map(({ label, sg, pl }) => (
+                        <tr key={label} className="border-t border-white/5">
+                          <td className="py-3 pr-4 font-bold text-[#c084fc] text-xs whitespace-nowrap">{label}</td>
+                          <td className="py-3 pr-4 text-[#e8e6f0]">{sg || '—'}</td>
+                          <td className="py-3 text-[#e8e6f0]">{pl || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                  <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Articles</p>
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-[#9b98b0] pb-2 pr-3 w-10"></th>
+                        <th className="text-left text-[#9b98b0] pb-2 pr-3">Definite</th>
+                        <th className="text-left text-[#9b98b0] pb-2 pr-3">Indefinite</th>
+                        <th className="text-left text-[#9b98b0] pb-2">Negation</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[#e8e6f0]">
+                      {word.nom_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Nom.</td><td className="py-2 pr-3">{word.nom_sg}</td><td className="py-2 pr-3">{word.nom_sg.replace(/^(der|die|das) /, 'ein ')}</td><td className="py-2">{word.nom_sg.replace(/^(der|die|das) /, 'kein ')}</td></tr>}
+                      {word.akk_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Akk.</td><td className="py-2 pr-3">{word.akk_sg}</td><td className="py-2 pr-3">{word.akk_sg.replace(/^(den|die|das) /, 'einen ')}</td><td className="py-2">{word.akk_sg.replace(/^(den|die|das) /, 'keinen ')}</td></tr>}
+                      {word.dat_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Dat.</td><td className="py-2 pr-3">{word.dat_sg}</td><td className="py-2 pr-3">{word.dat_sg.replace(/^(dem|der) /, 'einem ')}</td><td className="py-2">{word.dat_sg.replace(/^(dem|der) /, 'keinem ')}</td></tr>}
+                      {word.gen_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Gen.</td><td className="py-2 pr-3">{word.gen_sg}</td><td className="py-2 pr-3">{word.gen_sg.replace(/^(des|der) /, 'eines ')}</td><td className="py-2">{word.gen_sg.replace(/^(des|der) /, 'keines ')}</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* ── Adjective: comparative + superlative ── */}
+            {word.type === 'ADJEKTIV' && (word.comparative || word.superlative) && (
+              <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
+                <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Forms</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-[0.65rem] font-bold uppercase tracking-widest text-[#9b98b0] mb-1">Positive</p>
+                    <p className="text-[#e8e6f0] font-semibold">{word.word}</p>
+                  </div>
+                  {word.comparative && (
+                    <div>
+                      <p className="text-[0.65rem] font-bold uppercase tracking-widest text-[#9b98b0] mb-1">Comparative</p>
+                      <p className="text-[#e8e6f0] font-semibold">{word.comparative}</p>
+                    </div>
+                  )}
+                  {word.superlative && (
+                    <div>
+                      <p className="text-[0.65rem] font-bold uppercase tracking-widest text-[#9b98b0] mb-1">Superlative</p>
+                      <p className="text-[#e8e6f0] font-semibold">{word.superlative}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Fun Fact */}
             {word.fun_fact && (
@@ -304,58 +427,12 @@ export default function VocabDetailPage() {
           </div>
         )}
 
-        {/* ════════ DECLENSION TAB ══════════════════════════════════ */}
-        {tab === 'declension' && isNoun && (
-          <div className="space-y-4">
-
-            {/* Main table */}
-            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Declension — {word.article} {word.word}</p>
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr>
-                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Case</th>
-                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3 pr-4">Singular</th>
-                    <th className="text-left text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] pb-3">Plural</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {([
-                    { label: 'Nominative', sg: word.nom_sg, pl: word.nom_pl },
-                    { label: 'Accusative', sg: word.akk_sg, pl: word.akk_pl },
-                    { label: 'Dative',     sg: word.dat_sg, pl: word.dat_pl },
-                    { label: 'Genitive',   sg: word.gen_sg, pl: word.gen_pl },
-                  ]).map(({ label, sg, pl }) => (
-                    <tr key={label} className="border-t border-white/5">
-                      <td className="py-3 pr-4 font-bold text-[#7c6df2] text-xs whitespace-nowrap">{label}</td>
-                      <td className="py-3 pr-4 text-[#e8e6f0]">{sg || '—'}</td>
-                      <td className="py-3 text-[#e8e6f0]">{pl || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Article overview */}
-            <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-              <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Article Overview</p>
-              <table className="w-full text-xs border-collapse">
-                <thead>
-                  <tr>
-                    <th className="text-left text-[#9b98b0] pb-2 pr-3"></th>
-                    <th className="text-left text-[#9b98b0] pb-2 pr-3">Definite</th>
-                    <th className="text-left text-[#9b98b0] pb-2 pr-3">Indefinite</th>
-                    <th className="text-left text-[#9b98b0] pb-2">Negation</th>
-                  </tr>
-                </thead>
-                <tbody className="text-[#e8e6f0]">
-                  {word.nom_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Nom.</td><td className="py-2 pr-3">{word.nom_sg}</td><td className="py-2 pr-3">{word.nom_sg.replace(/^(der|die|das) /, 'ein ')}</td><td className="py-2">{word.nom_sg.replace(/^(der|die|das) /, 'kein ')}</td></tr>}
-                  {word.akk_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Akk.</td><td className="py-2 pr-3">{word.akk_sg}</td><td className="py-2 pr-3">{word.akk_sg.replace(/^(den|die|das) /, 'einen ').replace(/^(den) /, 'einen ')}</td><td className="py-2">{word.akk_sg.replace(/^(den|die|das) /, 'keinen ').replace(/^(den) /, 'keinen ')}</td></tr>}
-                  {word.dat_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Dat.</td><td className="py-2 pr-3">{word.dat_sg}</td><td className="py-2 pr-3">{word.dat_sg.replace(/^(dem|der) /, 'einem ')}</td><td className="py-2">{word.dat_sg.replace(/^(dem|der) /, 'keinem ')}</td></tr>}
-                  {word.gen_sg && <tr className="border-t border-white/5"><td className="py-2 pr-3 text-[#9b98b0] font-bold">Gen.</td><td className="py-2 pr-3">{word.gen_sg}</td><td className="py-2 pr-3">{word.gen_sg.replace(/^(des|der) /, 'eines ')}</td><td className="py-2">{word.gen_sg.replace(/^(des|der) /, 'keines ')}</td></tr>}
-                </tbody>
-              </table>
-            </div>
+        {/* ════════ RESOURCES TAB ══════════════════════════════════ */}
+        {tab === 'resources' && (
+          <div className="space-y-3">
+            {parseResources(word.resources).map((r, i) => (
+              <ResourceCard key={i} resource={r} />
+            ))}
           </div>
         )}
 

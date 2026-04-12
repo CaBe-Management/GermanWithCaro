@@ -138,7 +138,6 @@ export default function Dashboard() {
 
         // ── All queries run in parallel ──────────────────────────────────────
         const [
-          { count: allDueCount },
           { count: vocabDueCount },
           { count: grammarDueCount },
           { data: pathRows },
@@ -154,9 +153,6 @@ export default function Dashboard() {
           { data: grammarReviewRows },
           progressData,
         ] = await Promise.all([
-          // Total reviews due now (vocab + grammar)
-          supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true })
-            .eq('session_id', sessionId).lte('next_review_at', nowISO),
           // Vocab reviews due now
           supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true })
             .eq('session_id', sessionId).lte('next_review_at', nowISO),
@@ -209,7 +205,7 @@ export default function Dashboard() {
         if (user?.email) setUserEmail(user.email)
 
         // ── Due counts ──────────────────────────────────────────────────────
-        setAllDue(allDueCount ?? 0)
+        setAllDue((vocabDueCount ?? 0) + (grammarDueCount ?? 0))
         setVocabDue(vocabDueCount ?? 0)
         setGrammarDue(grammarDueCount ?? 0)
 

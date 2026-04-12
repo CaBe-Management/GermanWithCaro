@@ -76,6 +76,11 @@ export interface VocabWord {
   akk_sg: string | null; akk_pl: string | null
   dat_sg: string | null; dat_pl: string | null
   gen_sg: string | null; gen_pl: string | null
+  // Adjective forms
+  comparative: string | null   // e.g. "einfacher"
+  superlative: string | null   // e.g. "am einfachsten"
+  // Resources (YouTube / TikTok / Website links)
+  resources: GrammarResource[] | null
   path_a1_vocabulary: number | null
   path_caros_path: number | null
   created_at: string

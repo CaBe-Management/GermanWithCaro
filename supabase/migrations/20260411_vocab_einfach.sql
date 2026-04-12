@@ -37,16 +37,16 @@ BEGIN
   INSERT INTO gwc_vocab_sentences
     (vocab_id, sentence_de, sentence_en, cloze_word, grammatical_case, min_level, sort_order, audio_file)
   VALUES
-    (v_id, 'Das ist _____.', 'That is easy.', 'einfach', NULL, 'A1', 1, NULL),
-    (v_id, 'Die Aufgabe ist _____.', 'The task is easy.', 'einfach', NULL, 'A1', 2, NULL),
-    (v_id, 'Der Test ist _____.', 'The test is easy.', 'einfach', NULL, 'A1', 3, NULL),
-    (v_id, 'Das Wort ist _____.', 'The word is easy.', 'einfach', NULL, 'A1', 4, NULL),
-    (v_id, 'Das Spiel ist _____.', 'The game is easy.', 'einfach', NULL, 'A1', 5, NULL),
-    (v_id, 'Die Frage ist _____.', 'The question is easy.', 'einfach', NULL, 'A1', 6, NULL),
-    (v_id, 'Das ist nicht _____.', 'That is not easy.', 'einfach', NULL, 'A1', 7, NULL),
-    (v_id, 'Das Rezept ist _____.', 'The recipe is easy.', 'einfach', NULL, 'A1', 8, NULL),
-    (v_id, 'Die Übung ist _____.', 'The exercise is easy.', 'einfach', NULL, 'A1', 9, NULL),
-    (v_id, 'Das Leben ist nicht _____.', 'Life is not easy.', 'einfach', NULL, 'A1', 10, NULL);
+    (v_id, 'Das ist einfach.', 'That is easy.', 'einfach', NULL, 'A1', 1, NULL),
+    (v_id, 'Die Aufgabe ist einfach.', 'The task is easy.', 'einfach', NULL, 'A1', 2, NULL),
+    (v_id, 'Der Test ist einfach.', 'The test is easy.', 'einfach', NULL, 'A1', 3, NULL),
+    (v_id, 'Das Wort ist einfach.', 'The word is easy.', 'einfach', NULL, 'A1', 4, NULL),
+    (v_id, 'Das Spiel ist einfach.', 'The game is easy.', 'einfach', NULL, 'A1', 5, NULL),
+    (v_id, 'Die Frage ist einfach.', 'The question is easy.', 'einfach', NULL, 'A1', 6, NULL),
+    (v_id, 'Das ist nicht einfach.', 'That is not easy.', 'einfach', NULL, 'A1', 7, NULL),
+    (v_id, 'Das Rezept ist einfach.', 'The recipe is easy.', 'einfach', NULL, 'A1', 8, NULL),
+    (v_id, 'Die Übung ist einfach.', 'The exercise is easy.', 'einfach', NULL, 'A1', 9, NULL),
+    (v_id, 'Das Leben ist nicht einfach.', 'Life is not easy.', 'einfach', NULL, 'A1', 10, NULL);
 END $$;
 
 COMMIT;
