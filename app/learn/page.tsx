@@ -703,7 +703,7 @@ function ClozeSession({
                       ? <span className="font-bold text-[#9b8cf5]">{input}</span>
                       : current.kind === 'grammar'
                         ? <span className="text-[#4d4a65] font-normal italic text-2xl">{getGrammarPlaceholder(current.topic)}</span>
-                        : <span className="text-[#4d4a65] font-normal">{clozeWord}</span>
+                        : <span className="opacity-0">{'x'.repeat(Math.max(clozeWord.length, 4))}</span>
                   }
                 </span>
               </span>

@@ -61,6 +61,20 @@ function normalize(s: string) {
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
 }
 
+/** Generic grey hint for grammar cards — never reveals the answer */
+function getGrammarPlaceholder(topic: GrammarTopic): string {
+  const title = (topic.title ?? '').toLowerCase()
+  const cat   = (topic.category ?? '').toLowerCase()
+  if (title.includes('w-frage') || cat.includes('w_question') || cat.includes('question')) return 'question-word'
+  if (cat.includes('verb'))    return 'verb form'
+  if (cat.includes('article') || cat.includes('artikel')) return 'article'
+  if (cat.includes('adj'))     return 'adjective'
+  if (cat.includes('prep'))    return 'preposition'
+  if (cat.includes('modal'))   return 'modal verb'
+  if (cat.includes('pronoun')) return 'pronoun'
+  return 'answer'
+}
+
 function typColor(typ: string) {
   switch (typ) {
     case 'NOMEN':     return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
@@ -352,7 +366,11 @@ function ReviewCardView({
             }`}>
               {answered
                 ? clozeWord
-                : input || <span className="text-[#4d4a65] font-normal">{clozeWord}</span>
+                : input || (
+                    card.kind === 'grammar'
+                      ? <span className="text-[#4d4a65] font-normal italic">{getGrammarPlaceholder(card.topic)}</span>
+                      : <span className="opacity-0">{'x'.repeat(Math.max(clozeWord.length, 4))}</span>
+                  )
               }
             </span>
             {clozeParts[1]}
