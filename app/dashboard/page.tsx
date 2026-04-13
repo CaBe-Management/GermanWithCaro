@@ -584,7 +584,7 @@ export default function Dashboard() {
                     <span className="text-sm font-bold text-[#9b98b0]">{loading ? '…' : grammarDue}</span>
                   </Link>
                   <Link
-                    href="/review?type=vocab"
+                    href="/review?type=vocab_new"
                     className="flex items-center justify-between px-5 py-3 hover:bg-white/5 transition-colors"
                   >
                     <span className="text-sm text-[#9b98b0]">Vocab Only</span>
