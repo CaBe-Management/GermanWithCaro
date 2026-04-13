@@ -5,8 +5,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Navbar from './Navbar'
 
-// Pages that do NOT require login
-const PUBLIC_PATHS = ['/', '/login', '/grammar', '/reset-password']
+// Pages that do NOT require login — exact-match only
+// Grammar/vocab DETAIL pages (/grammar/[slug], /vocab/[slug]) are intentionally NOT listed here
+const PUBLIC_PATHS = ['/', '/login', '/grammar', '/vocab', '/reset-password', '/impressum', '/privacy', '/terms', '/cookies']
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -60,8 +61,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Show Navbar only on protected pages */}
-      {authed && !isPublic && <Navbar />}
+      {/* Show Navbar for all authenticated users, regardless of page */}
+      {authed && <Navbar />}
       {children}
     </>
   )

@@ -45,7 +45,6 @@ export default function Navbar() {
   const [userLevel, setUserLevel] = useState<number | null>(null)  // current XP level
 
   const contentDropdown = useDropdown()
-  const practiceDropdown = useDropdown()
   const profileDropdown = useDropdown()
   const mobileMenu = useDropdown()
 
@@ -202,7 +201,7 @@ export default function Navbar() {
                 <Link
                   href="/search"
                   onClick={() => contentDropdown.setOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 border-b border-white/5 ${
                     pathname === '/search' ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
                   }`}
                 >
@@ -212,34 +211,9 @@ export default function Navbar() {
                     <p className="text-xs text-[#9b98b0]">Find words & topics</p>
                   </div>
                 </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Practice dropdown — desktop only */}
-          <div className="relative hidden md:block" ref={practiceDropdown.ref}>
-            <button
-              onClick={() => practiceDropdown.setOpen(v => !v)}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                pathname.startsWith('/reading')
-                  ? 'text-[#e8e6f0] bg-white/8'
-                  : 'text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/5'
-              }`}
-            >
-              Practice
-              <svg
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${practiceDropdown.open ? 'rotate-180' : ''}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {practiceDropdown.open && (
-              <div className="absolute top-full left-0 mt-1.5 w-52 bg-[#1a1830] rounded-xl border border-white/8 shadow-xl shadow-black/40 overflow-hidden z-50">
                 <Link
                   href="/reading"
-                  onClick={() => practiceDropdown.setOpen(false)}
+                  onClick={() => contentDropdown.setOpen(false)}
                   className={`flex items-center gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
                     pathname.startsWith('/reading') ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]'
                   }`}
@@ -253,6 +227,7 @@ export default function Navbar() {
               </div>
             )}
           </div>
+
         </div>
 
         {/* ── Right: Desktop (search + avatar) | Mobile (hamburger) ── */}
@@ -304,6 +279,11 @@ export default function Navbar() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                     Forecast
+                    {userLevel !== null && (
+                      <span className="ml-auto text-xs bg-[#7c6df2]/20 text-[#9b8cf5] px-1.5 py-0.5 rounded font-bold">
+                        Lv {userLevel}
+                      </span>
+                    )}
                   </Link>
                 </div>
                 <div className="border-t border-white/5 py-1">
@@ -374,6 +354,11 @@ export default function Navbar() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                     <span className="font-medium">Forecast</span>
+                    {userLevel !== null && (
+                      <span className="ml-auto text-xs bg-[#7c6df2]/20 text-[#9b8cf5] px-1.5 py-0.5 rounded font-bold">
+                        Lv {userLevel}
+                      </span>
+                    )}
                   </Link>
                 </div>
 
@@ -419,11 +404,6 @@ export default function Navbar() {
                       <p className="text-xs text-[#9b98b0]">Find words & topics</p>
                     </div>
                   </Link>
-                </div>
-
-                {/* Practice section */}
-                <div className="border-t border-white/5">
-                  <p className="px-4 pt-3 pb-1 text-xs text-[#9b98b0] uppercase tracking-wider font-bold">Practice</p>
                   <Link
                     href="/reading"
                     onClick={() => mobileMenu.setOpen(false)}
