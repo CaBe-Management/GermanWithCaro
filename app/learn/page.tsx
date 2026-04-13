@@ -16,6 +16,7 @@ import {
 import { getPathById } from '@/lib/paths'
 import type { GrammarTopic, GrammarSentence } from '@/lib/supabase'
 import AudioButton from '@/components/AudioButton'
+import { VocabInfoBody } from '@/components/VocabInfoBody'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,8 @@ interface GwcVocab {
   akk_sg: string | null; akk_pl: string | null
   dat_sg: string | null; dat_pl: string | null
   gen_sg: string | null; gen_pl: string | null
+  comparative: string | null
+  superlative: string | null
 }
 interface GwcVocabSentence {
   id: string; vocab_id: string; sentence_de: string; sentence_en: string
@@ -505,16 +508,6 @@ function VocabIntroScreen({ vocab, sentence, onContinue, onBack, current: idx, t
   total: number
 }) {
   const isLast = idx === total - 1
-  const articleMap: Record<string, string> = { der: 'der', die: 'die', das: 'das' }
-  const article = vocab.article ? (articleMap[vocab.article] ?? vocab.article) : null
-
-  // Declension table for Nomen
-  const cases = [
-    { label: 'NOM', sg: vocab.nom_sg, pl: vocab.nom_pl },
-    { label: 'AKK', sg: vocab.akk_sg, pl: vocab.akk_pl },
-    { label: 'DAT', sg: vocab.dat_sg, pl: vocab.dat_pl },
-    { label: 'GEN', sg: vocab.gen_sg, pl: vocab.gen_pl },
-  ].filter(r => r.sg || r.pl)
 
   return (
     <div className="min-h-screen bg-[#0f0e17] flex flex-col">
@@ -525,60 +518,20 @@ function VocabIntroScreen({ vocab, sentence, onContinue, onBack, current: idx, t
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-6 py-10">
+        <div className="max-w-lg mx-auto px-6 py-8">
 
-          {/* Badges */}
-          <div className="flex items-center gap-2 mb-4 justify-center flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/10 text-[#9b8cf5] border border-[#7c6df2]/20">Vocab</span>
-            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10">{vocab.level}</span>
-            {vocab.type && (
-              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/5 text-[#9b98b0] border border-white/10 capitalize">{vocab.type}</span>
-            )}
+          {/* New word badge */}
+          <div className="flex justify-center mb-5">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30 uppercase tracking-widest">
+              New Word
+            </span>
           </div>
 
-          {/* Word + article */}
-          <h2 className="text-4xl font-bold text-[#7c6df2] text-center mb-1">
-            {article ? <span className="text-[#9b98b0] font-normal">{article} </span> : null}{vocab.word}
-          </h2>
-          <p className="text-[#9b98b0] text-center italic mb-6">{vocab.translation_en}</p>
-
-          {/* Explanation */}
-          {vocab.explanation_en && (
-            <div className="bg-[#1a1830] rounded-2xl border border-[#7c6df2]/15 px-5 py-4 mb-4">
-              <p className="text-xs text-[#9b8cf5] uppercase tracking-wider font-bold mb-2">About</p>
-              <p className="text-[#c5c3d4] text-sm leading-relaxed">{vocab.explanation_en}</p>
-            </div>
-          )}
-
-          {/* Declension table for Nomen */}
-          {cases.length > 0 && (
-            <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden mb-4">
-              <div className="px-5 py-3 border-b border-white/5">
-                <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold">Declension</p>
-              </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/5">
-                    <td className="py-2 px-5 text-[#9b98b0] text-xs font-bold uppercase" />
-                    <td className="py-2 px-5 text-[#9b98b0] text-xs font-bold uppercase">Singular</td>
-                    <td className="py-2 px-5 text-[#9b98b0] text-xs font-bold uppercase">Plural</td>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cases.map(r => (
-                    <tr key={r.label} className="border-t border-white/5">
-                      <td className="py-2.5 px-5 text-[#9b98b0] text-sm font-bold w-16">{r.label}</td>
-                      <td className="py-2.5 px-5 text-[#e8e6f0] font-semibold text-sm">{r.sg ?? '—'}</td>
-                      <td className="py-2.5 px-5 text-[#e8e6f0] text-sm">{r.pl ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {/* Full detail body — same as vocab detail page */}
+          <VocabInfoBody vocab={vocab} showLink={false} />
 
           {/* Example sentence */}
-          <div className="bg-[#1a1830] rounded-2xl border border-white/5 px-5 py-4 mb-6">
+          <div className="bg-[#1a1830] rounded-2xl border border-white/5 px-5 py-4 mt-4">
             <p className="text-xs text-[#9b98b0] uppercase tracking-wider font-bold mb-2">Example</p>
             <p className="text-[#e8e6f0] text-sm">{sentence.sentence_de}</p>
             <p className="text-[#9b98b0] text-xs mt-1 italic">{sentence.sentence_en}</p>
