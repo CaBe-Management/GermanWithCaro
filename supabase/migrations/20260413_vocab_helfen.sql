@@ -10,7 +10,6 @@ INSERT INTO gwc_vocab (
   slug, word, type, article, plural, level, frequency_rank,
   translation_en, explanation_en, usage_notes, fun_fact,
   synonyms, related_words,
-  resources,
   is_draft
 ) VALUES (
   'helfen',
@@ -26,7 +25,6 @@ INSERT INTO gwc_vocab (
   '"helfen" and English "help" share the same Proto-Germanic root *helpan. A great phrase to know: "Das hilft mir nichts" (That doesn''t help me at all) — shows how naturally dative works with this verb.',
   'unterstützen, beistehen, assistieren',
   'die Hilfe, der Helfer, die Helferin, hilfreich, hilflos, behilflich sein',
-  '[{"type":"youtube","url":"https://youtube.com/shorts/jszKyV66RrU?feature=share","title":"helfen — German With Caro","description":"How to use helfen correctly with the dative case"}]'::jsonb,
   true
 ) ON CONFLICT (slug) DO NOTHING;
 

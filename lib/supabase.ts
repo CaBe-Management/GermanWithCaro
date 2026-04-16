@@ -38,20 +38,12 @@ export interface GrammarTopic {
   register_standard: number | null
   register_casual: number | null
   fun_fact: string | null          // Shown in purple info box
-  resources: GrammarResource[] | null  // YouTube / TikTok / Website links
   synonyms: string | null          // Synonymous expressions
   related_forms: string | null     // Related grammar / question words
   audio_file: string | null
   // Path membership: NULL = not in path, number = position in path
   path_a1_grammar: number | null
   path_caros_path: number | null
-}
-
-export interface GrammarResource {
-  type: 'youtube' | 'tiktok' | 'website'
-  url: string
-  title: string
-  description?: string
 }
 
 // ─── Vocab Types ─────────────────────────────────────────────────────────────
@@ -79,8 +71,6 @@ export interface VocabWord {
   // Adjective forms
   comparative: string | null   // e.g. "einfacher"
   superlative: string | null   // e.g. "am einfachsten"
-  // Resources (YouTube / TikTok / Website links)
-  resources: GrammarResource[] | null
   path_a1_vocabulary: number | null
   path_caros_path: number | null
   created_at: string

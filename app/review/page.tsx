@@ -52,7 +52,22 @@ interface VocabNewCard {
   srsLevel: number
 }
 
-type ReviewCard = GrammarCard | VocabNewCard
+// ── Video sentences (flip card style) ────────────────────────────────────────
+interface VideoSentence {
+  id: string
+  sentence_de: string
+  sentence_en: string
+  highlight_de: string | null
+  highlight_en: string | null
+}
+interface VideoCard {
+  kind: 'video'
+  reviewId: string
+  sentence: VideoSentence
+  srsLevel: number
+}
+
+type ReviewCard = GrammarCard | VocabNewCard | VideoCard
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -205,6 +220,191 @@ function VocabNewInfoPanel({ vocab, grammaticalCase }: { vocab: GwcVocab; gramma
   )
 }
 
+// ─── Video Flip Card View ─────────────────────────────────────────────────────
+
+function HighlightText({ text, highlight }: { text: string; highlight: string | null }) {
+  if (!highlight) return <>{text}</>
+  const parts = text.split(highlight)
+  return (
+    <>
+      {parts.map((part, i, arr) =>
+        i < arr.length - 1
+          ? <span key={i}>{part}<mark className="bg-transparent text-[#9b8cf5] font-bold not-italic">{highlight}</mark></span>
+          : part
+      )}
+    </>
+  )
+}
+
+function VideoFlipCardView({
+  card,
+  cardNumber,
+  total,
+  mistakes,
+  onAnswer,
+  onResult,
+}: {
+  card: VideoCard
+  cardNumber: number
+  total: number
+  mistakes: number
+  onAnswer: (wasCorrect: boolean) => void
+  onResult: () => void
+}) {
+  const [flipped, setFlipped]   = useState(false)
+  const [answered, setAnswered] = useState(false)
+  const [wasCorrect, setWasCorrect] = useState<boolean | null>(null)
+  const wordsLeft = total - (cardNumber - 1)
+  const progress  = (cardNumber - 1) / total
+  const srsLabels = ['Novice I','Novice II','Novice III','Apprentice I','Apprentice II','Apprentice III','Journeyman I','Journeyman II','Expert I','Expert II','Master','⭐ Mastered']
+  const srsLabel = srsLabels[Math.min(card.srsLevel, 11)] ?? 'Novice I'
+
+  useEffect(() => { setFlipped(false); setAnswered(false); setWasCorrect(null) }, [card.reviewId])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!flipped && e.key === ' ') { e.preventDefault(); setFlipped(true) }
+      if (flipped && !answered) {
+        if (e.key === '1') handleMark(true)
+        if (e.key === '2') handleMark(false)
+      }
+      if (answered && e.key === 'Enter') onResult()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [flipped, answered, onResult])
+
+  function handleMark(correct: boolean) {
+    setAnswered(true)
+    setWasCorrect(correct)
+    onAnswer(correct)
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
+
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
+        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+          ← Dashboard
+        </Link>
+        <div className="flex items-center gap-3">
+          <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-[#7c6df2]/20 text-[#9b8cf5] border border-[#7c6df2]/30">
+            🎬 Video
+          </span>
+          <span className="px-2 py-0.5 rounded-md text-xs text-[#6b6880] bg-white/5 border border-white/8">{srsLabel}</span>
+          <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+            <div className="flex items-center gap-1">
+              <span className="text-[#9b98b0]">□</span>
+              <span className="font-bold text-[#e8e6f0]">{wordsLeft}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[#4ade80]">✓</span>
+              <span className="font-bold text-[#4ade80]">{cardNumber - 1 - mistakes}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[#f87171]">✗</span>
+              <span className={`font-bold ${mistakes > 0 ? 'text-[#f87171]' : 'text-[#9b98b0]'}`}>{mistakes}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-0.5 bg-white/5">
+        <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${progress * 100}%` }} />
+      </div>
+
+      {/* Card */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+        <div className="max-w-xl w-full">
+
+          {/* Flip card */}
+          <div
+            className={`relative bg-[#1a1830] rounded-2xl border p-8 sm:p-12 text-center cursor-pointer transition-all duration-300 select-none ${
+              answered
+                ? wasCorrect
+                  ? 'border-[#4ade80]/40'
+                  : 'border-[#f87171]/40'
+                : flipped
+                ? 'border-[#7c6df2]/40'
+                : 'border-white/8 hover:border-[#7c6df2]/30'
+            }`}
+            onClick={() => !flipped && setFlipped(true)}
+          >
+            {/* Front — German */}
+            <div className={flipped ? 'hidden' : 'block'}>
+              <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-6 font-medium">🇩🇪 German</p>
+              <p className="text-2xl sm:text-3xl font-light text-[#e8e6f0] leading-relaxed">
+                <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
+              </p>
+              <p className="text-xs text-[#4a4760] mt-8">Click or press Space to reveal translation</p>
+            </div>
+
+            {/* Back — English */}
+            <div className={flipped ? 'block' : 'hidden'}>
+              <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-4 font-medium">🇩🇪 German</p>
+              <p className="text-xl sm:text-2xl font-light text-[#e8e6f0] leading-relaxed mb-6">
+                <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
+              </p>
+              <div className="h-px bg-white/8 mb-6" />
+              <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-4 font-medium">🇬🇧 English</p>
+              <p className="text-xl sm:text-2xl text-[#9b98b0] leading-relaxed italic">
+                <HighlightText text={card.sentence.sentence_en} highlight={card.sentence.highlight_en} />
+              </p>
+            </div>
+          </div>
+
+          {/* Result indicator */}
+          {answered && (
+            <div className={`mt-4 text-center text-sm font-semibold ${wasCorrect ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+              {wasCorrect ? '✓ Good job!' : '✗ Keep studying!'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom controls */}
+      <div className="bg-[#0f0e17] border-t border-white/5 px-5 py-4">
+        {!flipped ? (
+          <button
+            onClick={() => setFlipped(true)}
+            className="w-full max-w-xl mx-auto flex py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold text-base hover:bg-[#9b8cf5] transition-colors justify-center"
+          >
+            Reveal Translation
+          </button>
+        ) : !answered ? (
+          <div className="flex gap-3 max-w-xl mx-auto">
+            <button
+              onClick={() => handleMark(false)}
+              className="flex-1 py-3.5 rounded-xl border-2 border-[#f87171]/40 text-[#f87171] font-bold hover:bg-[#f87171]/10 transition-colors"
+            >
+              ✗ Didn't know <span className="text-xs opacity-60">[2]</span>
+            </button>
+            <button
+              onClick={() => handleMark(true)}
+              className="flex-1 py-3.5 rounded-xl border-2 border-[#4ade80]/40 text-[#4ade80] font-bold hover:bg-[#4ade80]/10 transition-colors"
+            >
+              ✓ Knew it <span className="text-xs opacity-60">[1]</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onResult}
+            className={`w-full max-w-xl mx-auto flex py-3.5 rounded-xl border-2 font-bold text-base transition-colors justify-center gap-2 ${
+              wasCorrect
+                ? 'border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10'
+                : 'border-[#f87171]/40 text-[#f87171] hover:bg-[#f87171]/10'
+            }`}
+          >
+            Next → <span className="text-xs opacity-60">(Enter)</span>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Review Card View ─────────────────────────────────────────────────────────
 
 function ReviewCardView({
@@ -215,7 +415,7 @@ function ReviewCardView({
   onAnswer,
   onResult,
 }: {
-  card: ReviewCard
+  card: GrammarCard | VocabNewCard
   cardNumber: number
   total: number
   mistakes: number
@@ -592,6 +792,37 @@ function ReviewPageInner() {
           }
         }
 
+        // ── Video sentence reviews (flip cards) ────────────────────────────────
+        if (typeFilter === 'all') {
+          const { data: videoReviews } = await supabase
+            .from('gwc_video_reviews')
+            .select('*')
+            .eq('session_id', sessionId)
+            .lte('next_review_at', now)
+            .order('next_review_at', { ascending: true })
+            .limit(30)
+
+          if (videoReviews && videoReviews.length > 0) {
+            const sentenceIds = videoReviews.map((r: { sentence_id: string }) => r.sentence_id)
+            const { data: videoSentences } = await supabase
+              .from('gwc_video_sentences')
+              .select('id, sentence_de, sentence_en, highlight_de, highlight_en')
+              .in('id', sentenceIds)
+
+            const sentMap = Object.fromEntries((videoSentences || []).map((s: VideoSentence) => [s.id, s]))
+            for (const r of videoReviews) {
+              const sentence = sentMap[r.sentence_id]
+              if (!sentence) continue
+              built.push({
+                kind: 'video' as const,
+                reviewId: r.id,
+                sentence,
+                srsLevel: r.repetitions ?? 0,
+              })
+            }
+          }
+        }
+
         // Shuffle vocab/grammar together for variety
         setCards(built)
       } catch (e) {
@@ -630,7 +861,6 @@ function ReviewPageInner() {
       const nextSentIdx  = ((cur?.last_sentence_idx ?? -1) + 1) % sentCount
 
       await supabase.from('gwc_grammar_reviews').update({
-        reviewed_at:       now,
         next_review_at:    nextAt,
         ease_factor:       2.5,
         interval_days:     Math.ceil(srs.intervalDays),
@@ -640,7 +870,7 @@ function ReviewPageInner() {
         total_reviews:     (cur?.total_reviews ?? 0) + 1,
         correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
         updated_at:        now,
-      }).eq('id', card.reviewId).eq('session_id', sessionId)
+      }).eq('id', card.reviewId)
 
     } else if (card.kind === 'vocab_new') {
       const { data: cur } = await supabase
@@ -659,7 +889,25 @@ function ReviewPageInner() {
         total_reviews:     (cur?.total_reviews   ?? 0) + 1,
         correct_reviews:   (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
         updated_at:        now,
-      }).eq('id', card.reviewId).eq('session_id', sessionId)
+      }).eq('id', card.reviewId)
+
+    } else if (card.kind === 'video') {
+      const { data: cur } = await supabase
+        .from('gwc_video_reviews')
+        .select('total_reviews, correct_reviews, correct_streak')
+        .eq('id', card.reviewId)
+        .single()
+
+      await supabase.from('gwc_video_reviews').update({
+        next_review_at:  nextAt,
+        ease_factor:     2.5,
+        interval_days:   Math.ceil(srs.intervalDays),
+        repetitions:     srs.newSrsLevel,
+        correct_streak:  wasCorrect ? ((cur?.correct_streak ?? 0) + 1) : 0,
+        total_reviews:   (cur?.total_reviews   ?? 0) + 1,
+        correct_reviews: (cur?.correct_reviews ?? 0) + (wasCorrect ? 1 : 0),
+        updated_at:      now,
+      }).eq('id', card.reviewId)
     }
 
     if (wasCorrect) setCorrect(c => c + 1); else setMistakes(m => m + 1)
@@ -705,10 +953,26 @@ function ReviewPageInner() {
   if (done)             return <CompletionScreen total={cards.length} correct={correct} />
   if (cards.length === 0) return <EmptyState />
 
+  const currentCard = cards[index]
+
+  if (currentCard.kind === 'video') {
+    return (
+      <VideoFlipCardView
+        key={currentCard.reviewId}
+        card={currentCard}
+        cardNumber={index + 1}
+        total={cards.length}
+        mistakes={mistakes}
+        onAnswer={handleAnswer}
+        onResult={handleAdvance}
+      />
+    )
+  }
+
   return (
     <ReviewCardView
-      key={cards[index].reviewId}
-      card={cards[index]}
+      key={currentCard.reviewId}
+      card={currentCard}
       cardNumber={index + 1}
       total={cards.length}
       mistakes={mistakes}

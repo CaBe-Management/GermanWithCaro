@@ -7,7 +7,7 @@ import Navbar from './Navbar'
 
 // Pages that do NOT require login — exact-match only
 // Grammar/vocab DETAIL pages (/grammar/[slug], /vocab/[slug]) are intentionally NOT listed here
-const PUBLIC_PATHS = ['/', '/login', '/grammar', '/vocab', '/reset-password', '/impressum', '/privacy', '/terms', '/cookies']
+const PUBLIC_PATHS = ['/', '/login', '/grammar', '/vocab', '/videos', '/reset-password', '/impressum', '/privacy', '/terms', '/cookies']
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
