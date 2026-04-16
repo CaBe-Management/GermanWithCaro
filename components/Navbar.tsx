@@ -47,19 +47,15 @@ export default function Navbar() {
 
         const [
           { data: { user } },
-          { count: grammarCount },
-          { count: vocabCount },
           { count: videoCount },
           progressData,
         ] = await Promise.all([
           supabase.auth.getUser(),
-          supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
-          supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
           supabase.from('gwc_video_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
           getOrCreateProgress(sessionId),
         ])
 
-        const dueCount = (grammarCount ?? 0) + (vocabCount ?? 0) + (videoCount ?? 0)
+        const dueCount = (videoCount ?? 0)
         if (user?.email) setUserEmail(user.email)
         setReviewCount(dueCount)
         if (progressData) setUserLevel(getLevelFromXP(progressData.xp_total))

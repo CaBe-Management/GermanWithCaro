@@ -349,12 +349,14 @@ export default function AdminVideoSentencesPage() {
                 Sätze ({sentences.length})
               </h2>
               {sentences.length > 0 && (
-                <Link
+                <a
                   href={`/videos/${videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-xs text-[#7c6df2] hover:underline"
                 >
                   Vorschau ↗
-                </Link>
+                </a>
               )}
             </div>
 

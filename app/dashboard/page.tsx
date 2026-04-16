@@ -77,16 +77,12 @@ export default function Dashboard() {
 
       const [
         { data: { user } },
-        { count: grammarDue },
-        { count: vocabDue },
         { count: videoDue },
         { data: allVideoReviews },
         { data: videos },
         progressData,
       ] = await Promise.all([
         supabase.auth.getUser(),
-        supabase.from('gwc_grammar_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
-        supabase.from('gwc_vocab_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
         supabase.from('gwc_video_reviews').select('*', { count: 'exact', head: true }).eq('session_id', sessionId).lte('next_review_at', now),
         // All video reviews for SRS breakdown
         supabase.from('gwc_video_reviews').select('repetitions, updated_at').eq('session_id', sessionId),
@@ -96,7 +92,7 @@ export default function Dashboard() {
       ])
 
       if (user?.email) setUserEmail(user.email)
-      setReviewDue((grammarDue ?? 0) + (vocabDue ?? 0) + (videoDue ?? 0))
+      setReviewDue(videoDue ?? 0)
       setTotalSentences(allVideoReviews?.length ?? 0)
 
       // Learned today: video reviews updated today
