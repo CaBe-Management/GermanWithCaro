@@ -59,6 +59,7 @@ export default function AdminVideosPage() {
   const [level, setLevel] = useState('A1')
   const [platform, setPlatform] = useState<'tiktok' | 'youtube'>('tiktok')
   const [fetchingMeta, setFetchingMeta] = useState(false)
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -108,8 +109,9 @@ export default function AdminVideosPage() {
       if (!res.ok) throw new Error('TikTok API nicht erreichbar')
       const data = await res.json()
       if (data.title) setTitle(data.title)
+      if (data.thumbnail_url) setThumbnailUrl(data.thumbnail_url)
     } catch {
-      setError('Konnte Titel nicht automatisch laden – bitte manuell eingeben.')
+      setError('Konnte Metadaten nicht laden – Titel und Cover bitte manuell eingeben.')
     }
     setFetchingMeta(false)
   }
@@ -130,9 +132,9 @@ export default function AdminVideosPage() {
     }
 
     // Build thumbnail URL
-    const thumbnailUrl = platform === 'youtube'
+    const resolvedThumbnailUrl = platform === 'youtube'
       ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-      : null // TikTok thumbnail requires oEmbed, skip for now
+      : thumbnailUrl // Set via oEmbed when URL was entered
 
     const { data, error } = await supabase
       .from('gwc_videos')
@@ -142,7 +144,7 @@ export default function AdminVideosPage() {
         video_url: url.trim(),
         title: title.trim(),
         description: description.trim() || null,
-        thumbnail_url: thumbnailUrl,
+        thumbnail_url: resolvedThumbnailUrl,
         level,
         is_draft: true,
       })
@@ -216,7 +218,13 @@ export default function AdminVideosPage() {
                     {platform === 'tiktok' ? '📱 TikTok' : '▶️ YouTube'}
                   </span>
                 </div>
-                {fetchingMeta && <p className="text-xs text-[#7c6df2] mt-1">Lade Titel...</p>}
+                {fetchingMeta && <p className="text-xs text-[#7c6df2] mt-1">Lade Metadaten...</p>}
+                {thumbnailUrl && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img src={thumbnailUrl} alt="Cover-Vorschau" className="w-20 h-14 object-cover rounded-lg" />
+                    <span className="text-xs text-emerald-400">✓ Cover geladen</span>
+                  </div>
+                )}
               </div>
 
               {/* Title */}

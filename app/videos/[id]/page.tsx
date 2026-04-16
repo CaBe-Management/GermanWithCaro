@@ -92,8 +92,14 @@ export default function VideoDetailPage() {
     setSentences(sents ?? [])
     setIsAuthed(!!user)
 
+    // Mark as watched (upsert, no-op if already exists)
+    const sessionId = getOrCreateSessionId()
+    supabase.from('gwc_video_watches').upsert(
+      { session_id: sessionId, video_id: videoId },
+      { onConflict: 'session_id,video_id', ignoreDuplicates: true }
+    )
+
     if (user && sents && sents.length > 0) {
-      const sessionId = getOrCreateSessionId()
       const sentenceIds = sents.map((s: Sentence) => s.id)
 
       const { data: reviews } = await supabase
@@ -101,6 +107,7 @@ export default function VideoDetailPage() {
         .select('sentence_id, repetitions')
         .eq('session_id', sessionId)
         .in('sentence_id', sentenceIds)
+
 
       const stateMap: Record<string, { inQueue: boolean; srsLevel: number }> = {}
       for (const s of sents) {

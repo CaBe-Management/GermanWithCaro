@@ -18,6 +18,7 @@ interface Video {
   is_draft: boolean
 }
 
+
 interface Sentence {
   id: string
   video_id: string
@@ -158,6 +159,29 @@ export default function AdminVideoSentencesPage() {
     if (!error) setVideo({ ...video, is_draft: !video.is_draft })
   }
 
+  async function fetchAndSaveThumbnail() {
+    if (!video || video.platform !== 'tiktok') return
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(video.video_url)}`)
+      if (!res.ok) throw new Error('TikTok API nicht erreichbar')
+      const data = await res.json()
+      if (!data.thumbnail_url) throw new Error('Kein Cover gefunden')
+      const { error } = await supabase
+        .from('gwc_videos')
+        .update({ thumbnail_url: data.thumbnail_url })
+        .eq('id', videoId)
+      if (error) throw new Error(error.message)
+      setVideo({ ...video, thumbnail_url: data.thumbnail_url })
+      setSuccess('Cover geladen!')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Fehler beim Laden des Covers')
+    }
+    setSaving(false)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f0e17]">
@@ -214,16 +238,27 @@ export default function AdminVideoSentencesPage() {
               </a>
             </div>
           </div>
-          <button
-            onClick={togglePublish}
-            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              video.is_draft
-                ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
-            }`}
-          >
-            {video.is_draft ? '✓ Veröffentlichen' : '⟳ Zurückziehen'}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {video.platform === 'tiktok' && !video.thumbnail_url && (
+              <button
+                onClick={fetchAndSaveThumbnail}
+                disabled={saving}
+                className="px-3 py-2 rounded-lg text-sm font-semibold bg-white/5 text-[#9b98b0] hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                🖼 Cover laden
+              </button>
+            )}
+            <button
+              onClick={togglePublish}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                video.is_draft
+                  ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                  : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow/30'
+              }`}
+            >
+              {video.is_draft ? '✓ Veröffentlichen' : '⟳ Zurückziehen'}
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
