@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import Navbar from './Navbar'
 
 // Pages that do NOT require login — exact-match only
 // Grammar/vocab DETAIL pages (/grammar/[slug], /vocab/[slug]) are intentionally NOT listed here
@@ -59,11 +58,5 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // Protected page but not authed yet (redirect in progress)
   if (!authed && !isPublic) return null
 
-  return (
-    <>
-      {/* Show Navbar for all authenticated users, regardless of page */}
-      {authed && <Navbar />}
-      {children}
-    </>
-  )
+  return <>{children}</>
 }

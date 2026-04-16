@@ -164,7 +164,7 @@ export default function AdminVideoSentencesPage() {
     setSaving(true)
     setError(null)
     try {
-      const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(video.video_url)}`)
+      const res = await fetch(`/api/tiktok-meta?url=${encodeURIComponent(video.video_url)}`)
       if (!res.ok) throw new Error('TikTok API nicht erreichbar')
       const data = await res.json()
       if (!data.thumbnail_url) throw new Error('Kein Cover gefunden')

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
+import Navbar from '@/components/Navbar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -242,6 +243,7 @@ export default function ForecastPage() {
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
+      <Navbar />
       <div className="max-w-2xl mx-auto px-5 py-10 space-y-6">
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}

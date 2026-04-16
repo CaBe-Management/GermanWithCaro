@@ -68,6 +68,8 @@ export default function VideoDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [isAuthed, setIsAuthed] = useState(false)
+  const [learned, setLearned] = useState(false)
+  const [togglingLearned, setTogglingLearned] = useState(false)
 
   // SRS state per sentence: sentenceId → { inQueue: boolean, srsLevel: number } | 'loading'
   const [srsState, setSrsState] = useState<Record<string, { inQueue: boolean; srsLevel: number } | 'loading'>>({})
@@ -92,12 +94,16 @@ export default function VideoDetailPage() {
     setSentences(sents ?? [])
     setIsAuthed(!!user)
 
-    // Mark as watched (upsert, no-op if already exists)
     const sessionId = getOrCreateSessionId()
-    supabase.from('gwc_video_watches').upsert(
-      { session_id: sessionId, video_id: videoId },
-      { onConflict: 'session_id,video_id', ignoreDuplicates: true }
-    )
+
+    // Load learned status
+    const { data: learnedRow } = await supabase
+      .from('gwc_video_learned')
+      .select('video_id')
+      .eq('session_id', sessionId)
+      .eq('video_id', videoId)
+      .maybeSingle()
+    setLearned(!!learnedRow)
 
     if (user && sents && sents.length > 0) {
       const sentenceIds = sents.map((s: Sentence) => s.id)
@@ -120,6 +126,24 @@ export default function VideoDetailPage() {
     }
 
     setLoading(false)
+  }
+
+  async function toggleLearned() {
+    if (togglingLearned) return
+    setTogglingLearned(true)
+    const sessionId = getOrCreateSessionId()
+    if (learned) {
+      await supabase.from('gwc_video_learned').delete()
+        .eq('session_id', sessionId).eq('video_id', videoId)
+      setLearned(false)
+    } else {
+      await supabase.from('gwc_video_learned').upsert(
+        { session_id: sessionId, video_id: videoId },
+        { onConflict: 'session_id,video_id', ignoreDuplicates: true }
+      )
+      setLearned(true)
+    }
+    setTogglingLearned(false)
   }
 
   async function addToSRS(sentenceId: string) {
@@ -243,6 +267,35 @@ export default function VideoDetailPage() {
                     )}
                   </div>
                 )}
+
+                {/* Learned button */}
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <button
+                    onClick={toggleLearned}
+                    disabled={togglingLearned}
+                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      learned
+                        ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
+                        : 'bg-white/5 text-[#9b98b0] hover:bg-white/10 hover:text-[#e8e6f0]'
+                    }`}
+                  >
+                    {learned ? (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Als gelernt markiert
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Als gelernt markieren
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 <a
                   href={video.video_url}

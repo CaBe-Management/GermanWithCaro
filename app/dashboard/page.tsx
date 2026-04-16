@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { getOrCreateProgress, getXPProgress, getLevelFromXP } from '@/lib/gamification'
 import type { UserProgress } from '@/lib/gamification'
+import Navbar from '@/components/Navbar'
 
 const ADMIN_EMAIL = 'caroline091996@gmail.com'
 
@@ -152,6 +153,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
+      <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
 
         {/* ── Header ── */}

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
 import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW } from '@/lib/gamification'
+import Navbar from '@/components/Navbar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

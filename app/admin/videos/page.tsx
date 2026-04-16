@@ -105,7 +105,7 @@ export default function AdminVideosPage() {
     setFetchingMeta(true)
     setError(null)
     try {
-      const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
+      const res = await fetch(`/api/tiktok-meta?url=${encodeURIComponent(url)}`)
       if (!res.ok) throw new Error('TikTok API nicht erreichbar')
       const data = await res.json()
       if (data.title) setTitle(data.title)

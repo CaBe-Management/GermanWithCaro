@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getOrCreateSessionId } from '@/lib/session'
 import Navbar from '@/components/Navbar'
 
 interface Video {
@@ -14,9 +15,12 @@ interface Video {
   thumbnail_url: string | null
   level: string
   sentence_count: number
+  added_count: number   // sentences the user added to SRS
+  learned: boolean      // user manually marked as gelernt
 }
 
 const LEVELS = ['All', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+type StatusFilter = 'all' | 'open' | 'learned' | 'complete'
 
 const LEVEL_COLORS: Record<string, string> = {
   A1: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -27,9 +31,9 @@ const LEVEL_COLORS: Record<string, string> = {
   C2: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
 }
 
-function TikTokThumbnail({ videoId, title }: { videoId: string; title: string }) {
+function TikTokPlaceholder() {
   return (
-    <div className="w-full aspect-video bg-gradient-to-br from-[#1a1830] to-[#0f0e17] flex items-center justify-center relative overflow-hidden rounded-t-xl">
+    <div className="w-full aspect-[9/16] bg-gradient-to-br from-[#1a1830] to-[#0f0e17] flex items-center justify-center relative overflow-hidden rounded-t-xl">
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-6xl opacity-20">📱</span>
       </div>
@@ -42,10 +46,58 @@ function TikTokThumbnail({ videoId, title }: { videoId: string; title: string })
   )
 }
 
+function ProgressBadge({ video }: { video: Video }) {
+  const { learned, added_count, sentence_count } = video
+
+  if (sentence_count === 0) return null
+
+  if (added_count >= sentence_count) {
+    return (
+      <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+        ✓ Alle gespeichert
+      </span>
+    )
+  }
+
+  if (learned) {
+    return (
+      <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
+        ✓ Gelernt
+      </span>
+    )
+  }
+
+  if (added_count > 0) {
+    return (
+      <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-[#7c6df2]/10 text-[#9b8cf5] border border-[#7c6df2]/20">
+        {added_count}/{sentence_count} gespeichert
+      </span>
+    )
+  }
+
+  return null
+}
+
+function ProgressBar({ added, total }: { added: number; total: number }) {
+  if (total === 0 || added === 0) return null
+  const pct = Math.min(100, Math.round((added / total) * 100))
+  const isComplete = added >= total
+  return (
+    <div className="mt-2 h-1 bg-white/5 rounded-full overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-[#7c6df2]'}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  )
+}
+
 export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [activeLevel, setActiveLevel] = useState('All')
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'tiktok' | 'youtube'>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   useEffect(() => {
     loadVideos()
@@ -53,26 +105,74 @@ export default function VideosPage() {
 
   async function loadVideos() {
     setLoading(true)
-    const { data } = await supabase
-      .from('gwc_videos')
-      .select('*, gwc_video_sentences(id)')
-      .eq('is_draft', false)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false })
+    const sessionId = getOrCreateSessionId()
 
-    if (data) {
-      const enriched = data.map((v: Video & { gwc_video_sentences?: { id: string }[] }) => ({
-        ...v,
-        sentence_count: v.gwc_video_sentences?.length ?? 0,
-      }))
-      setVideos(enriched)
+    const [
+      { data: rawVideos },
+      { data: learnedRows },
+      { data: reviews },
+    ] = await Promise.all([
+      supabase
+        .from('gwc_videos')
+        .select('*, gwc_video_sentences(id)')
+        .eq('is_draft', false)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('gwc_video_learned')
+        .select('video_id')
+        .eq('session_id', sessionId),
+      supabase
+        .from('gwc_video_reviews')
+        .select('sentence_id, gwc_video_sentences(video_id)')
+        .eq('session_id', sessionId),
+    ])
+
+    const learnedIds = new Set((learnedRows ?? []).map((w: { video_id: string }) => w.video_id))
+
+    // Count added sentences per video
+    const addedPerVideo: Record<string, number> = {}
+    for (const r of reviews ?? []) {
+      const row = r as { sentence_id: string; gwc_video_sentences: unknown }
+      const sentences = row.gwc_video_sentences
+      const vid = sentences && typeof sentences === 'object' && !Array.isArray(sentences)
+        ? (sentences as { video_id: string }).video_id
+        : Array.isArray(sentences) && sentences.length > 0
+          ? (sentences[0] as { video_id: string }).video_id
+          : null
+      if (vid) addedPerVideo[vid] = (addedPerVideo[vid] ?? 0) + 1
     }
+
+    const enriched = (rawVideos ?? []).map((v: Video & { gwc_video_sentences?: { id: string }[] }) => ({
+      ...v,
+      sentence_count: v.gwc_video_sentences?.length ?? 0,
+      added_count: addedPerVideo[v.id] ?? 0,
+      learned: learnedIds.has(v.id),
+    }))
+
+    setVideos(enriched)
     setLoading(false)
   }
 
-  const filtered = activeLevel === 'All'
+  const byLevel = activeLevel === 'All'
     ? videos
     : videos.filter(v => v.level === activeLevel)
+
+  const byPlatform = platformFilter === 'all'
+    ? byLevel
+    : byLevel.filter(v => v.platform === platformFilter)
+
+  const filtered = byPlatform.filter(v => {
+    if (statusFilter === 'all') return true
+    if (statusFilter === 'open') return !v.learned && v.added_count < v.sentence_count
+    if (statusFilter === 'learned') return v.learned
+    if (statusFilter === 'complete') return v.sentence_count > 0 && v.added_count >= v.sentence_count
+    return true
+  })
+
+  const openCount = byPlatform.filter(v => !v.learned && v.added_count < v.sentence_count).length
+  const learnedCount = byPlatform.filter(v => v.learned).length
+  const completeCount = byPlatform.filter(v => v.sentence_count > 0 && v.added_count >= v.sentence_count).length
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
@@ -80,7 +180,7 @@ export default function VideosPage() {
       <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-[#e8e6f0] mb-1">🎬 Learn from Videos</h1>
           <p className="text-[#9b98b0] text-sm">
             Real sentences from Caro's TikTok videos — click any sentence to add it to your SRS queue.
@@ -88,7 +188,7 @@ export default function VideosPage() {
         </div>
 
         {/* Level filter */}
-        <div className="flex gap-2 flex-wrap mb-8">
+        <div className="flex gap-2 flex-wrap mb-3">
           {LEVELS.map(l => (
             <button
               key={l}
@@ -104,6 +204,52 @@ export default function VideosPage() {
           ))}
         </div>
 
+        {/* Platform filter */}
+        <div className="flex gap-2 flex-wrap mb-3">
+          {([
+            { key: 'all',     label: 'Alle Plattformen' },
+            { key: 'tiktok',  label: '📱 TikTok' },
+            { key: 'youtube', label: '▶️ YouTube' },
+          ] as const).map(p => (
+            <button
+              key={p.key}
+              onClick={() => setPlatformFilter(p.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                platformFilter === p.key
+                  ? 'bg-white/15 text-[#e8e6f0]'
+                  : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status filter */}
+        <div className="flex gap-2 flex-wrap mb-8">
+          {([
+            { key: 'all',      label: 'Alle',              count: null,          activeClass: 'bg-white/15 text-[#e8e6f0]' },
+            { key: 'open',     label: 'Noch offen',        count: openCount,     activeClass: 'bg-[#7c6df2]/30 text-[#9b8cf5]' },
+            { key: 'learned',  label: 'Gelernt',           count: learnedCount,  activeClass: 'bg-emerald-500/20 text-emerald-400' },
+            { key: 'complete', label: 'Alle gespeichert',  count: completeCount, activeClass: 'bg-emerald-500/20 text-emerald-400' },
+          ] as const).map(f => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                statusFilter === f.key ? f.activeClass : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+              }`}
+            >
+              {f.label}
+              {f.count !== null && f.count > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                  statusFilter === f.key ? 'bg-white/20' : 'bg-white/10 text-[#9b98b0]'
+                }`}>{f.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* Grid */}
         {loading ? (
           <div className="flex justify-center py-24">
@@ -113,7 +259,9 @@ export default function VideosPage() {
           <div className="text-center py-24">
             <p className="text-5xl mb-4">🎬</p>
             <p className="text-[#9b98b0] text-lg">
-              {activeLevel === 'All' ? 'Noch keine Videos veröffentlicht.' : `Keine ${activeLevel}-Videos gefunden.`}
+              {videos.length === 0
+                ? 'Noch keine Videos veröffentlicht.'
+                : 'Keine Videos in dieser Kategorie.'}
             </p>
           </div>
         ) : (
@@ -125,37 +273,63 @@ export default function VideosPage() {
                 className="group bg-[#1a1830] rounded-xl border border-white/8 hover:border-[#7c6df2]/40 transition-all overflow-hidden hover:shadow-lg hover:shadow-[#7c6df2]/5"
               >
                 {/* Thumbnail */}
-                {video.thumbnail_url ? (
-                  <img
-                    src={video.thumbnail_url}
-                    alt={video.title}
-                    className="w-full aspect-video object-cover"
-                  />
-                ) : (
-                  <TikTokThumbnail videoId={video.video_id} title={video.title} />
-                )}
+                <div className="relative">
+                  {video.thumbnail_url ? (
+                    <img
+                      src={video.thumbnail_url}
+                      alt={video.title}
+                      className={`w-full object-cover ${
+                        video.platform === 'tiktok' ? 'aspect-[9/16]' : 'aspect-video'
+                      }`}
+                    />
+                  ) : video.platform === 'tiktok' ? (
+                    <TikTokPlaceholder />
+                  ) : (
+                    <div className="w-full aspect-video bg-gradient-to-br from-[#1a1830] to-[#0f0e17] flex items-center justify-center rounded-t-xl">
+                      <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-red-400 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                  {/* Gelernt badge overlaid on thumbnail */}
+                  {video.learned && (
+                    <div className="absolute top-2 right-2">
+                      <span className="text-xs px-2 py-0.5 rounded-md font-bold bg-emerald-500/90 text-white shadow-lg">
+                        ✓ Gelernt
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Info */}
                 <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${LEVEL_COLORS[video.level] ?? 'bg-white/10 text-[#9b98b0] border-white/10'}`}>
                       {video.level}
                     </span>
                     <span className="text-xs text-[#9b98b0]">
                       {video.platform === 'tiktok' ? '📱' : '▶️'}
                     </span>
+                    <ProgressBadge video={video} />
                   </div>
                   <h3 className="text-sm font-semibold text-[#e8e6f0] leading-snug group-hover:text-[#9b8cf5] transition-colors line-clamp-2">
                     {video.title}
                   </h3>
                   {video.description && (
-                    <p className="text-xs text-[#9b98b0] mt-1 line-clamp-2">{video.description}</p>
+                    <p className="text-xs text-[#9b98b0] mt-1 line-clamp-1">{video.description}</p>
                   )}
-                  <div className="flex items-center gap-1 mt-3">
-                    <svg className="w-3.5 h-3.5 text-[#7c6df2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <span className="text-xs text-[#9b98b0]">{video.sentence_count} sentences to learn</span>
+
+                  {/* Sentence count + progress bar */}
+                  <div className="mt-3">
+                    <div className="flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-[#7c6df2] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <span className="text-xs text-[#9b98b0]">{video.sentence_count} sentences to learn</span>
+                    </div>
+                    <ProgressBar added={video.added_count} total={video.sentence_count} />
                   </div>
                 </div>
               </Link>
