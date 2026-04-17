@@ -288,12 +288,20 @@ function LandingContent() {
             <a href="#caro" className="hover:text-[#e8e6f0] transition-colors">About</a>
             <a href="#faq" className="hover:text-[#e8e6f0] transition-colors">FAQ</a>
           </div>
-          <Link
-            href="/videos"
-            className="px-4 py-2 rounded-xl bg-[#7c6df2] text-white text-sm font-bold hover:bg-[#6b5de0] transition-colors shadow-lg shadow-[#7c6df2]/25"
-          >
-            Browse videos →
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="px-4 py-2 rounded-xl bg-white/8 text-[#e8e6f0] text-sm font-bold hover:bg-white/12 transition-colors"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/videos"
+              className="px-4 py-2 rounded-xl bg-[#7c6df2] text-white text-sm font-bold hover:bg-[#6b5de0] transition-colors shadow-lg shadow-[#7c6df2]/25"
+            >
+              Browse videos →
+            </Link>
+          </div>
         </div>
       </nav>
 

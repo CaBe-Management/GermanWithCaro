@@ -129,8 +129,18 @@ export default function Navbar() {
         {/* Right: avatar (desktop) + hamburger (mobile) */}
         <div className="flex items-center gap-2 shrink-0">
 
-          {/* Avatar dropdown — desktop */}
-          <div className="relative hidden md:block" ref={profileDropdown.ref}>
+          {/* Not logged in — show Log in button */}
+          {!userEmail && (
+            <Link
+              href="/login"
+              className="hidden md:inline-flex px-4 py-1.5 rounded-lg bg-white/8 text-[#e8e6f0] text-sm font-semibold hover:bg-white/12 transition-colors"
+            >
+              Log in
+            </Link>
+          )}
+
+          {/* Avatar dropdown — desktop (logged in only) */}
+          {userEmail && <div className="relative hidden md:block" ref={profileDropdown.ref}>
             <button
               onClick={() => profileDropdown.setOpen(v => !v)}
               className="relative w-8 h-8 rounded-full bg-[#7c6df2]/30 border border-[#7c6df2]/40 flex items-center justify-center text-[#9b8cf5] font-bold text-sm hover:border-[#7c6df2] transition-colors"
@@ -189,7 +199,7 @@ export default function Navbar() {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Hamburger — mobile */}
           <div className="relative md:hidden" ref={mobileMenu.ref}>
