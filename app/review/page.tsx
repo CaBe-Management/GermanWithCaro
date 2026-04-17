@@ -211,7 +211,7 @@ function FlipCard({
                     onClick={e => e.stopPropagation()}
                     className="inline-flex items-center gap-1.5 text-xs text-[#6b6880] hover:text-[#9b8cf5] transition-colors"
                   >
-                    ▶ Watch video
+                    ▶ Go to video page
                   </Link>
                 </div>
               </div>
