@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import Navbar from '@/components/Navbar'
+import { getSubscriptionStatus, isPro } from '@/lib/subscription'
 import {
   getOrCreateProgress,
   getXPProgress,
@@ -41,6 +42,58 @@ interface UnlockedBadge {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Returns YYYY-MM-DD strings for Mon–Sun of the current week. */
+function SubscriptionSection() {
+  const [status, setStatus] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    getSubscriptionStatus().then(s => setStatus(s))
+  }, [])
+
+  async function openPortal() {
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const res = await fetch('/api/stripe/portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    })
+    const { url } = await res.json()
+    if (url) window.location.href = url
+    setLoading(false)
+  }
+
+  return (
+    <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-[#e8e6f0] mb-1">Subscription</h2>
+          <p className="text-sm text-[#9b98b0]">
+            {isPro(status) ? '✓ Pro — €9.99/month' : status === 'past_due' ? '⚠️ Payment failed' : 'Free plan'}
+          </p>
+        </div>
+        {isPro(status) || status === 'past_due' ? (
+          <button
+            onClick={openPortal}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg bg-white/5 text-sm text-[#9b98b0] hover:bg-white/10 hover:text-[#e8e6f0] transition-colors disabled:opacity-50"
+          >
+            {loading ? '…' : 'Manage'}
+          </button>
+        ) : (
+          <Link
+            href="/upgrade"
+            className="px-4 py-2 rounded-lg bg-[#7c6df2] text-sm text-white font-bold hover:bg-[#9b8cf5] transition-colors"
+          >
+            Upgrade →
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function getCurrentWeekDays(): string[] {
   const today = new Date()
   const dow   = today.getDay()               // 0 = Sun
@@ -483,6 +536,9 @@ export default function ProfilePage() {
             </div>
           ))}
         </div>
+
+        {/* ── Subscription ───────────────────────────────────────────────────── */}
+        <SubscriptionSection />
 
         {/* ── Quick nav ──────────────────────────────────────────────────────── */}
         <div className="flex gap-3">

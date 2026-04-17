@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getOrCreateSessionId } from '@/lib/session'
 import { calculateNextReview } from '@/lib/srs'
 import { awardXPAndUpdateStreak, XP_CORRECT_REVIEW, XP_WRONG_REVIEW } from '@/lib/gamification'
+import { getSubscriptionStatus, isPro } from '@/lib/subscription'
 import Navbar from '@/components/Navbar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -279,10 +280,19 @@ function ReviewPageInner() {
   const [correct, setCorrect]   = useState(0)
   const [mistakes, setMistakes] = useState(0)
   const [error, setError]       = useState<string | null>(null)
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null)
 
   useEffect(() => {
     async function load() {
       try {
+        // Check subscription first
+        const status = await getSubscriptionStatus()
+        if (!isPro(status)) {
+          setIsSubscribed(false)
+          setLoading(false)
+          return
+        }
+        setIsSubscribed(true)
         const sessionId = getOrCreateSessionId()
         const now = new Date().toISOString()
 
@@ -388,6 +398,24 @@ function ReviewPageInner() {
       </div>
     )
   }
+
+  if (isSubscribed === false) return (
+    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+      <div className="text-center max-w-sm">
+        <div className="text-5xl mb-5">🔒</div>
+        <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Pro feature</h2>
+        <p className="text-[#9b98b0] mb-8">SRS reviews are part of the Pro plan. Upgrade to start reviewing your saved sentences.</p>
+        <div className="flex gap-3 justify-center">
+          <Link href="/upgrade" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
+            Upgrade → €9.99/mo
+          </Link>
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">
+            Browse videos
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
 
   if (done)             return <CompletionScreen total={cards.length} correct={correct} />
   if (cards.length === 0) return <EmptyState />

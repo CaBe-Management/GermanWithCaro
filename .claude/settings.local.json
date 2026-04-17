@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(ls ~/.nvm/versions/node/*/bin/node)",
+      "Bash(/usr/local/bin/node node_modules/.bin/tsc --noEmit)"
+    ]
+  }
+}

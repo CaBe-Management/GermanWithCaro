@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GWC – Vocab Detail Preview: der Hund</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0e17;
+      color: #e8e6f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Navbar ──────────────────────────────────────────────── */
+    nav {
+      background: #0f0e17;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 0 20px;
+      height: 57px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .nav-brand { font-weight: 700; font-size: 1rem; color: #e8e6f0; text-decoration: none; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { color: #9b98b0; font-size: 0.875rem; text-decoration: none; }
+    .nav-links a:hover { color: #e8e6f0; }
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #9b98b0;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-back:hover { color: #e8e6f0; }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .page { max-width: 720px; margin: 0 auto; padding: 36px 20px 80px; }
+
+    /* ── Hero header ─────────────────────────────────────────── */
+    .word-hero {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .word-hero-left { flex: 1; }
+    .word-article {
+      font-size: 0.9rem;
+      color: #7c6df2;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .word-title {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: #e8e6f0;
+      line-height: 1.1;
+    }
+    .word-plural {
+      font-size: 0.85rem;
+      color: #9b98b0;
+      margin-top: 5px;
+    }
+    .word-plural span { color: #e8e6f0; }
+    .word-translation {
+      font-size: 1.1rem;
+      color: #9b98b0;
+      margin-top: 8px;
+    }
+    .word-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      align-items: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .badge-level { background: rgba(124,109,242,0.18); color: #9b8cf5; }
+    .badge-type  { background: rgba(255,255,255,0.06); color: #9b98b0; border: 1px solid rgba(255,255,255,0.1); }
+    .badge-freq  { background: rgba(59,211,149,0.12); color: #3bd395; }
+
+    .audio-btn {
+      background: rgba(124,109,242,0.15);
+      border: 1px solid rgba(124,109,242,0.3);
+      color: #7c6df2;
+      padding: 10px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+      white-space: nowrap;
+      margin-top: 4px;
+    }
+    .audio-btn:hover { background: rgba(124,109,242,0.25); }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #1a1830;
+      padding: 4px;
+      border-radius: 14px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: #9b98b0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: #7c6df2;
+      color: #fff;
+    }
+    .tab-btn:hover:not(.active) { color: #e8e6f0; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards ───────────────────────────────────────────────── */
+    .card {
+      background: #1a1830;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9b98b0;
+      margin-bottom: 12px;
+    }
+    .card-body { color: #e8e6f0; font-size: 0.92rem; line-height: 1.65; }
+
+    /* ── Declension Table ────────────────────────────────────── */
+    .decl-table { width: 100%; border-collapse: collapse; }
+    .decl-table th, .decl-table td {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 0.875rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .decl-table th {
+      color: #9b98b0;
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .decl-table td { color: #e8e6f0; }
+    .decl-table tr:last-child td { border-bottom: none; }
+    .decl-table .case-label {
+      color: #7c6df2;
+      font-weight: 700;
+      width: 130px;
+    }
+    .decl-table .highlighted { color: #7c6df2; font-weight: 700; }
+    .decl-row-gen td { color: #9b98b0; }
+    .level-gate {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,200,80,0.1);
+      border: 1px solid rgba(255,200,80,0.2);
+      color: #ffc850;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+    .decl-note {
+      font-size: 0.78rem;
+      color: #9b98b0;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+
+    /* ── Sentence cards ──────────────────────────────────────── */
+    .case-section { margin-bottom: 24px; }
+    .case-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .case-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .case-nom { background: rgba(124,109,242,0.18); color: #9b8cf5; }
+    .case-akk { background: rgba(59,211,149,0.12); color: #3bd395; }
+    .case-dat { background: rgba(255,165,80,0.12); color: #ffa550; }
+    .case-gen { background: rgba(255,200,80,0.12); color: #ffc850; }
+    .case-divider { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+
+    .sentence-card {
+      background: #1a1830;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .sentence-de {
+      font-size: 0.95rem;
+      color: #e8e6f0;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+    .sentence-de .cloze-word { color: #7c6df2; font-weight: 700; }
+    .sentence-en {
+      font-size: 0.8rem;
+      color: #9b98b0;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .sentence-audio {
+      background: none;
+      border: none;
+      color: #9b98b0;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      transition: color 0.15s;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .sentence-audio:hover { color: #7c6df2; }
+
+    /* ── Fun Fact ────────────────────────────────────────────── */
+    .fun-fact {
+      background: linear-gradient(135deg, rgba(124,109,242,0.12), rgba(124,109,242,0.06));
+      border: 1px solid rgba(124,109,242,0.2);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .fun-fact-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7c6df2;
+      margin-bottom: 8px;
+    }
+    .fun-fact-body { font-size: 0.88rem; color: #c8c5d8; line-height: 1.65; }
+
+    /* ── Tags ────────────────────────────────────────────────── */
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .tag {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #c8c5d8;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 8px;
+    }
+
+    /* ── Usage note ──────────────────────────────────────────── */
+    .usage-note {
+      font-size: 0.82rem;
+      color: #9b98b0;
+      line-height: 1.6;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin-top: 12px;
+    }
+
+    /* ── Data reference table ────────────────────────────────── */
+    .data-ref {
+      background: #12111e;
+      border: 1px dashed rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 40px;
+    }
+    .data-ref h2 { font-size: 0.8rem; color: #9b98b0; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+    .data-ref table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .data-ref th { text-align: left; color: #7c6df2; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .data-ref td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
+    .data-ref td:first-child { color: #9b98b0; white-space: nowrap; width: 160px; }
+    .data-ref td:last-child { color: #e8e6f0; }
+    .data-ref tr:last-child td { border-bottom: none; }
+    .req { color: #f07070; font-size: 0.65rem; font-weight: 700; vertical-align: super; }
+    .opt { color: #7c6df2; font-size: 0.65rem; font-weight: 700; vertical-align: super; }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav>
+  <a href="#" class="nav-back">← Vocabulary</a>
+  <a href="#" class="nav-brand">German With Caro</a>
+  <div class="nav-links">
+    <a href="#">Dashboard</a>
+    <a href="#">Grammar</a>
+  </div>
+</nav>
+
+<!-- Page -->
+<div class="page">
+
+  <!-- Hero -->
+  <div class="word-hero">
+    <div class="word-hero-left">
+      <div class="word-article">der · Noun</div>
+      <div class="word-title">Hund</div>
+      <div class="word-plural">Plural: <span>die Hunde</span></div>
+      <div class="word-translation">🇬🇧 dog</div>
+      <div class="word-meta">
+        <span class="badge badge-level">A1</span>
+        <span class="badge badge-freq" title="How common this word is in German — #1 = most frequent">⚡ Rank #450</span>
+      </div>
+    </div>
+    <button class="audio-btn">🔊 Listen</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab(event,'details')">Details</button>
+    <button class="tab-btn" onclick="switchTab(event,'deklination')">Declension</button>
+    <button class="tab-btn" onclick="switchTab(event,'saetze')">Sentences</button>
+  </div>
+
+  <!-- ══ DETAILS TAB ══════════════════════════════════════════ -->
+  <div id="tab-details" class="tab-panel active">
+
+    <!-- Explanation -->
+    <div class="card">
+      <div class="card-title">Meaning & Explanation</div>
+      <div class="card-body">
+        "Hund" is a masculine noun referring to a domestic dog (canis lupus familiaris) — the most popular pet in Germany. It's one of the first animals you'll learn at A1 level and is used the same way as "dog" in English.
+      </div>
+      <div class="usage-note">
+        💡 <strong>Usage:</strong> Neutral — works in both formal and informal contexts. Affectionately you'll often hear "Hundi". "Köter" is derogatory and should be avoided.
+      </div>
+    </div>
+
+    <!-- Fun Fact -->
+    <div class="fun-fact">
+      <div class="fun-fact-label">🐾 Fun Fact</div>
+      <div class="fun-fact-body">
+        Germany has one of the highest dog ownership rates in Europe — dogs are allowed in many restaurants, shops, and even on public transport. A real culture shock for many visitors! And yes, the "Hundesteuer" (dog tax) is a real thing — dog owners pay €50–150 per year per registered dog.
+      </div>
+    </div>
+
+    <!-- Synonyms / Related -->
+    <div class="card">
+      <div class="card-title">Related Words</div>
+      <div class="card-body">Synonyms & similar words</div>
+      <div class="tags">
+        <span class="tag">der Köter <small style="color:#9b98b0">(derogatory)</small></span>
+        <span class="tag">Hundi <small style="color:#9b98b0">(affectionate)</small></span>
+        <span class="tag">das Tier</span>
+        <span class="tag">das Haustier</span>
+        <span class="tag">der Welpe</span>
+      </div>
+      <div style="margin-top:14px;" class="card-body">Related forms</div>
+      <div class="tags">
+        <span class="tag">hündisch <small style="color:#9b98b0">(adj.)</small></span>
+        <span class="tag">Hundeführer</span>
+        <span class="tag">Hundewelpe</span>
+        <span class="tag">Hundeleine</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ DEKLINATION TAB ══════════════════════════════════════ -->
+  <div id="tab-deklination" class="tab-panel">
+
+    <div class="card">
+      <div class="card-title">Declension — der Hund</div>
+      <table class="decl-table">
+        <thead>
+          <tr>
+            <th>Case</th>
+            <th>Singular</th>
+            <th>Plural</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="case-label">Nominative</td>
+            <td><span class="highlighted">der</span> Hund</td>
+            <td><span class="highlighted">die</span> Hunde</td>
+          </tr>
+          <tr>
+            <td class="case-label">Accusative</td>
+            <td><span class="highlighted">den</span> Hund</td>
+            <td><span class="highlighted">die</span> Hunde</td>
+          </tr>
+          <tr>
+            <td class="case-label">Dative <span class="level-gate">from A2</span></td>
+            <td><span class="highlighted">dem</span> Hund(e)</td>
+            <td><span class="highlighted">den</span> Hunden</td>
+          </tr>
+          <tr class="decl-row-gen">
+            <td class="case-label" style="color:#9b98b0">Genitive <span class="level-gate">from B1</span></td>
+            <td><span style="color:#9b98b0">des</span> Hundes</td>
+            <td><span style="color:#9b98b0">der</span> Hunde</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="decl-note">
+        ⚠️ Dative and Genitive unlock gradually — they appear in sentences from A2 and B1 onwards. They're shown here so you know they exist.
+      </div>
+    </div>
+
+    <!-- Artikel Quick-Reference -->
+    <div class="card">
+      <div class="card-title">Article Overview</div>
+      <table class="decl-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Definite</th>
+            <th>Indefinite</th>
+            <th>Negation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="case-label" style="font-size:0.78rem;">Nom.</td>
+            <td>der Hund</td>
+            <td>ein Hund</td>
+            <td>kein Hund</td>
+          </tr>
+          <tr>
+            <td class="case-label" style="font-size:0.78rem;">Akk.</td>
+            <td>den Hund</td>
+            <td>einen Hund</td>
+            <td>keinen Hund</td>
+          </tr>
+          <tr>
+            <td class="case-label" style="font-size:0.78rem;">Dat.</td>
+            <td>dem Hund</td>
+            <td>einem Hund</td>
+            <td>keinem Hund</td>
+          </tr>
+          <tr class="decl-row-gen">
+            <td class="case-label" style="font-size:0.78rem;color:#9b98b0;">Gen.</td>
+            <td style="color:#9b98b0">des Hundes</td>
+            <td style="color:#9b98b0">eines Hundes</td>
+            <td style="color:#9b98b0">keines Hundes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ══ SÄTZE TAB ════════════════════════════════════════════ -->
+  <div id="tab-saetze" class="tab-panel">
+
+    <!-- Nominativ -->
+    <div class="case-section">
+      <div class="case-header">
+        <span class="case-badge case-nom">Nominative</span>
+        <div class="case-divider"></div>
+        <span class="badge badge-level">A1</span>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de"><span class="cloze-word">Der Hund</span> schläft auf dem Sofa.</div>
+          <div class="sentence-en">The dog is sleeping on the sofa.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Mein <span class="cloze-word">Hund</span> heißt Max.</div>
+          <div class="sentence-en">My dog's name is Max.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de"><span class="cloze-word">Der Hund</span> ist sehr groß und schwarz.</div>
+          <div class="sentence-en">The dog is very big and black.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Ist das dein <span class="cloze-word">Hund</span>?</div>
+          <div class="sentence-en">Is that your dog?</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de"><span class="cloze-word">Der Hund</span> bellt sehr laut.</div>
+          <div class="sentence-en">The dog barks very loudly.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+    </div>
+
+    <!-- Akkusativ -->
+    <div class="case-section">
+      <div class="case-header">
+        <span class="case-badge case-akk">Accusative</span>
+        <div class="case-divider"></div>
+        <span class="badge badge-level">A1</span>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Ich habe einen <span class="cloze-word">Hund</span>.</div>
+          <div class="sentence-en">I have a dog.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Sie füttert <span class="cloze-word">den Hund</span> jeden Abend.</div>
+          <div class="sentence-en">She feeds the dog every evening.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Wir haben keinen <span class="cloze-word">Hund</span>.</div>
+          <div class="sentence-en">We don't have a dog.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Er möchte einen <span class="cloze-word">Hund</span> kaufen.</div>
+          <div class="sentence-en">He wants to buy a dog.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Sie streichelt <span class="cloze-word">den Hund</span> sanft.</div>
+          <div class="sentence-en">She pets the dog gently.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+    </div>
+
+    <!-- Dativ — ab A2 -->
+    <div class="case-section">
+      <div class="case-header">
+        <span class="case-badge case-dat">Dative</span>
+        <div class="case-divider"></div>
+        <span class="level-gate">from A2</span>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Ich gehe mit <span class="cloze-word">dem Hund</span> spazieren.</div>
+          <div class="sentence-en">I go for a walk with the dog.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Das Spielzeug gehört <span class="cloze-word">dem Hund</span>.</div>
+          <div class="sentence-en">The toy belongs to the dog.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Ich bringe <span class="cloze-word">dem Hund</span> Wasser.</div>
+          <div class="sentence-en">I bring the dog some water.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card">
+        <div>
+          <div class="sentence-de">Das Kind spielt <span class="cloze-word">dem Hund</span> gegenüber sehr ruhig.</div>
+          <div class="sentence-en">The child plays very calmly around the dog.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+    </div>
+
+    <!-- Genitiv — ab B1 -->
+    <div class="case-section">
+      <div class="case-header">
+        <span class="case-badge case-gen">Genitive</span>
+        <div class="case-divider"></div>
+        <span class="level-gate">from B1</span>
+      </div>
+
+      <div class="sentence-card" style="opacity:0.6;">
+        <div>
+          <div class="sentence-de">Das Fell <span class="cloze-word">des Hundes</span> ist sehr weich.</div>
+          <div class="sentence-en">The dog's fur is very soft.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card" style="opacity:0.6;">
+        <div>
+          <div class="sentence-de">Der Name <span class="cloze-word">des Hundes</span> steht auf dem Halsband.</div>
+          <div class="sentence-en">The dog's name is on the collar.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card" style="opacity:0.6;">
+        <div>
+          <div class="sentence-de">Die Farbe <span class="cloze-word">des Hundes</span> ist schwarz und weiß.</div>
+          <div class="sentence-en">The colour of the dog is black and white.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+      <div class="sentence-card" style="opacity:0.6;">
+        <div>
+          <div class="sentence-de">Das Bellen <span class="cloze-word">des Hundes</span> ist sehr laut.</div>
+          <div class="sentence-en">The barking of the dog is very loud.</div>
+        </div>
+        <button class="sentence-audio">🔊</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ══ DATA REFERENCE (für Claude Code) ═══════════════════ -->
+  <div class="data-ref">
+    <h2>📋 Data Field Reference — for Claude Code</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Value (Example: Hund)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>word <span class="req">*</span></td><td>Hund</td></tr>
+        <tr><td>slug <span class="req">*</span></td><td>hund</td></tr>
+        <tr><td>type <span class="req">*</span></td><td>NOMEN · VERB · ADJEKTIV · AUSDRUCK · ADVERB</td></tr>
+        <tr><td>article <span class="opt">opt</span></td><td>der · die · das (nur Nomen)</td></tr>
+        <tr><td>plural <span class="opt">opt</span></td><td>Hunde</td></tr>
+        <tr><td>level <span class="req">*</span></td><td>A1 / A2 / B1 / B2 / C1 / C2</td></tr>
+        <tr><td>frequency_rank <span class="req">*</span></td><td>450</td></tr>
+        <tr><td>translation_en <span class="req">*</span></td><td>dog</td></tr>
+        <tr><td colspan="2" style="padding-top:12px; color:#9b98b0; font-size:0.78rem;font-weight:600;">Paths — position in learning path (false = not included)</td></tr>
+        <tr><td>path_a1_vocabulary <span class="opt">opt</span></td><td>false · 42 &nbsp;<small style="color:#9b98b0">— position in A1 Vocabulary path</small></td></tr>
+        <tr><td>path_caros_path <span class="opt">opt</span></td><td>false · 38 &nbsp;<small style="color:#9b98b0">— position in Caro's Path</small></td></tr>
+        <tr><td>explanation_en <span class="req">*</span></td><td>„Hund" is a masculine noun…</td></tr>
+        <tr><td>usage_notes <span class="opt">opt</span></td><td>Neutral — formal + informal. Affektiv: „Hundi". Abwertend: „Köter".</td></tr>
+        <tr><td>fun_fact <span class="opt">opt</span></td><td>In Deutschland gibt es die Hundesteuer — 50–150€/Jahr pro Hund!</td></tr>
+        <tr><td>synonyms <span class="opt">opt</span></td><td>Köter, Hundi, Tier, Haustier</td></tr>
+        <tr><td>related_words <span class="opt">opt</span></td><td>hündisch, Hundeleine, Welpe, Hundeführer</td></tr>
+        <tr><td colspan="2" style="padding-top:12px; color:#9b98b0; font-size:0.78rem;font-weight:600;">Declension (nouns only)</td></tr>
+        <tr><td>nom_sg / nom_pl</td><td>der Hund / die Hunde</td></tr>
+        <tr><td>akk_sg / akk_pl</td><td>den Hund / die Hunde</td></tr>
+        <tr><td>dat_sg / dat_pl</td><td>dem Hund(e) / den Hunden</td></tr>
+        <tr><td>gen_sg / gen_pl</td><td>des Hundes / der Hunde</td></tr>
+        <tr><td colspan="2" style="padding-top:12px; color:#9b98b0; font-size:0.78rem;font-weight:600;">Sentences (gwc_vocab_sentences) — 5 per case group = 20 total for nouns</td></tr>
+        <tr><td>sentence_de</td><td>Der Hund schläft auf dem Sofa.</td></tr>
+        <tr><td>sentence_en</td><td>The dog is sleeping on the sofa.</td></tr>
+        <tr><td>cloze_word</td><td>Der Hund · den Hund · dem Hund · des Hundes</td></tr>
+        <tr><td>grammatical_case</td><td>NOMINATIV · AKKUSATIV · DATIV · GENITIV · NULL</td></tr>
+        <tr><td>min_level</td><td>A1 (Nom/Akk) · A2 (Dat) · B1 (Gen)</td></tr>
+        <tr><td>audio_file <span class="opt">opt</span></td><td>hund_nom_1.mp3 &nbsp;<small style="color:#9b98b0">— filename in audio bucket</small></td></tr>
+        <tr><td>sort_order</td><td>1, 2, 3 … per case group</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px; font-size:0.75rem; color:#9b98b0; line-height:1.6;">
+      <span class="req">*</span> Required &nbsp;&nbsp; <span class="opt">opt</span> Optional
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  function switchTab(e, name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+</script>
+</body>
+</html>
