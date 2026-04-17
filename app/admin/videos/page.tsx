@@ -136,6 +136,19 @@ export default function AdminVideosPage() {
       return
     }
 
+    // Check for duplicate URL
+    const { data: existing } = await supabase
+      .from('gwc_videos')
+      .select('id, title')
+      .eq('video_id', videoId)
+      .maybeSingle()
+
+    if (existing) {
+      setError(`This video already exists: "${existing.title}"`)
+      setSaving(false)
+      return
+    }
+
     // Build thumbnail URL
     const resolvedThumbnailUrl = platform === 'youtube'
       ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
