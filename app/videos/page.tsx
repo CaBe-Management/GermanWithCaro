@@ -98,6 +98,7 @@ export default function VideosPage() {
   const [activeLevel, setActiveLevel] = useState('All')
   const [platformFilter, setPlatformFilter] = useState<'all' | 'tiktok' | 'youtube'>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     loadVideos()
@@ -106,6 +107,8 @@ export default function VideosPage() {
   async function loadVideos() {
     setLoading(true)
     const sessionId = getOrCreateSessionId()
+    const { data: { user } } = await supabase.auth.getUser()
+    setIsLoggedIn(!!user)
 
     const [
       { data: rawVideos },
@@ -225,8 +228,8 @@ export default function VideosPage() {
           ))}
         </div>
 
-        {/* Status filter */}
-        <div className="flex gap-2 flex-wrap mb-8">
+        {/* Status filter — only shown when logged in */}
+        {isLoggedIn && <div className="flex gap-2 flex-wrap mb-8">
           {([
             { key: 'all',      label: 'All',              count: null,          activeClass: 'bg-white/15 text-[#e8e6f0]' },
             { key: 'open',     label: 'Not started',      count: openCount,     activeClass: 'bg-[#7c6df2]/30 text-[#9b8cf5]' },
@@ -248,7 +251,7 @@ export default function VideosPage() {
               )}
             </button>
           ))}
-        </div>
+        </div>}
 
         {/* Grid */}
         {loading ? (
