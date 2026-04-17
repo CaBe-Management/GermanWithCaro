@@ -5,6 +5,9 @@ export default function ImpressumPage() {
     <div className="min-h-screen bg-[#0f0e17]">
       <div className="max-w-2xl mx-auto px-5 py-12">
 
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-[#9b98b0] hover:text-[#e8e6f0] transition-colors mb-8">
+          ← Back
+        </Link>
         <h1 className="text-3xl font-bold text-[#e8e6f0] mb-2">Impressum</h1>
         <p className="text-[#9b98b0] text-sm mb-10">Legal notice</p>
 

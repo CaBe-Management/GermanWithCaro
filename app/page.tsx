@@ -517,7 +517,7 @@ function LandingContent() {
               <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-2">The person behind it</p>
               <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Hi, I'm Caro 👋</h2>
               <p className="text-[#9b98b0] leading-relaxed mb-3">
-                I'm a native German speaker and I make German learning content on TikTok and YouTube. I built this app because I wanted a place where my community could actually practise the sentences from my videos — not just watch and forget.
+                I'm not German — I got fluent by living and working in Germany. I know what it's like to learn this language as an outsider, what actually works, and what's just a waste of time. I make German content on TikTok and YouTube, and people kept asking where they could actually practise the sentences from my videos. I couldn't find anything good, so I built it myself.
               </p>
               <p className="text-[#9b98b0] leading-relaxed mb-4">
                 Every video, every sentence, every translation in here is made by me. This is the study companion to go with the content you're already watching.
@@ -552,6 +552,51 @@ function LandingContent() {
             <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">Questions</h2>
           </div>
           <FAQ />
+        </div>
+      </section>
+
+      {/* ── Pricing ────────────────────────────────────────────────────────── */}
+      <section id="pricing" className="py-20 px-5">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-3">Pricing</p>
+            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">Simple.</h2>
+            <p className="text-[#9b98b0]">Browse videos for free. Pay when you want to review.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Free */}
+            <div className="bg-[#1a1830] border border-white/6 rounded-2xl p-7">
+              <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-widest mb-4">Free</p>
+              <p className="text-4xl font-bold text-[#e8e6f0] mb-1">€0</p>
+              <p className="text-sm text-[#6b6880] mb-6">forever</p>
+              <ul className="space-y-3">
+                {['Browse all videos', 'See sentences + translations', 'Filter by level'].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-[#9b98b0]">
+                    <span className="text-[#7c6df2] font-bold">✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Pro */}
+            <div className="bg-[#1a1830] border border-[#7c6df2]/40 rounded-2xl p-7 relative">
+              <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-4">Pro</p>
+              <p className="text-4xl font-bold text-[#e8e6f0] mb-1">€9.99</p>
+              <p className="text-sm text-[#6b6880] mb-6">per month · cancel any time</p>
+              <ul className="space-y-3 mb-7">
+                {['Everything in Free', 'Save sentences to your deck', 'Daily SRS review', 'Track your progress'].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-[#9b98b0]">
+                    <span className="text-[#7c6df2] font-bold">✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login"
+                className="block text-center py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors"
+              >
+                Get started →
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
