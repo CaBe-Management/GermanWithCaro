@@ -7,8 +7,7 @@ import { getOrCreateSessionId } from '@/lib/session'
 import { getOrCreateProgress, getXPProgress, getLevelFromXP } from '@/lib/gamification'
 import type { UserProgress } from '@/lib/gamification'
 import Navbar from '@/components/Navbar'
-
-const ADMIN_EMAIL = 'caroline091996@gmail.com'
+import { ADMIN_EMAIL } from '@/lib/config'
 
 const SRS_LABELS: { label: string; color: string; bgColor: string }[] = [
   { label: 'Novice',      color: 'text-emerald-400', bgColor: 'bg-emerald-500' },

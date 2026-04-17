@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
+import { ADMIN_EMAIL } from '@/lib/config'
 
 interface Video {
   id: string
@@ -64,7 +65,7 @@ export default function AdminVideoSentencesPage() {
 
   async function checkAdminAndLoad() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== 'caroline091996@gmail.com') { router.push('/dashboard'); return }
+    if (!user || user.email !== ADMIN_EMAIL) { router.push('/dashboard'); return }
     await loadData()
   }
 
