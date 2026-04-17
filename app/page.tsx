@@ -20,169 +20,18 @@ function useFadeIn() {
   return ref
 }
 
-// ─── Phone Mockup ─────────────────────────────────────────────────────────────
-
-function PhoneMockup({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative mx-auto" style={{ width: '290px' }}>
-      <div className="absolute -inset-8 bg-accent-purple/20 rounded-full blur-3xl pointer-events-none animate-glow-pulse" />
-      <div
-        className="relative rounded-[44px] border-[3px] border-white/20 shadow-2xl shadow-black/70 overflow-hidden"
-        style={{
-          background: 'linear-gradient(160deg, #2a2848 0%, #1a1830 60%, #13112a 100%)',
-          height: '580px',
-        }}
-      >
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-[18px] bg-black rounded-full z-20" />
-        <div className="absolute left-[-5px] top-28 w-[4px] h-9 bg-white/20 rounded-l-sm" />
-        <div className="absolute left-[-5px] top-40 w-[4px] h-9 bg-white/20 rounded-l-sm" />
-        <div className="absolute right-[-5px] top-32 w-[4px] h-14 bg-white/20 rounded-r-sm" />
-        <div className="absolute inset-0 rounded-[42px] ring-1 ring-white/5 pointer-events-none" />
-        <div className="h-full overflow-y-auto scrollbar-hide pt-9 pb-6">
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── ClozePreview ─────────────────────────────────────────────────────────────
-
-function ClozePreview() {
-  const [answered, setAnswered] = useState(false)
-  const [input, setInput] = useState('')
-  const correct = 'Hund'
-  const isCorrect = input.toLowerCase() === correct.toLowerCase()
-
-  return (
-    <div className="bg-[#0f0e17] p-5 min-h-full">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full w-2/5 bg-accent-purple rounded-full" />
-        </div>
-        <span className="text-xs text-text-muted">Card 2 / 5</span>
-      </div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex gap-1.5">
-          <span className="px-2 py-0.5 rounded text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">NOMEN</span>
-          <span className="px-2 py-0.5 rounded text-xs font-bold bg-accent-purple/20 text-accent-violet border border-accent-purple/30">A1</span>
-        </div>
-        <span className="text-xs text-yellow-400 font-bold">⚡ +10 XP</span>
-      </div>
-      <p className="text-xs text-text-muted italic mb-4">My dog&apos;s name is Max.</p>
-      <div className="bg-[#252340] rounded-xl p-4 mb-4 border border-white/5">
-        <p className="text-text-primary text-base leading-relaxed mb-4">
-          Mein{' '}
-          <span className="inline-block min-w-[70px] border-b-2 border-accent-purple text-center font-bold px-1">
-            {answered
-              ? <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>{correct}</span>
-              : input
-                ? <span className="text-accent-violet">{input}</span>
-                : <span className="text-white/20 italic font-normal text-sm">answer</span>
-            }
-          </span>{' '}
-          heißt Max.
-        </p>
-        {!answered ? (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && input && setAnswered(true)}
-              placeholder="Type the missing word..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple"
-            />
-            <button
-              onClick={() => input && setAnswered(true)}
-              className="px-3 py-2 rounded-lg bg-accent-purple text-white text-sm font-bold hover:bg-accent-violet transition-colors"
-            >✓</button>
-          </div>
-        ) : (
-          <div className={`rounded-lg p-3 text-sm font-medium flex items-center justify-between ${isCorrect ? 'bg-green-500/10 text-green-300 border border-green-500/20' : 'bg-red-500/10 text-red-300 border border-red-500/20'}`}>
-            <span>{isCorrect ? `✓ ${correct}` : `✗ "${correct}"`}</span>
-            <button onClick={() => { setAnswered(false); setInput('') }} className="underline opacity-60 hover:opacity-100 text-xs">↺</button>
-          </div>
-        )}
-      </div>
-      <p className="text-xs text-text-muted text-right">Type · Press Enter</p>
-    </div>
-  )
-}
-
-// ─── GrammarPreview ───────────────────────────────────────────────────────────
-
-function GrammarPreview() {
-  const [answered, setAnswered] = useState(false)
-  const [input, setInput] = useState('')
-  const correct = 'Wie'
-  const isCorrect = input.toLowerCase() === correct.toLowerCase()
-
-  return (
-    <div className="bg-[#0f0e17] p-5 min-h-full">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full w-3/5 bg-accent-purple rounded-full" />
-        </div>
-        <span className="text-xs text-text-muted">Card 3 / 5</span>
-      </div>
-      <div className="flex items-center gap-1.5 mb-5">
-        <span className="px-2 py-0.5 rounded text-xs font-bold bg-accent-purple/20 text-accent-violet border border-accent-purple/30">GRAMMAR</span>
-        <span className="px-2 py-0.5 rounded text-xs font-bold bg-white/5 text-text-muted border border-white/10">A1</span>
-      </div>
-      <p className="text-xs text-text-muted italic mb-5">What is your name?</p>
-      <div className="mb-5">
-        <p className="text-text-primary text-2xl font-light leading-relaxed text-center">
-          <span className="inline-block min-w-[70px] border-b-2 border-accent-purple text-center font-bold px-2">
-            {answered
-              ? <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>{correct}</span>
-              : input
-                ? <span className="text-accent-violet">{input}</span>
-                : <span className="text-white/20 italic font-normal text-lg">question-word</span>
-            }
-          </span>{' '}
-          heißt du?
-        </p>
-      </div>
-      {!answered ? (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && input && setAnswered(true)}
-            placeholder="Type the missing word..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple"
-          />
-          <button
-            onClick={() => input && setAnswered(true)}
-            className="px-3 py-2 rounded-lg bg-accent-purple text-white text-sm font-bold hover:bg-accent-violet transition-colors"
-          >✓</button>
-        </div>
-      ) : (
-        <div className={`rounded-lg p-3 text-sm font-medium flex items-center justify-between ${isCorrect ? 'bg-green-500/10 text-green-300 border border-green-500/20' : 'bg-red-500/10 text-red-300 border border-red-500/20'}`}>
-          <span>{isCorrect ? `✓ ${correct}` : `✗ "${correct}"`}</span>
-          <button onClick={() => { setAnswered(false); setInput('') }} className="underline opacity-60 hover:opacity-100 text-xs">↺</button>
-        </div>
-      )}
-      <p className="text-xs text-text-muted text-right mt-3">Type · Press Enter</p>
-    </div>
-  )
-}
-
 // ─── Floating background words ────────────────────────────────────────────────
 
 const BG_WORDS = [
-  { word: 'Familie',   size: 14, x: 8,  y: 15, delay: 0   },
-  { word: 'lernen',    size: 18, x: 82, y: 10, delay: 1   },
-  { word: 'ich bin',   size: 12, x: 5,  y: 60, delay: 2   },
-  { word: 'danke',     size: 22, x: 75, y: 70, delay: 0.5 },
-  { word: 'Haus',      size: 16, x: 55, y: 20, delay: 1.5 },
-  { word: 'sprechen',  size: 13, x: 20, y: 75, delay: 3   },
-  { word: 'bitte',     size: 20, x: 88, y: 42, delay: 2.5 },
-  { word: 'schön',     size: 15, x: 40, y: 82, delay: 0.8 },
-  { word: 'heute',     size: 12, x: 65, y: 55, delay: 3.5 },
-  { word: 'gehen',     size: 17, x: 30, y: 30, delay: 1.2 },
+  { word: 'ich bin',    size: 14, x: 8,  y: 15, delay: 0   },
+  { word: 'lernen',     size: 18, x: 82, y: 10, delay: 1   },
+  { word: 'danke',      size: 22, x: 75, y: 70, delay: 0.5 },
+  { word: 'Alltag',     size: 16, x: 55, y: 20, delay: 1.5 },
+  { word: 'sprechen',   size: 13, x: 20, y: 75, delay: 3   },
+  { word: 'bitte',      size: 20, x: 88, y: 42, delay: 2.5 },
+  { word: 'schön',      size: 15, x: 40, y: 82, delay: 0.8 },
+  { word: 'eigentlich', size: 12, x: 5,  y: 60, delay: 2   },
+  { word: 'gehen',      size: 17, x: 30, y: 30, delay: 1.2 },
 ]
 
 function FloatingWords() {
@@ -201,36 +50,186 @@ function FloatingWords() {
   )
 }
 
+// ─── Interactive flip card demo ───────────────────────────────────────────────
+
+const DEMO_SENTENCES = [
+  { de: 'Ich bin super müde heute.', en: 'I am super tired today.' },
+  { de: 'Das ist mein Lieblingsessen.', en: 'That is my favourite food.' },
+  { de: 'Wo wohnst du gerade?', en: 'Where do you live right now?' },
+]
+
+function FlipCardDemo() {
+  const [cardIndex, setCardIndex] = useState(0)
+  const [flipped, setFlipped] = useState(false)
+  const [answered, setAnswered] = useState<'knew' | 'didnt' | null>(null)
+
+  const sentence = DEMO_SENTENCES[cardIndex]
+
+  function handleAnswer(result: 'knew' | 'didnt') {
+    setAnswered(result)
+    setTimeout(() => {
+      setCardIndex(i => (i + 1) % DEMO_SENTENCES.length)
+      setFlipped(false)
+      setAnswered(null)
+    }, 700)
+  }
+
+  return (
+    <div className="bg-[#0f0e17] rounded-2xl border border-white/8 p-6 max-w-sm mx-auto">
+      {/* Progress */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent-purple rounded-full transition-all duration-500"
+            style={{ width: `${((cardIndex) / DEMO_SENTENCES.length) * 100}%` }}
+          />
+        </div>
+        <span className="text-xs text-[#9b98b0]">Card {cardIndex + 1} / {DEMO_SENTENCES.length}</span>
+      </div>
+
+      {/* Card */}
+      <div
+        className={`relative min-h-[140px] rounded-xl border cursor-pointer select-none transition-all duration-300 mb-4 flex flex-col items-center justify-center text-center p-6 ${
+          flipped
+            ? 'bg-[#7c6df2]/10 border-[#7c6df2]/40'
+            : 'bg-[#1a1830] border-white/8 hover:border-white/15'
+        } ${answered === 'knew' ? 'border-emerald-500/60 bg-emerald-500/5' : answered === 'didnt' ? 'border-red-500/40 bg-red-500/5' : ''}`}
+        onClick={() => !answered && setFlipped(f => !f)}
+      >
+        {!flipped ? (
+          <>
+            <p className="text-xl font-bold text-[#e8e6f0] mb-2">{sentence.de}</p>
+            <p className="text-xs text-[#9b98b0]">tap to reveal translation</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-[#9b98b0] mb-1">🇩🇪 {sentence.de}</p>
+            <p className="text-lg font-semibold text-[#e8e6f0]">🇬🇧 {sentence.en}</p>
+          </>
+        )}
+      </div>
+
+      {/* Buttons */}
+      {flipped && !answered ? (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => handleAnswer('didnt')}
+            className="py-2.5 rounded-xl bg-red-500/15 text-red-400 font-semibold text-sm hover:bg-red-500/25 transition-colors"
+          >
+            ✗ Didn't know
+          </button>
+          <button
+            onClick={() => handleAnswer('knew')}
+            className="py-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 font-semibold text-sm hover:bg-emerald-500/25 transition-colors"
+          >
+            ✓ Knew it
+          </button>
+        </div>
+      ) : !flipped ? (
+        <p className="text-center text-xs text-[#4a4760]">← tap the card to flip it</p>
+      ) : (
+        <div className={`text-center text-sm font-semibold py-2 rounded-xl ${
+          answered === 'knew' ? 'text-emerald-400' : 'text-red-400'
+        }`}>
+          {answered === 'knew' ? '✓ Next card coming up...' : '✗ We\'ll review this again soon'}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Sentence browse demo ─────────────────────────────────────────────────────
+
+const DEMO_VIDEO_SENTENCES = [
+  { de: 'Ich bin super müde heute.', en: 'I am super tired today.', added: false },
+  { de: 'Das ist mein Lieblingsessen.', en: 'That is my favourite food.', added: false },
+  { de: 'Wo wohnst du gerade?', en: 'Where do you live right now?', added: false },
+  { de: 'Ich lerne Deutsch seit einem Jahr.', en: 'I have been learning German for a year.', added: false },
+]
+
+function BrowseDemo() {
+  const [sentences, setSentences] = useState(DEMO_VIDEO_SENTENCES)
+
+  function toggle(i: number) {
+    setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, added: !s.added } : s))
+  }
+
+  const addedCount = sentences.filter(s => s.added).length
+
+  return (
+    <div className="bg-[#0f0e17] rounded-2xl border border-white/8 p-4 max-w-sm mx-auto">
+      {/* Mock video header */}
+      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/5">
+        <div className="w-12 h-12 rounded-lg bg-[#7c6df2]/20 flex items-center justify-center shrink-0">
+          <span className="text-xl">📱</span>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#e8e6f0] leading-tight">I speak SLOW German everyday 🇩🇪</p>
+          <p className="text-xs text-[#9b98b0] mt-0.5">{addedCount}/{sentences.length} sentences saved</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-1 bg-white/5 rounded-full mb-4 overflow-hidden">
+        <div
+          className="h-full bg-[#7c6df2] rounded-full transition-all duration-300"
+          style={{ width: `${(addedCount / sentences.length) * 100}%` }}
+        />
+      </div>
+
+      {/* Sentences */}
+      <div className="space-y-2">
+        {sentences.map((s, i) => (
+          <div key={i} className={`rounded-xl border p-3 transition-all ${s.added ? 'border-[#7c6df2]/40 bg-[#7c6df2]/5' : 'border-white/8 bg-[#1a1830]'}`}>
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#e8e6f0] leading-snug">{s.de}</p>
+                <p className="text-xs text-[#9b98b0] mt-0.5">{s.en}</p>
+              </div>
+              <button
+                onClick={() => toggle(i)}
+                className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  s.added
+                    ? 'bg-[#7c6df2]/20 text-[#9b8cf5]'
+                    : 'bg-white/5 text-[#9b98b0] hover:bg-[#7c6df2]/20 hover:text-[#9b8cf5]'
+                }`}
+              >
+                {s.added ? '✓ Added' : '+ Add'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 const FAQS = [
   {
-    q: 'Wait — is this actually free?',
-    a: "Yes. The app is in beta right now, which means you can sign up and use everything for free. When the A1 grammar section is complete, it'll switch to a paid subscription (€9.99/month). If you're in now, enjoy it while it lasts.",
+    q: 'How is this different from just watching your TikToks?',
+    a: "Watching gets you exposure. But exposure alone doesn't make things stick. Here you actively retrieve sentences from memory — flip the card, recall the meaning, judge yourself honestly. That retrieval is what builds lasting memory. The videos are the input. This is the practice.",
   },
   {
-    q: "I tried Duolingo. How is this different?",
-    a: "Duolingo is great for building a habit. But at some point you stop learning and just start completing streaks. Here you actually have to produce the language — type answers, conjugate verbs, build sentences. It's harder. That's the point.",
+    q: 'Do I need to watch your videos first?',
+    a: "You don't have to, but it helps. The sentences in the app come directly from the videos — so if you've watched them, the context is already there. If not, the German and English are always shown together so you're never lost.",
   },
   {
-    q: "I follow you on TikTok — do I need this?",
-    a: "The videos are great for understanding concepts. This is where you practice them until they stick. Think of the videos as the explanation, and this as the homework — but the fun kind.",
+    q: 'What is spaced repetition?',
+    a: "It's a scheduling system that shows you cards at the exact moment you're about to forget them. Say you got a card right — it won't show up again for a few days. Get it right again? Maybe a week. Over time, cards you know well appear less and less. Cards you struggle with come back sooner. It's the most efficient way to memorise things long-term.",
   },
   {
-    q: 'I need to reach A1 level. Is this the right app?',
-    a: "The app is built around the A1 vocabulary and grammar topics you need for everyday German. If you're working towards an exam, the content will help — but we don't make official promises.",
-  },
-  {
-    q: 'Why do I have to type answers instead of clicking?',
-    a: "Because clicking is guessing. When you type a word from memory, your brain actually has to retrieve it — and that retrieval is what makes it stick. Multiple choice is easier, but it doesn't actually build language.",
+    q: 'Is this free?',
+    a: "Yes, for now. The video library is free to browse. The SRS review system will become a paid feature once there's enough content to make it worth it. If you sign up now, you'll keep your progress either way.",
   },
   {
     q: 'What level is the content?',
-    a: "Currently A1 — complete beginner to elementary. The A1 grammar section is being built right now. Vocabulary content is already in, grammar is coming topic by topic. A2 is next once A1 is complete.",
+    a: "It depends on the video. Each video is tagged with a level (A1–C1) so you can filter for what suits you. There's content for total beginners up to more advanced learners.",
   },
   {
     q: 'How much time do I need per day?',
-    a: "10–15 minutes is plenty. The app tells you exactly what to review each day — you just show up and do it. The spaced repetition system handles all the scheduling.",
+    a: "10 minutes is enough. Browse a video, add the sentences that interest you, then review what's due. The SRS system handles the scheduling — you just show up.",
   },
 ]
 
@@ -247,11 +246,11 @@ function FAQ() {
             onClick={() => setOpen(open === i ? null : i)}
             className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
           >
-            <span className="text-text-primary font-medium text-sm">{faq.q}</span>
+            <span className="text-[#e8e6f0] font-medium text-sm">{faq.q}</span>
             <span className={`text-accent-purple text-xl shrink-0 transition-transform duration-200 ${open === i ? 'rotate-45' : ''}`}>+</span>
           </button>
           {open === i && (
-            <div className="px-5 pb-4 text-text-muted text-sm leading-relaxed border-t border-white/5 pt-3">
+            <div className="px-5 pb-4 text-[#9b98b0] text-sm leading-relaxed border-t border-white/5 pt-3">
               {faq.a}
             </div>
           )}
@@ -264,125 +263,110 @@ function FAQ() {
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
 function LandingContent() {
-  const [activeDemo, setActiveDemo] = useState<'vocab' | 'grammar'>('vocab')
+  const [activeDemo, setActiveDemo] = useState<'browse' | 'review'>('browse')
 
-  const howRef     = useFadeIn()
-  const demoRef    = useFadeIn()
-  const forWhoRef  = useFadeIn()
-  const betaRef    = useFadeIn()
-  const faqRef     = useFadeIn()
+  const howRef    = useFadeIn()
+  const demoRef   = useFadeIn()
+  const forWhoRef = useFadeIn()
+  const faqRef    = useFadeIn()
+  const caroRef   = useFadeIn()
 
   return (
-    <div className="min-h-screen bg-[#0f0e17] text-text-primary" style={{ scrollBehavior: 'smooth' }}>
+    <div className="min-h-screen bg-[#0f0e17] text-[#e8e6f0]" style={{ scrollBehavior: 'smooth' }}>
 
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0f0e17]/85 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-bold text-base shrink-0">
             <span>🇩🇪</span>
-            <span className="text-text-primary hidden sm:inline">German With Caro</span>
-            <span className="text-text-primary sm:hidden">GWC</span>
+            <span className="hidden sm:inline">German With Caro</span>
+            <span className="sm:hidden">GWC</span>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm text-text-muted">
-            <a href="#how" className="hover:text-text-primary transition-colors">How it works</a>
-            <a href="#for-who" className="hover:text-text-primary transition-colors">Who it's for</a>
-            <a href="#beta" className="hover:text-text-primary transition-colors">Beta</a>
-            <a href="#faq" className="hover:text-text-primary transition-colors">FAQ</a>
+          <div className="hidden md:flex items-center gap-6 text-sm text-[#9b98b0]">
+            <a href="#how" className="hover:text-[#e8e6f0] transition-colors">How it works</a>
+            <a href="#for-who" className="hover:text-[#e8e6f0] transition-colors">Who it's for</a>
+            <a href="#caro" className="hover:text-[#e8e6f0] transition-colors">About</a>
+            <a href="#faq" className="hover:text-[#e8e6f0] transition-colors">FAQ</a>
           </div>
           <Link
-            href="/dashboard"
-            className="px-4 py-2 rounded-xl bg-accent-purple text-white text-sm font-bold hover:bg-accent-violet transition-colors shadow-lg shadow-accent-purple/25"
+            href="/videos"
+            className="px-4 py-2 rounded-xl bg-[#7c6df2] text-white text-sm font-bold hover:bg-[#6b5de0] transition-colors shadow-lg shadow-[#7c6df2]/25"
           >
-            Start free →
+            Browse videos →
           </Link>
         </div>
       </nav>
 
-      {/* ── Beta Banner ────────────────────────────────────────────────────── */}
-      <div className="fixed top-[57px] left-0 right-0 z-40 bg-[#7c6df2]/15 border-b border-accent-purple/20 text-center py-2 px-4">
-        <p className="text-xs text-accent-violet font-medium">
-          🚧 <span className="font-bold">Beta</span> — everything is free while the A1 grammar content is being built.
-          <a href="#beta" className="ml-2 underline hover:text-text-primary transition-colors">Learn more</a>
-        </p>
-      </div>
-
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <section className="relative pt-36 pb-20 px-5 overflow-hidden">
+      <section className="relative pt-32 pb-20 px-5 overflow-hidden">
         <FloatingWords />
-
-        {/* Radial background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent-purple/8 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#7c6df2]/8 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="max-w-5xl mx-auto relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
             {/* Left: text */}
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-purple/12 border border-accent-purple/25 text-accent-violet text-xs font-bold mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" />
-                A1 Grammar · Free Beta
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#7c6df2]/12 border border-[#7c6df2]/25 text-[#9b8cf5] text-xs font-bold mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9b8cf5] animate-pulse" />
+                Real sentences · Real retention
               </div>
 
-              <h1 className="text-4xl sm:text-5xl font-bold text-text-primary leading-[1.1] mb-5">
-                Drill German grammar<br />
-                <span className="bg-gradient-to-r from-accent-purple to-accent-pink bg-clip-text text-transparent">
-                  until it actually sticks.
+              <h1 className="text-4xl sm:text-5xl font-bold text-[#e8e6f0] leading-[1.1] mb-5">
+                Learn German from<br />
+                <span className="bg-gradient-to-r from-[#7c6df2] to-[#c084fc] bg-clip-text text-transparent">
+                  videos that actually stick.
                 </span>
               </h1>
 
-              <p className="text-lg text-text-muted leading-relaxed mb-3">
-                Hi, I'm Caro — a native German speaker who teaches German.
-                This app is built for people who want to consolidate their knowledge and build real, lasting fluency — not just get through a lesson streak.
+              <p className="text-lg text-[#9b98b0] leading-relaxed mb-4">
+                Pick sentences from my TikTok and YouTube videos. Add the ones you want to learn. Review them with spaced repetition until they're part of you.
               </p>
-              <p className="text-base text-text-muted leading-relaxed mb-8">
-                You type answers from memory. The app drills what you struggle with, spaces out what you know, and keeps pushing you forward.
-                Sustainable learning, not quick fixes.
+              <p className="text-base text-[#9b98b0] leading-relaxed mb-8">
+                No random word lists. No gamified streaks. Just real German, from real context, drilled until it sticks.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
-                  href="/dashboard"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-accent-purple text-white font-bold text-base hover:bg-accent-violet transition-all shadow-xl shadow-accent-purple/30 hover:-translate-y-0.5"
+                  href="/videos"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold text-base hover:bg-[#6b5de0] transition-all shadow-xl shadow-[#7c6df2]/30 hover:-translate-y-0.5"
                 >
-                  Start learning free →
+                  Browse videos →
                 </Link>
                 <a
                   href="#how"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 text-text-muted font-semibold hover:bg-white/5 hover:text-text-primary transition-all"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 text-[#9b98b0] font-semibold hover:bg-white/5 hover:text-[#e8e6f0] transition-all"
                 >
                   See how it works ↓
                 </a>
               </div>
 
-              <p className="text-xs text-text-muted mt-4 opacity-70">
-                Free during beta · No credit card
+              <p className="text-xs text-[#9b98b0] mt-4 opacity-70">
+                Free to browse · No credit card needed
               </p>
             </div>
 
-            {/* Right: phone demo */}
+            {/* Right: interactive demo */}
             <div className="flex flex-col items-center gap-4">
-              {/* Tab switcher */}
               <div className="flex gap-1 p-1 bg-[#1a1830] rounded-xl border border-white/5">
                 <button
-                  onClick={() => setActiveDemo('vocab')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'vocab' ? 'bg-accent-purple text-white shadow-lg shadow-accent-purple/25' : 'text-text-muted hover:text-text-primary'}`}
+                  onClick={() => setActiveDemo('browse')}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'browse' ? 'bg-[#7c6df2] text-white shadow-lg shadow-[#7c6df2]/25' : 'text-[#9b98b0] hover:text-[#e8e6f0]'}`}
                 >
-                  Vocabulary
+                  Browse
                 </button>
                 <button
-                  onClick={() => setActiveDemo('grammar')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'grammar' ? 'bg-accent-purple text-white shadow-lg shadow-accent-purple/25' : 'text-text-muted hover:text-text-primary'}`}
+                  onClick={() => setActiveDemo('review')}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'review' ? 'bg-[#7c6df2] text-white shadow-lg shadow-[#7c6df2]/25' : 'text-[#9b98b0] hover:text-[#e8e6f0]'}`}
                 >
-                  Grammar
+                  Review
                 </button>
               </div>
 
-              <div className="animate-float-bob">
-                <PhoneMockup>
-                  {activeDemo === 'vocab' ? <ClozePreview /> : <GrammarPreview />}
-                </PhoneMockup>
+              <div className="w-full animate-float-bob">
+                {activeDemo === 'browse' ? <BrowseDemo /> : <FlipCardDemo />}
               </div>
-              <p className="text-xs text-text-muted opacity-60">↑ Live demo — try typing an answer</p>
+              <p className="text-xs text-[#4a4760]">↑ Live demo — try it out</p>
             </div>
           </div>
         </div>
@@ -392,33 +376,33 @@ function LandingContent() {
       <section id="how" className="py-20 px-5" ref={howRef}>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-text-primary mb-3">How it works</h2>
-            <p className="text-text-muted">Three things. That's it.</p>
+            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">How it works</h2>
+            <p className="text-[#9b98b0]">Three steps. That's it.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
                 step: '01',
-                icon: '📖',
-                title: 'Pick a grammar topic',
-                desc: "Start with A1 Grammar with Caro. Each topic comes with an explanation, examples, and structure — so you understand it before you practice it.",
-                color: 'border-accent-purple/30 hover:border-accent-purple/60',
-                num: 'text-accent-purple',
+                icon: '🎬',
+                title: 'Watch a video',
+                desc: 'Browse the video library. Each video has real German sentences from the content — tagged by level so you can start where it makes sense.',
+                color: 'border-[#7c6df2]/30 hover:border-[#7c6df2]/60',
+                num: 'text-[#7c6df2]',
               },
               {
                 step: '02',
-                icon: '✏️',
-                title: 'Fill in the gaps',
-                desc: "You see a sentence with a missing word. You type it. No hints, no multiple choice. Just you and the German language.",
+                icon: '＋',
+                title: 'Pick your sentences',
+                desc: 'Tap the sentences that catch your eye — words you want to remember, phrases that felt useful. They go straight into your personal review queue.',
                 color: 'border-emerald-500/30 hover:border-emerald-500/60',
                 num: 'text-emerald-400',
               },
               {
                 step: '03',
                 icon: '🔄',
-                title: 'The app takes over',
-                desc: "Every answer you give feeds into the spaced repetition system. Words you know disappear for longer. Ones you struggle with come back sooner.",
+                title: 'Review until it sticks',
+                desc: 'Flip cards. German one side, English the other. "Knew it" or "didn\'t know". The SRS algorithm handles the rest — showing you what you need, when you need it.',
                 color: 'border-blue-500/30 hover:border-blue-500/60',
                 num: 'text-blue-400',
               },
@@ -426,70 +410,46 @@ function LandingContent() {
               <div key={step} className={`bg-[#1a1830] rounded-2xl p-6 border ${color} transition-colors`}>
                 <div className={`text-xs font-bold font-mono mb-3 ${num}`}>{step}</div>
                 <div className="text-2xl mb-3">{icon}</div>
-                <h3 className="text-text-primary font-bold mb-2">{title}</h3>
-                <p className="text-text-muted text-sm leading-relaxed">{desc}</p>
+                <h3 className="text-[#e8e6f0] font-bold mb-2">{title}</h3>
+                <p className="text-[#9b98b0] text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Grammar demo section ───────────────────────────────────────────── */}
+      {/* ── Why SRS ────────────────────────────────────────────────────────── */}
       <section className="py-16 px-5 bg-[#1a1830]/40" ref={demoRef}>
         <div className="max-w-3xl mx-auto">
           <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden">
             <div className="p-6 border-b border-white/5">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">A1 GRAMMAR</span>
-              </div>
-              <h3 className="text-text-primary font-bold text-lg">W-Frage: wie? <span className="text-text-muted font-normal text-base">— W-Question: how?</span></h3>
+              <h3 className="text-[#e8e6f0] font-bold text-lg">Why spaced repetition?</h3>
+              <p className="text-[#9b98b0] text-sm mt-1">The science behind remembering things long-term</p>
             </div>
-            <div className="p-6 grid sm:grid-cols-2 gap-5">
-              {/* Structure */}
-              <div>
-                <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Structure</p>
-                <div className="bg-[#0f0e17] rounded-xl p-3 font-mono text-sm border border-white/5">
-                  Wie + <span className="text-accent-violet">[Verb]</span> + <span className="text-accent-violet">[Subjekt]</span>?
+            <div className="p-6 grid sm:grid-cols-3 gap-5">
+              {[
+                {
+                  icon: '📉',
+                  title: 'We forget fast',
+                  desc: 'Without review, you forget 70% of new information within 24 hours. Passive reading doesn\'t help.',
+                },
+                {
+                  icon: '⏱️',
+                  title: 'Timing matters',
+                  desc: 'Reviewing at the right moment — just before you forget — is far more effective than reviewing randomly.',
+                },
+                {
+                  icon: '🧠',
+                  title: 'Retrieval builds memory',
+                  desc: 'Every time you successfully recall something, the memory gets stronger. Flip cards force retrieval. Scrolling doesn\'t.',
+                },
+              ].map(({ icon, title, desc }) => (
+                <div key={title} className="bg-[#0f0e17] rounded-xl p-4 border border-white/5">
+                  <div className="text-2xl mb-2">{icon}</div>
+                  <p className="text-[#e8e6f0] font-semibold text-sm mb-1">{title}</p>
+                  <p className="text-[#9b98b0] text-xs leading-relaxed">{desc}</p>
                 </div>
-              </div>
-              {/* Register */}
-              <div>
-                <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Register</p>
-                <div className="space-y-2">
-                  {[['Formal','3'],['Standard','3'],['Casual','2']].map(([label, dots]) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <span className="text-sm text-text-muted">{label}</span>
-                      <div className="flex gap-1">
-                        {[1,2,3].map(i => (
-                          <div key={i} className={`w-2 h-2 rounded-full ${i <= Number(dots) ? 'bg-accent-purple' : 'bg-white/10'}`} />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Example sentences */}
-              <div className="sm:col-span-2 space-y-2">
-                <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Examples</p>
-                {[
-                  ['Wie heißt du?', 'What is your name?'],
-                  ['Wie geht es dir?', 'How are you?'],
-                  ['Wie spät ist es?', 'What time is it?'],
-                ].map(([de, en]) => (
-                  <div key={de} className="bg-[#252340] rounded-xl p-3 border border-white/5">
-                    <p className="text-text-primary text-sm">{de}</p>
-                    <p className="text-text-muted text-xs mt-0.5">{en}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="px-6 pb-6">
-              <Link
-                href="/grammar"
-                className="text-sm text-accent-violet hover:text-accent-pink transition-colors font-medium"
-              >
-                Browse all A1 grammar topics →
-              </Link>
+              ))}
             </div>
           </div>
         </div>
@@ -499,29 +459,29 @@ function LandingContent() {
       <section id="for-who" className="py-20 px-5" ref={forWhoRef}>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-text-primary mb-3">This is for you if…</h2>
+            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">This is for you if…</h2>
           </div>
 
           <div className="space-y-4">
             {[
               {
                 emoji: '📱',
-                title: "You follow me on TikTok or YouTube",
-                desc: "The videos explain the concepts. This is where you practice them until they actually stick. Think of it as the structured study guide to go with the content you already watch.",
+                title: 'You already follow me on TikTok or YouTube',
+                desc: "You watch the videos. You understand the concept. But it doesn't stick the way you want it to. This is where you take what you've seen and actually make it yours — sentence by sentence.",
                 tag: 'GWC Community',
-                tagColor: 'bg-accent-purple/15 text-accent-violet border-accent-purple/25',
+                tagColor: 'bg-[#7c6df2]/15 text-[#9b8cf5] border-[#7c6df2]/25',
               },
               {
                 emoji: '🎯',
-                title: "You want structure, not just vibes",
-                desc: "Random YouTube videos and scattered notes only get you so far. Here everything is organised by level and topic — vocabulary, grammar, reading. You always know what you're learning and why.",
-                tag: 'Structured Learning',
+                title: "You want to learn real, usable German",
+                desc: "Not textbook sentences. Not random vocabulary lists. The sentences here come from real videos — the kind of German you'd actually use or hear in conversation.",
+                tag: 'Real German',
                 tagColor: 'bg-blue-500/15 text-blue-300 border-blue-500/25',
               },
               {
                 emoji: '😤',
-                title: "You tried other apps and gave up",
-                desc: "Duolingo felt too gamey. Anki was too much work to set up. Textbooks were boring. This is structured and systematic, but it doesn't feel like homework. The content is already built. You just show up.",
+                title: "You've tried other apps and got bored",
+                desc: "Duolingo felt too gamey. Anki was too much effort to set up. Here the content is already there. You just pick the sentences that interest you and review them. That's it.",
                 tag: 'Self-Learners',
                 tagColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
               },
@@ -533,10 +493,10 @@ function LandingContent() {
                 <div className="text-3xl shrink-0 mt-0.5">{emoji}</div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap mb-2">
-                    <h3 className="text-text-primary font-bold">{title}</h3>
+                    <h3 className="text-[#e8e6f0] font-bold">{title}</h3>
                     <span className={`px-2 py-0.5 rounded text-xs font-bold border ${tagColor}`}>{tag}</span>
                   </div>
-                  <p className="text-text-muted text-sm leading-relaxed">{desc}</p>
+                  <p className="text-[#9b98b0] text-sm leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -544,62 +504,43 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* ── Beta Pricing ───────────────────────────────────────────────────── */}
-      <section id="beta" className="py-20 px-5 bg-[#1a1830]/40" ref={betaRef}>
-        <div className="max-w-lg mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-purple/12 border border-accent-purple/25 text-accent-violet text-xs font-bold mb-6">
-            🚧 Currently in Beta
-          </div>
-
-          <h2 className="text-3xl font-bold text-text-primary mb-4">
-            Free now.<br/>
-            <span className="text-text-muted font-normal text-2xl">Paid when it's done.</span>
-          </h2>
-
-          <p className="text-text-muted leading-relaxed mb-8">
-            I'm building the A1 grammar section topic by topic — every week there's more content.
-            While that's happening, everything is free. No catch.
-          </p>
-
-          {/* Beta card */}
-          <div className="relative bg-[#1a1830] rounded-2xl border border-accent-purple/30 p-8 mb-6">
-            <div className="absolute -inset-0.5 bg-gradient-to-br from-accent-purple/20 to-accent-pink/10 rounded-2xl blur-sm -z-10" />
-
-            <div className="text-5xl font-bold text-text-primary mb-1">
-              €0
-              <span className="text-text-muted text-lg font-normal"> / now</span>
+      {/* ── About Caro ─────────────────────────────────────────────────────── */}
+      <section id="caro" className="py-20 px-5 bg-[#1a1830]/40" ref={caroRef}>
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-[#1a1830] rounded-2xl border border-white/5 p-8 flex flex-col sm:flex-row gap-8 items-center sm:items-start">
+            <img
+              src="/caro.jpg"
+              alt="Caro"
+              className="w-32 h-32 rounded-full object-cover shrink-0 border-2 border-[#7c6df2]/40 shadow-lg shadow-[#7c6df2]/10"
+            />
+            <div>
+              <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-2">The person behind it</p>
+              <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Hi, I'm Caro 👋</h2>
+              <p className="text-[#9b98b0] leading-relaxed mb-3">
+                I'm a native German speaker and I make German learning content on TikTok and YouTube. I built this app because I wanted a place where my community could actually practise the sentences from my videos — not just watch and forget.
+              </p>
+              <p className="text-[#9b98b0] leading-relaxed mb-4">
+                Every video, every sentence, every translation in here is made by me. This is the study companion to go with the content you're already watching.
+              </p>
+              <div className="flex gap-3">
+                <a
+                  href="https://www.tiktok.com/@germanwithcaro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 transition-colors text-sm font-medium"
+                >
+                  📱 TikTok
+                </a>
+                <a
+                  href="https://www.youtube.com/@germanwithcaro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 transition-colors text-sm font-medium"
+                >
+                  ▶️ YouTube
+                </a>
+              </div>
             </div>
-            <p className="text-text-muted text-sm mb-6">Free during beta · No credit card needed</p>
-
-            <div className="text-left space-y-3 mb-8">
-              {[
-                'Full access to A1 Grammar with Caro',
-                'All vocabulary content + spaced repetition',
-                'New grammar topics added every week',
-                'Keeps all your progress when it goes paid',
-              ].map(item => (
-                <div key={item} className="flex items-start gap-3 text-sm text-text-primary">
-                  <span className="text-green-400 mt-0.5 shrink-0">✓</span>
-                  {item}
-                </div>
-              ))}
-            </div>
-
-            <Link
-              href="/dashboard"
-              className="block w-full py-3.5 rounded-xl bg-accent-purple text-white font-bold hover:bg-accent-violet transition-colors shadow-lg shadow-accent-purple/30 text-center"
-            >
-              Sign up free →
-            </Link>
-          </div>
-
-          {/* Future pricing note */}
-          <div className="bg-[#252340]/50 rounded-xl p-4 border border-white/5">
-            <p className="text-text-muted text-sm">
-              <span className="text-text-primary font-semibold">When it goes paid:</span>{' '}
-              €9.99/month — all A1 content, spaced repetition, grammar library, streak tracking. Everything.
-              Accounts created during beta keep their progress.
-            </p>
           </div>
         </div>
       </section>
@@ -608,58 +549,35 @@ function LandingContent() {
       <section id="faq" className="py-20 px-5" ref={faqRef}>
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-text-primary mb-3">Questions</h2>
+            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">Questions</h2>
           </div>
           <FAQ />
-        </div>
-      </section>
-
-      {/* ── About Caro ─────────────────────────────────────────────────────── */}
-      <section className="py-20 px-5">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-[#1a1830] rounded-2xl border border-white/5 p-8 flex flex-col sm:flex-row gap-8 items-center sm:items-start">
-            <img
-              src="/caro.jpg"
-              alt="Caroline"
-              className="w-28 h-28 rounded-full object-cover shrink-0 border-2 border-[#7c6df2]/40"
-            />
-            <div>
-              <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-2">Built by a real teacher</p>
-              <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Hi, I&apos;m Caro 👋</h2>
-              <p className="text-[#9b98b0] leading-relaxed mb-3">
-                I&apos;m a German teacher and I built this app because I couldn&apos;t find something that worked the way I actually teach — word by word, with real sentences, and spaced repetition that respects your time.
-              </p>
-              <p className="text-[#9b98b0] leading-relaxed">
-                Everything in here — the vocabulary, the grammar explanations, the example sentences — I wrote myself. This is the app I wish my students had from day one.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
       {/* ── Final CTA ──────────────────────────────────────────────────────── */}
       <section className="py-20 px-5 text-center">
         <div className="max-w-md mx-auto">
-          <h2 className="text-3xl font-bold text-text-primary mb-4">
-            Ready to actually learn German?
+          <h2 className="text-3xl font-bold text-[#e8e6f0] mb-4">
+            Ready to make it stick?
           </h2>
-          <p className="text-text-muted mb-8">
-            It's free. It takes 10 minutes to get started. And if you don't like it, you've lost nothing.
+          <p className="text-[#9b98b0] mb-8">
+            Pick a video. Add the sentences you want to learn. Come back tomorrow for your review. That's the whole thing.
           </p>
           <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-accent-purple text-white font-bold text-lg hover:bg-accent-violet transition-all shadow-xl shadow-accent-purple/30 hover:-translate-y-0.5"
+            href="/videos"
+            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#6b5de0] transition-all shadow-xl shadow-[#7c6df2]/30 hover:-translate-y-0.5"
           >
-            Start learning free →
+            Browse videos →
           </Link>
-          <p className="text-xs text-text-muted mt-4 opacity-60">No credit card · Free during beta</p>
+          <p className="text-xs text-[#9b98b0] mt-4 opacity-60">Free to use · No credit card</p>
         </div>
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/5 py-8 px-5">
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-text-muted text-sm">
+          <p className="text-[#9b98b0] text-sm">
             © {new Date().getFullYear()} German With Caro
           </p>
           <div className="flex items-center gap-5">
@@ -669,7 +587,7 @@ function LandingContent() {
               { href: '/cookies',   label: 'Cookies' },
               { href: '/terms',     label: 'Terms' },
             ].map(({ href, label }) => (
-              <Link key={href} href={href} className="text-text-muted hover:text-text-primary text-sm transition-colors">
+              <Link key={href} href={href} className="text-[#9b98b0] hover:text-[#e8e6f0] text-sm transition-colors">
                 {label}
               </Link>
             ))}
