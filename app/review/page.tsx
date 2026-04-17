@@ -12,6 +12,7 @@ import Navbar from '@/components/Navbar'
 
 interface VideoSentence {
   id: string
+  video_id: string
   sentence_de: string
   sentence_en: string
   highlight_de: string | null
@@ -203,6 +204,16 @@ function FlipCard({
                 <p className="text-xl sm:text-2xl text-[#9b98b0] leading-relaxed italic">
                   <HighlightText text={card.sentence.sentence_en} highlight={card.sentence.highlight_en} />
                 </p>
+                <div className="mt-6">
+                  <Link
+                    href={`/videos/${card.sentence.video_id}`}
+                    target="_blank"
+                    onClick={e => e.stopPropagation()}
+                    className="inline-flex items-center gap-1.5 text-xs text-[#6b6880] hover:text-[#9b8cf5] transition-colors"
+                  >
+                    ▶ Watch video
+                  </Link>
+                </div>
               </div>
             )}
           </div>
@@ -289,7 +300,7 @@ function ReviewPageInner() {
         const sentenceIds = reviews.map((r: { sentence_id: string }) => r.sentence_id)
         const { data: sentences, error: sentError } = await supabase
           .from('gwc_video_sentences')
-          .select('id, sentence_de, sentence_en, highlight_de, highlight_en')
+          .select('id, video_id, sentence_de, sentence_en, highlight_de, highlight_en')
           .in('id', sentenceIds)
 
         if (sentError) throw sentError
