@@ -52,6 +52,12 @@ export default function AdminVideoSentencesPage() {
   const [bulkMode, setBulkMode] = useState(false)
   const [bulkText, setBulkText] = useState('')
 
+  // Video meta edit state
+  const [editingMeta, setEditingMeta] = useState(false)
+  const [editLevel, setEditLevel] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editTitle, setEditTitle] = useState('')
+
   // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDe, setEditDe] = useState('')
@@ -248,6 +254,36 @@ export default function AdminVideoSentencesPage() {
     setSaving(false)
   }
 
+  function startEditMeta() {
+    if (!video) return
+    setEditLevel(video.level)
+    setEditDescription(video.description ?? '')
+    setEditTitle(video.title)
+    setEditingMeta(true)
+  }
+
+  async function saveVideoMeta() {
+    if (!video) return
+    setSaving(true)
+    const { error } = await supabase
+      .from('gwc_videos')
+      .update({
+        title:       editTitle.trim() || video.title,
+        level:       editLevel,
+        description: editDescription.trim() || null,
+      })
+      .eq('id', videoId)
+    if (!error) {
+      setVideo({ ...video, title: editTitle.trim() || video.title, level: editLevel, description: editDescription.trim() || null })
+      setEditingMeta(false)
+      setSuccess('Saved!')
+      setTimeout(() => setSuccess(null), 2000)
+    } else {
+      setError(error.message)
+    }
+    setSaving(false)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f0e17]">
@@ -326,6 +362,69 @@ export default function AdminVideoSentencesPage() {
             </button>
           </div>
         </div>
+
+        {/* Video meta editor */}
+        {!editingMeta ? (
+          <div className="mb-6 bg-[#1a1830] rounded-xl border border-white/8 px-5 py-4 flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              {video.description && (
+                <p className="text-sm text-[#9b98b0] truncate">{video.description}</p>
+              )}
+              {!video.description && (
+                <p className="text-sm text-[#4a4760] italic">No description</p>
+              )}
+            </div>
+            <button
+              onClick={startEditMeta}
+              className="text-xs text-[#7c6df2] hover:underline shrink-0"
+            >
+              ✏ Edit info
+            </button>
+          </div>
+        ) : (
+          <div className="mb-6 bg-[#1a1830] rounded-xl border border-[#7c6df2]/30 p-5 space-y-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-[#e8e6f0]">Edit video info</p>
+              <button onClick={() => setEditingMeta(false)} className="text-xs text-[#9b98b0] hover:text-[#e8e6f0]">Cancel</button>
+            </div>
+            <div>
+              <label className="text-xs text-[#9b98b0] mb-1 block">Title</label>
+              <input
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                className="w-full bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] focus:outline-none focus:border-[#7c6df2]"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-[#9b98b0] mb-1 block">Level</label>
+              <select
+                value={editLevel}
+                onChange={e => setEditLevel(e.target.value)}
+                className="bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] focus:outline-none focus:border-[#7c6df2]"
+              >
+                {['A1','A2','B1','B2','C1','C2'].map(l => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-[#9b98b0] mb-1 block">Description</label>
+              <textarea
+                value={editDescription}
+                onChange={e => setEditDescription(e.target.value)}
+                rows={3}
+                className="w-full bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] focus:outline-none focus:border-[#7c6df2] resize-none"
+              />
+            </div>
+            <button
+              onClick={saveVideoMeta}
+              disabled={saving}
+              className="px-4 py-2 rounded-lg bg-[#7c6df2] text-white text-sm font-semibold hover:bg-[#9b8cf5] transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
