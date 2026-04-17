@@ -6,7 +6,7 @@ export async function getSubscriptionStatus(): Promise<'free' | 'active' | 'canc
   if (!user) return null
 
   const { data } = await supabase
-    .from('gwc_progress')
+    .from('gwc_user_progress')
     .select('subscription_status')
     .eq('session_id', user.id)
     .single()

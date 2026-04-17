@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const { userId } = await request.json()
 
     const { data: progress } = await supabaseAdmin
-      .from('gwc_progress')
+      .from('gwc_user_progress')
       .select('stripe_customer_id')
       .eq('session_id', userId)
       .single()

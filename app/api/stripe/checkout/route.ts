@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Get or create Stripe customer
     const { data: progress } = await supabaseAdmin
-      .from('gwc_progress')
+      .from('gwc_user_progress')
       .select('stripe_customer_id')
       .eq('session_id', userId)
       .single()
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       const customer = await stripe.customers.create({ email, metadata: { userId } })
       customerId = customer.id
       await supabaseAdmin
-        .from('gwc_progress')
+        .from('gwc_user_progress')
         .update({ stripe_customer_id: customerId })
         .eq('session_id', userId)
     }

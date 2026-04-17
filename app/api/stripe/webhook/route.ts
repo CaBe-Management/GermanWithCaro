@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       const userId = session.metadata?.userId
       if (!userId) break
       await supabaseAdmin
-        .from('gwc_progress')
+        .from('gwc_user_progress')
         .update({
           stripe_subscription_id: session.subscription as string,
           subscription_status:    'active',
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     case 'customer.subscription.updated': {
       const status = sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : 'canceled'
       await supabaseAdmin
-        .from('gwc_progress')
+        .from('gwc_user_progress')
         .update({ subscription_status: status })
         .eq('stripe_subscription_id', sub.id)
       break
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     case 'customer.subscription.deleted': {
       await supabaseAdmin
-        .from('gwc_progress')
+        .from('gwc_user_progress')
         .update({ subscription_status: 'canceled', stripe_subscription_id: null })
         .eq('stripe_subscription_id', sub.id)
       break
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice & { subscription?: string }
       if (invoice.subscription) {
         await supabaseAdmin
-          .from('gwc_progress')
+          .from('gwc_user_progress')
           .update({ subscription_status: 'past_due' })
           .eq('stripe_subscription_id', invoice.subscription)
       }
