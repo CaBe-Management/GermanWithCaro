@@ -64,7 +64,7 @@ export default function AdminVideoSentencesPage() {
 
   async function checkAdminAndLoad() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
+    if (!user || user.email !== 'caroline091996@gmail.com') { router.push('/dashboard'); return }
     await loadData()
   }
 
