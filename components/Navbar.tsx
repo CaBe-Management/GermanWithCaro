@@ -86,7 +86,7 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link
-          href="/dashboard"
+          href={userEmail ? '/dashboard' : '/'}
           className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity"
         >
           <span className="text-xl">🇩🇪</span>
