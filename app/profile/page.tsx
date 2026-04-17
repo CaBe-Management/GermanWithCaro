@@ -66,9 +66,9 @@ function XPBar({ xp }: { xp: number }) {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs text-[#9b98b0]">Lv {level}</span>
+        <span className="text-xs text-[#9b98b0]">Level {level}</span>
         <span className="text-xs text-[#9b98b0]">{xpInLevel} / {xpNeeded} XP</span>
-        <span className="text-xs text-[#9b98b0]">Lv {level + 1}</span>
+        <span className="text-xs text-[#9b98b0]">Level {level + 1}</span>
       </div>
       <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
         <div
@@ -76,7 +76,7 @@ function XPBar({ xp }: { xp: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-right text-xs text-[#9b98b0] mt-1">{pct}% to Level {level + 1}</p>
+      <p className="text-right text-xs text-[#9b98b0] mt-1">{pct}% to level {level + 1}</p>
     </div>
   )
 }
@@ -200,7 +200,7 @@ function DailyGoalControl({ initialGoal }: { initialGoal: number }) {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-bold text-[#e8e6f0]">Daily Goal</p>
+        <p className="text-sm font-bold text-[#e8e6f0]">Daily goal</p>
         <p className="text-xs text-[#9b98b0]">New cards per day</p>
       </div>
       <div className="flex items-center gap-3">
@@ -397,7 +397,7 @@ export default function ProfilePage() {
               <p className="text-[#9b98b0] text-sm">{xp.toLocaleString('en')} XP total</p>
             </div>
             <Link href="/forecast" className="text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors shrink-0">
-              Forecast →
+              Forecast→
             </Link>
           </div>
           {/* XP progress bar */}
@@ -409,7 +409,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold text-[#e8e6f0]">Streak</h2>
-              <p className="text-[#9b98b0] text-sm">{stats?.daysStudied ?? 0} total days studied</p>
+              <p className="text-[#9b98b0] text-sm">{stats?.daysStudied ?? 0} days studied</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-orange-400">🔥 {streak}</p>
@@ -430,7 +430,7 @@ export default function ProfilePage() {
             { label: 'Reviews',    value: stats?.totalReviews ?? 0,  color: 'text-[#9b8cf5]' },
             { label: 'Correct',    value: `${stats?.correctRate ?? 0}%`, color: 'text-[#4ade80]' },
             { label: 'Words',      value: stats?.learnedWords ?? 0,  color: 'text-[#e8e6f0]' },
-            { label: 'Days',       value: stats?.daysStudied ?? 0,   color: 'text-orange-400' },
+            { label: 'Days studied', value: stats?.daysStudied ?? 0,   color: 'text-orange-400' },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-[#1a1830] rounded-2xl p-4 border border-white/5 text-center">
               <p className={`text-2xl font-bold mb-0.5 ${color}`}>{value}</p>
@@ -442,15 +442,15 @@ export default function ProfilePage() {
         {/* ── SRS Stage Overview ────────────────────────────────────────────── */}
         <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-bold text-[#e8e6f0]">SRS Progress</h2>
-            <span className="text-sm text-[#9b98b0]">{totalCards} Cards</span>
+            <h2 className="text-base font-bold text-[#e8e6f0]">SRS progress</h2>
+            <span className="text-sm text-[#9b98b0]">{totalCards} cards</span>
           </div>
           {srsStages && (
             <div className="space-y-4">
               <SRSBar label="Beginner (new)"      count={srsStages.beginner} total={totalCards} color="bg-red-400/80" />
-              <SRSBar label="Seasoned (2–3 days)" count={srsStages.seasoned} total={totalCards} color="bg-orange-400/80" />
-              <SRSBar label="Adept (4–7 days)"    count={srsStages.adept}   total={totalCards} color="bg-yellow-400/80" />
-              <SRSBar label="Expert (8–14 days)"  count={srsStages.expert}  total={totalCards} color="bg-[#7c6df2]/80" />
+              <SRSBar label="Seasoned (2-3 days)" count={srsStages.seasoned} total={totalCards} color="bg-orange-400/80" />
+              <SRSBar label="Adept (4-7 days)"    count={srsStages.adept}   total={totalCards} color="bg-yellow-400/80" />
+              <SRSBar label="Expert (8-14 days)"  count={srsStages.expert}  total={totalCards} color="bg-[#7c6df2]/80" />
               <SRSBar label="Master (15+ days)"   count={srsStages.master}  total={totalCards} color="bg-[#4ade80]/80" />
             </div>
           )}

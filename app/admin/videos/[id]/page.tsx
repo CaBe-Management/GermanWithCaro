@@ -51,6 +51,13 @@ export default function AdminVideoSentencesPage() {
   const [bulkMode, setBulkMode] = useState(false)
   const [bulkText, setBulkText] = useState('')
 
+  // Inline edit state
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDe, setEditDe] = useState('')
+  const [editEn, setEditEn] = useState('')
+  const [editHighlightDe, setEditHighlightDe] = useState('')
+  const [editHighlightEn, setEditHighlightEn] = useState('')
+
   useEffect(() => {
     checkAdminAndLoad()
   }, [videoId])
@@ -150,6 +157,64 @@ export default function AdminVideoSentencesPage() {
     setSentences(prev => prev.filter(s => s.id !== id))
   }
 
+  async function moveSentence(index: number, direction: 'up' | 'down') {
+    const newSentences = [...sentences]
+    const swapIndex = direction === 'up' ? index - 1 : index + 1
+    if (swapIndex < 0 || swapIndex >= newSentences.length) return
+
+    // Swap in local state
+    ;[newSentences[index], newSentences[swapIndex]] = [newSentences[swapIndex], newSentences[index]]
+
+    // Reassign sort_order to match new positions
+    const updated = newSentences.map((s, i) => ({ ...s, sort_order: i }))
+    setSentences(updated)
+
+    // Persist both swapped rows
+    await Promise.all([
+      supabase.from('gwc_video_sentences').update({ sort_order: updated[index].sort_order }).eq('id', updated[index].id),
+      supabase.from('gwc_video_sentences').update({ sort_order: updated[swapIndex].sort_order }).eq('id', updated[swapIndex].id),
+    ])
+  }
+
+  function startEdit(s: Sentence) {
+    setEditingId(s.id)
+    setEditDe(s.sentence_de)
+    setEditEn(s.sentence_en)
+    setEditHighlightDe(s.highlight_de ?? '')
+    setEditHighlightEn(s.highlight_en ?? '')
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(id: string) {
+    if (!editDe.trim() || !editEn.trim()) return
+    setSaving(true)
+    const { error } = await supabase
+      .from('gwc_video_sentences')
+      .update({
+        sentence_de: editDe.trim(),
+        sentence_en: editEn.trim(),
+        highlight_de: editHighlightDe.trim() || null,
+        highlight_en: editHighlightEn.trim() || null,
+      })
+      .eq('id', id)
+    if (!error) {
+      setSentences(prev => prev.map(s => s.id === id ? {
+        ...s,
+        sentence_de: editDe.trim(),
+        sentence_en: editEn.trim(),
+        highlight_de: editHighlightDe.trim() || null,
+        highlight_en: editHighlightEn.trim() || null,
+      } : s))
+      setEditingId(null)
+    } else {
+      setError(error.message)
+    }
+    setSaving(false)
+  }
+
   async function togglePublish() {
     if (!video) return
     const { error } = await supabase
@@ -198,8 +263,8 @@ export default function AdminVideoSentencesPage() {
       <div className="min-h-screen bg-[#0f0e17]">
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-          <p className="text-[#9b98b0]">Video nicht gefunden.</p>
-          <Link href="/admin/videos" className="text-[#7c6df2] mt-4 inline-block">← Zurück</Link>
+          <p className="text-[#9b98b0]">Video not found.</p>
+          <Link href="/admin/videos" className="text-[#7c6df2] mt-4 inline-block">← Back</Link>
         </div>
       </div>
     )
@@ -226,7 +291,7 @@ export default function AdminVideoSentencesPage() {
               <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${
                 video.is_draft ? 'bg-yellow-500/20 text-yellow-400' : 'bg-emerald-500/20 text-emerald-400'
               }`}>
-                {video.is_draft ? 'Entwurf' : 'Veröffentlicht'}
+                {video.is_draft ? 'Draft' : 'Published'}
               </span>
               <a
                 href={video.video_url}
@@ -234,7 +299,7 @@ export default function AdminVideoSentencesPage() {
                 rel="noopener noreferrer"
                 className="text-xs text-[#7c6df2] hover:underline"
               >
-                Video öffnen ↗
+                Open video ↗
               </a>
             </div>
           </div>
@@ -245,7 +310,7 @@ export default function AdminVideoSentencesPage() {
                 disabled={saving}
                 className="px-3 py-2 rounded-lg text-sm font-semibold bg-white/5 text-[#9b98b0] hover:bg-white/10 transition-colors disabled:opacity-50"
               >
-                🖼 Cover laden
+                🖼 Load cover
               </button>
             )}
             <button
@@ -256,7 +321,7 @@ export default function AdminVideoSentencesPage() {
                   : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow/30'
               }`}
             >
-              {video.is_draft ? '✓ Veröffentlichen' : '⟳ Zurückziehen'}
+              {video.is_draft ? '✓ Publish' : '⟳ Unpublish'}
             </button>
           </div>
         </div>
@@ -269,7 +334,7 @@ export default function AdminVideoSentencesPage() {
             {/* Embed preview */}
             {tiktokEmbedUrl && (
               <div className="bg-[#1a1830] rounded-xl border border-white/8 p-4">
-                <p className="text-xs text-[#9b98b0] mb-3 font-medium">Video-Vorschau</p>
+                <p className="text-xs text-[#9b98b0] mb-3 font-medium">Video preview</p>
                 <div className="relative w-full" style={{ paddingBottom: '177.78%' }}>
                   <iframe
                     src={tiktokEmbedUrl}
@@ -284,12 +349,12 @@ export default function AdminVideoSentencesPage() {
             {/* Add sentence form */}
             <div className="bg-[#1a1830] rounded-xl border border-white/8 p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-[#e8e6f0]">Satz hinzufügen</h2>
+                <h2 className="text-sm font-semibold text-[#e8e6f0]">Add sentence</h2>
                 <button
                   onClick={() => setBulkMode(v => !v)}
                   className="text-xs text-[#7c6df2] hover:underline"
                 >
-                  {bulkMode ? '← Einzeln' : 'Mehrere auf einmal →'}
+                  {bulkMode ? '← Single' : 'Add multiple →'}
                 </button>
               </div>
 
@@ -301,7 +366,7 @@ export default function AdminVideoSentencesPage() {
                 <form onSubmit={addBulk} className="space-y-3">
                   <div>
                     <label className="block text-xs text-[#9b98b0] mb-1.5">
-                      Format: <code className="bg-white/5 px-1 rounded text-[#7c6df2]">Deutscher Satz | English sentence</code> — eine Zeile pro Satz
+                      Format: <code className="bg-white/5 px-1 rounded text-[#7c6df2]">German sentence | English sentence</code> — one line per sentence
                     </label>
                     <textarea
                       value={bulkText}
@@ -316,7 +381,7 @@ export default function AdminVideoSentencesPage() {
                     disabled={saving || !bulkText.trim()}
                     className="w-full py-2 bg-[#7c6df2] text-white rounded-lg text-sm font-semibold hover:bg-[#6b5de0] disabled:opacity-50 transition-colors"
                   >
-                    {saving ? 'Speichern...' : 'Alle hinzufügen'}
+                    {saving ? 'Saving...' : 'Add all'}
                   </button>
                 </form>
               ) : (
@@ -370,7 +435,7 @@ export default function AdminVideoSentencesPage() {
                     disabled={saving || !sentenceDe.trim() || !sentenceEn.trim()}
                     className="w-full py-2 bg-[#7c6df2] text-white rounded-lg text-sm font-semibold hover:bg-[#6b5de0] disabled:opacity-50 transition-colors"
                   >
-                    {saving ? 'Speichern...' : '+ Satz hinzufügen'}
+                    {saving ? 'Saving...' : '+ Add sentence'}
                   </button>
                 </form>
               )}
@@ -381,7 +446,7 @@ export default function AdminVideoSentencesPage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-[#e8e6f0]">
-                Sätze ({sentences.length})
+                Sentences ({sentences.length})
               </h2>
               {sentences.length > 0 && (
                 <a
@@ -390,7 +455,7 @@ export default function AdminVideoSentencesPage() {
                   rel="noopener noreferrer"
                   className="text-xs text-[#7c6df2] hover:underline"
                 >
-                  Vorschau ↗
+                  Preview ↗
                 </a>
               )}
             </div>
@@ -398,8 +463,8 @@ export default function AdminVideoSentencesPage() {
             {sentences.length === 0 ? (
               <div className="bg-[#1a1830] rounded-xl border border-white/8 p-8 text-center">
                 <p className="text-3xl mb-3">📝</p>
-                <p className="text-[#9b98b0] text-sm">Noch keine Sätze.</p>
-                <p className="text-[#9b98b0] text-xs mt-1">Füge Sätze aus dem Video hinzu.</p>
+                <p className="text-[#9b98b0] text-sm">No sentences yet.</p>
+                <p className="text-[#9b98b0] text-xs mt-1">Add sentences from the video.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -408,35 +473,128 @@ export default function AdminVideoSentencesPage() {
                     key={s.id}
                     className="bg-[#1a1830] rounded-xl border border-white/8 p-4"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="text-xs text-[#4a4760] font-mono mt-0.5 w-5 shrink-0">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#e8e6f0] font-medium leading-snug">
-                          {s.highlight_de ? (
-                            s.sentence_de.split(s.highlight_de).map((part, idx, arr) => (
-                              idx < arr.length - 1 ? (
-                                <span key={idx}>{part}<span className="text-[#9b8cf5] font-bold">{s.highlight_de}</span></span>
-                              ) : part
-                            ))
-                          ) : s.sentence_de}
-                        </p>
-                        <p className="text-xs text-[#9b98b0] mt-0.5 leading-snug">
-                          {s.highlight_en ? (
-                            s.sentence_en.split(s.highlight_en).map((part, idx, arr) => (
-                              idx < arr.length - 1 ? (
-                                <span key={idx}>{part}<span className="text-[#9b8cf5]">{s.highlight_en}</span></span>
-                              ) : part
-                            ))
-                          ) : s.sentence_en}
-                        </p>
+                    {editingId === s.id ? (
+                      /* ── Edit mode ── */
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-[#4a4760] font-mono w-5 shrink-0">{i + 1}</span>
+                          <span className="text-xs text-[#7c6df2] font-semibold">Editing</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={editDe}
+                          onChange={e => setEditDe(e.target.value)}
+                          placeholder="🇩🇪 German sentence"
+                          className="w-full bg-[#0f0e17] border border-[#7c6df2]/50 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
+                        />
+                        <input
+                          type="text"
+                          value={editEn}
+                          onChange={e => setEditEn(e.target.value)}
+                          placeholder="🇬🇧 English translation"
+                          className="w-full bg-[#0f0e17] border border-[#7c6df2]/50 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={editHighlightDe}
+                            onChange={e => setEditHighlightDe(e.target.value)}
+                            placeholder="Highlight DE (optional)"
+                            className="w-full bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
+                          />
+                          <input
+                            type="text"
+                            value={editHighlightEn}
+                            onChange={e => setEditHighlightEn(e.target.value)}
+                            placeholder="Highlight EN (optional)"
+                            className="w-full bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={() => saveEdit(s.id)}
+                            disabled={saving || !editDe.trim() || !editEn.trim()}
+                            className="flex-1 py-1.5 bg-[#7c6df2] text-white rounded-lg text-xs font-semibold hover:bg-[#6b5de0] disabled:opacity-50 transition-colors"
+                          >
+                            {saving ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="px-4 py-1.5 bg-white/5 text-[#9b98b0] rounded-lg text-xs font-semibold hover:bg-white/10 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => deleteSentence(s.id)}
-                        className="text-xs text-[#4a4760] hover:text-[#f87171] transition-colors shrink-0 ml-1"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                    ) : (
+                      /* ── View mode ── */
+                      <div className="flex items-start gap-3">
+                        {/* Reorder buttons */}
+                        <div className="flex flex-col shrink-0 mt-0.5">
+                          <button
+                            onClick={() => moveSentence(i, 'up')}
+                            disabled={i === 0}
+                            className="p-0.5 text-[#4a4760] hover:text-[#9b8cf5] disabled:opacity-20 disabled:cursor-default transition-colors"
+                            title="Move up"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => moveSentence(i, 'down')}
+                            disabled={i === sentences.length - 1}
+                            className="p-0.5 text-[#4a4760] hover:text-[#9b8cf5] disabled:opacity-20 disabled:cursor-default transition-colors"
+                            title="Move down"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
+                        <span className="text-xs text-[#4a4760] font-mono mt-0.5 w-4 shrink-0">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-[#e8e6f0] font-medium leading-snug">
+                            {s.highlight_de ? (
+                              s.sentence_de.split(s.highlight_de).map((part, idx, arr) => (
+                                idx < arr.length - 1 ? (
+                                  <span key={idx}>{part}<span className="text-[#9b8cf5] font-bold">{s.highlight_de}</span></span>
+                                ) : part
+                              ))
+                            ) : s.sentence_de}
+                          </p>
+                          <p className="text-xs text-[#9b98b0] mt-0.5 leading-snug">
+                            {s.highlight_en ? (
+                              s.sentence_en.split(s.highlight_en).map((part, idx, arr) => (
+                                idx < arr.length - 1 ? (
+                                  <span key={idx}>{part}<span className="text-[#9b8cf5]">{s.highlight_en}</span></span>
+                                ) : part
+                              ))
+                            ) : s.sentence_en}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 ml-1">
+                          <button
+                            onClick={() => startEdit(s)}
+                            className="p-1.5 text-[#4a4760] hover:text-[#9b8cf5] transition-colors rounded"
+                            title="Edit"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => deleteSentence(s.id)}
+                            className="p-1.5 text-[#4a4760] hover:text-[#f87171] transition-colors rounded"
+                            title="Delete"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

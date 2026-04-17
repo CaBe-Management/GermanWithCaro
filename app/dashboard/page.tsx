@@ -324,15 +324,15 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <span className="text-xl">⚙️</span>
               <div>
-                <p className="text-sm font-semibold text-[#e8e6f0]">Video-Verwaltung</p>
-                <p className="text-xs text-[#9b98b0]">Videos + Sätze hinzufügen</p>
+                <p className="text-sm font-semibold text-[#e8e6f0]">Video Management</p>
+                <p className="text-xs text-[#9b98b0]">Add videos and sentences</p>
               </div>
             </div>
             <Link
               href="/admin/videos"
               className="px-3 py-1.5 bg-[#7c6df2]/20 text-[#9b8cf5] rounded-lg text-xs font-semibold hover:bg-[#7c6df2]/30 transition-colors"
             >
-              Öffnen →
+              Open →
             </Link>
           </div>
         )}

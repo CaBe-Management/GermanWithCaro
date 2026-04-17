@@ -27,7 +27,11 @@ export default function LoginPage() {
         if (error) throw error
         router.push('/dashboard')
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/login` },
+        })
         if (error) throw error
         // Supabase may require email confirmation — handle both cases
         setSuccess('Account created! Check your email to confirm, then log in.')

@@ -189,8 +189,8 @@ export default function VideoDetailPage() {
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 py-24 text-center">
           <p className="text-4xl mb-4">🎬</p>
-          <p className="text-[#9b98b0]">Video nicht gefunden.</p>
-          <Link href="/videos" className="text-[#7c6df2] mt-4 inline-block hover:underline">← Zurück zu Videos</Link>
+          <p className="text-[#9b98b0]">Video not found.</p>
+          <Link href="/videos" className="text-[#7c6df2] mt-4 inline-block hover:underline">← Back to Videos</Link>
         </div>
       </div>
     )
@@ -284,14 +284,14 @@ export default function VideoDetailPage() {
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                        Als gelernt markiert
+                        Marked as learned
                       </>
                     ) : (
                       <>
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                        Als gelernt markieren
+                        Mark as learned
                       </>
                     )}
                   </button>
@@ -328,7 +328,7 @@ export default function VideoDetailPage() {
             {sentences.length === 0 ? (
               <div className="bg-[#1a1830] rounded-xl border border-white/8 p-12 text-center">
                 <p className="text-3xl mb-3">📝</p>
-                <p className="text-[#9b98b0]">No sentences yet for this video.</p>
+                <p className="text-[#9b98b0]">No sentences yet.</p>
               </div>
             ) : (
               <div className="space-y-2">

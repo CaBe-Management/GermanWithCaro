@@ -111,7 +111,7 @@ function FlipCard({
   const [saving, setSaving]       = useState(false)
 
   const progress  = (cardNumber - 1) / total
-  const srsLabel  = SRS_LABELS[Math.min(card.srsLevel, 11)] ?? 'Novice I'
+  const srsLabel  = SRS_LABELS[Math.min(card.srsLevel, 11)] ?? 'Novice I' /* SRS stage labels */
 
   // Reset on card change
   useEffect(() => {
@@ -150,7 +150,7 @@ function FlipCard({
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
         <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
-          ← Dashboard
+          ← Dashboard {/* Navigation link */}
         </Link>
         <div className="flex items-center gap-3">
           <span className="px-2 py-0.5 rounded-md text-xs text-[#6b6880] bg-white/5 border border-white/8">
@@ -183,7 +183,7 @@ function FlipCard({
             {/* Front */}
             {!flipped && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-6 font-medium">🇩🇪 German</p>
+                <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-6 font-medium">🇩🇪 German (to reveal)</p>
                 <p className="text-2xl sm:text-3xl font-light text-[#e8e6f0] leading-relaxed">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
@@ -313,7 +313,7 @@ function ReviewPageInner() {
       }
     }
     load()
-  }, [])
+  }, []) /* Load reviews on mount */
 
   async function handleAnswer(wasCorrect: boolean) {
     const card = cards[index]
@@ -359,7 +359,7 @@ function ReviewPageInner() {
       <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#9b98b0]">Loading reviews…</p>
+          <p className="text-[#9b98b0]">Loading reviews...</p>
         </div>
       </div>
     )
@@ -372,7 +372,7 @@ function ReviewPageInner() {
           <p className="text-4xl mb-4">⚠️</p>
           <p className="text-[#e8e6f0] font-bold mb-2">Could not load reviews</p>
           <p className="text-[#9b98b0] text-sm mb-6">{error}</p>
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold">Back</Link>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#6b5de0]">Back</Link>
         </div>
       </div>
     )

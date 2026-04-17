@@ -36,13 +36,13 @@ function dayLabel(offset: number, dateStr: string): string {
   if (offset === 0) return 'Today'
   if (offset === 1) return 'Tomorrow'
   const d = new Date(dateStr + 'T12:00:00')  // noon avoids timezone flips
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-/** German short weekday name for a YYYY-MM-DD string. */
+/** English short weekday name for a YYYY-MM-DD string. */
 function shortWeekday(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('en-GB', { weekday: 'short' })
+  return d.toLocaleDateString('en-US', { weekday: 'short' })
 }
 
 /** Returns past-N-days date strings, oldest first. */
@@ -249,7 +249,7 @@ export default function ForecastPage() {
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div>
           <h1 className="text-2xl font-bold text-[#e8e6f0] mb-1">Forecast</h1>
-          <p className="text-[#9b98b0] text-sm">Upcoming Reviews & Activity</p>
+          <p className="text-[#9b98b0] text-sm">Upcoming reviews and activity</p>
         </div>
 
         {/* ── Due now badge ────────────────────────────────────────────────── */}
@@ -259,8 +259,8 @@ export default function ForecastPage() {
             className="flex items-center justify-between bg-orange-500/10 border border-orange-500/30 rounded-2xl px-5 py-4 hover:bg-orange-500/15 transition-colors"
           >
             <div>
-              <p className="text-orange-400 font-bold">{totalDue} Reviews Due!</p>
-              <p className="text-orange-400/70 text-sm">Start Now →</p>
+              <p className="text-orange-400 font-bold">{totalDue} reviews due!</p>
+              <p className="text-orange-400/70 text-sm">Start now →</p>
             </div>
             <span className="text-2xl">⏰</span>
           </Link>
@@ -269,8 +269,8 @@ export default function ForecastPage() {
         {/* ── Upcoming 7 days ───────────────────────────────────────────────── */}
         <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-bold text-[#e8e6f0]">Next 7 Days</h2>
-            <span className="text-sm text-[#9b98b0]">{totalUpcoming} Reviews Scheduled</span>
+            <h2 className="text-base font-bold text-[#e8e6f0]">Next 7 days</h2>
+            <span className="text-sm text-[#9b98b0]">{totalUpcoming} reviews scheduled</span>
           </div>
 
           {forecast.length === 0 ? (
@@ -296,7 +296,7 @@ export default function ForecastPage() {
         <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-[#e8e6f0]">Activity</h2>
-            <span className="text-sm text-[#9b98b0]">Last 21 Days</span>
+            <span className="text-sm text-[#9b98b0]">Last 21 days</span>
           </div>
           <ActivityGrid data={activity} />
         </div>
@@ -305,9 +305,9 @@ export default function ForecastPage() {
         <div className="flex gap-3">
           <Link
             href="/review"
-            className="flex-1 py-3 rounded-xl bg-[#7c6df2] text-white font-bold text-center hover:bg-[#9b8cf5] transition-colors"
+            className="flex-1 py-3 rounded-xl bg-[#7c6df2] text-white font-bold text-center hover:bg-[#6b5de0] transition-colors"
           >
-            Start Reviews
+            Start reviews
           </Link>
           <Link
             href="/profile"

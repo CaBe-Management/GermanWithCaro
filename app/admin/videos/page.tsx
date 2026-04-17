@@ -16,10 +16,13 @@ interface Video {
   thumbnail_url: string | null
   level: string
   is_draft: boolean
+  sentences_done: boolean
   sort_order: number
   created_at: string
   sentence_count?: number
 }
+
+type AdminFilter = 'all' | 'todo' | 'done'
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
@@ -51,6 +54,7 @@ export default function AdminVideosPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [adminFilter, setAdminFilter] = useState<AdminFilter>('all')
 
   // Form state
   const [url, setUrl] = useState('')
@@ -169,6 +173,14 @@ export default function AdminVideosPage() {
     setVideos(prev => prev.map(v => v.id === video.id ? { ...v, is_draft: !v.is_draft } : v))
   }
 
+  async function toggleDone(video: Video) {
+    await supabase
+      .from('gwc_videos')
+      .update({ sentences_done: !video.sentences_done })
+      .eq('id', video.id)
+    setVideos(prev => prev.map(v => v.id === video.id ? { ...v, sentences_done: !v.sentences_done } : v))
+  }
+
   async function deleteVideo(id: string) {
     if (!confirm('Video und alle Sätze wirklich löschen?')) return
     await supabase.from('gwc_videos').delete().eq('id', id)
@@ -183,27 +195,27 @@ export default function AdminVideosPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-[#e8e6f0]">🎬 Video-Verwaltung</h1>
-            <p className="text-[#9b98b0] text-sm mt-1">TikTok & YouTube Videos mit Lern-Sätzen</p>
+            <h1 className="text-2xl font-bold text-[#e8e6f0]">🎬 Video Management</h1>
+            <p className="text-[#9b98b0] text-sm mt-1">TikTok & YouTube Videos with learning sentences</p>
           </div>
           <button
             onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-2 px-4 py-2 bg-[#7c6df2] text-white rounded-lg font-semibold text-sm hover:bg-[#6b5de0] transition-colors"
           >
             <span className="text-base">{showForm ? '✕' : '+'}</span>
-            {showForm ? 'Abbrechen' : 'Video hinzufügen'}
+            {showForm ? 'Cancel' : 'Add video'}
           </button>
         </div>
 
         {/* Add Video Form */}
         {showForm && (
           <div className="bg-[#1a1830] rounded-2xl border border-white/8 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-[#e8e6f0] mb-4">Neues Video</h2>
+            <h2 className="text-lg font-semibold text-[#e8e6f0] mb-4">New video</h2>
             <form onSubmit={handleSave} className="space-y-4">
 
               {/* URL */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Video-Link (TikTok oder YouTube)</label>
+                <label className="block text-sm text-[#9b98b0] mb-1.5">Video link (TikTok or YouTube)</label>
                 <div className="flex gap-2">
                   <input
                     type="url"
@@ -218,18 +230,18 @@ export default function AdminVideosPage() {
                     {platform === 'tiktok' ? '📱 TikTok' : '▶️ YouTube'}
                   </span>
                 </div>
-                {fetchingMeta && <p className="text-xs text-[#7c6df2] mt-1">Lade Metadaten...</p>}
+                {fetchingMeta && <p className="text-xs text-[#7c6df2] mt-1">Loading metadata...</p>}
                 {thumbnailUrl && (
                   <div className="mt-2 flex items-center gap-2">
-                    <img src={thumbnailUrl} alt="Cover-Vorschau" className="w-20 h-14 object-cover rounded-lg" />
-                    <span className="text-xs text-emerald-400">✓ Cover geladen</span>
+                    <img src={thumbnailUrl} alt="Cover preview" className="w-20 h-14 object-cover rounded-lg" />
+                    <span className="text-xs text-emerald-400">✓ Cover loaded</span>
                   </div>
                 )}
               </div>
 
               {/* Title */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Titel</label>
+                <label className="block text-sm text-[#9b98b0] mb-1.5">Title</label>
                 <input
                   type="text"
                   value={title}
@@ -242,7 +254,7 @@ export default function AdminVideosPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Beschreibung (optional)</label>
+                <label className="block text-sm text-[#9b98b0] mb-1.5">Description (optional)</label>
                 <textarea
                   value={description}
                   onChange={e => setDescription(e.target.value)}
@@ -254,7 +266,7 @@ export default function AdminVideosPage() {
 
               {/* Level */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Level</label>
+                <label className="block text-sm text-[#9b98b0] mb-1.5">Level</label> {/* No translation for Level labels A1-C2 */}
                 <div className="flex gap-2 flex-wrap">
                   {LEVELS.map(l => (
                     <button
@@ -281,17 +293,41 @@ export default function AdminVideosPage() {
                   onClick={() => setShowForm(false)}
                   className="px-4 py-2 text-sm text-[#9b98b0] hover:text-[#e8e6f0] transition-colors"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="px-4 py-2 bg-[#7c6df2] text-white rounded-lg text-sm font-semibold hover:bg-[#6b5de0] disabled:opacity-50 transition-colors"
                 >
-                  {saving ? 'Speichern...' : 'Speichern & Sätze hinzufügen →'}
+                  {saving ? 'Saving...' : 'Save & add sentences →'}
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Filter */}
+        {videos.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            {([
+              { key: 'all',  label: 'All',     count: videos.length },
+              { key: 'todo', label: '⬜ To Do', count: videos.filter(v => !v.sentences_done).length },
+              { key: 'done', label: '✅ Done',  count: videos.filter(v => v.sentences_done).length },
+            ] as const).map(f => (
+              <button
+                key={f.key}
+                onClick={() => setAdminFilter(f.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  adminFilter === f.key
+                    ? 'bg-[#7c6df2]/30 text-[#9b8cf5]'
+                    : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+                }`}
+              >
+                {f.label}
+                <span className="bg-white/10 px-1.5 py-0.5 rounded-full">{f.count}</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -303,11 +339,15 @@ export default function AdminVideosPage() {
         ) : videos.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-4">🎬</p>
-            <p className="text-[#9b98b0]">Noch keine Videos. Füge dein erstes TikTok-Video hinzu!</p>
+            <p className="text-[#9b98b0]">No videos yet. Add your first video!</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {videos.map(video => (
+            {videos.filter(v => {
+              if (adminFilter === 'todo') return !v.sentences_done
+              if (adminFilter === 'done') return v.sentences_done
+              return true
+            }).map(video => (
               <div
                 key={video.id}
                 className={`bg-[#1a1830] rounded-xl border p-4 transition-colors ${
@@ -342,22 +382,33 @@ export default function AdminVideosPage() {
                           ? 'bg-yellow-500/20 text-yellow-400'
                           : 'bg-emerald-500/20 text-emerald-400'
                       }`}>
-                        {video.is_draft ? 'Entwurf' : 'Veröffentlicht'}
+                        {video.is_draft ? 'Draft' : 'Published'}
                       </span>
                     </div>
                     <p className="text-[#e8e6f0] font-semibold text-sm truncate">{video.title}</p>
                     <p className="text-[#9b98b0] text-xs mt-0.5">
-                      {video.sentence_count ?? 0} Sätze
+                      {video.sentence_count ?? 0} sentences
                     </p>
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => toggleDone(video)}
+                      title={video.sentences_done ? 'Mark as to do' : 'Mark as done'}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                        video.sentences_done
+                          ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
+                          : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+                      }`}
+                    >
+                      {video.sentences_done ? '✅ Done' : '⬜ To Do'}
+                    </button>
                     <Link
                       href={`/admin/videos/${video.id}`}
                       className="px-3 py-1.5 text-xs font-semibold bg-[#7c6df2]/20 text-[#9b8cf5] rounded-lg hover:bg-[#7c6df2]/30 transition-colors"
                     >
-                      Sätze bearbeiten
+                      Edit sentences
                     </Link>
                     <button
                       onClick={() => toggleDraft(video)}
@@ -367,7 +418,7 @@ export default function AdminVideosPage() {
                           : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
                       }`}
                     >
-                      {video.is_draft ? 'Veröffentlichen' : 'Zurückziehen'}
+                      {video.is_draft ? 'Publish' : 'Unpublish'}
                     </button>
                     <button
                       onClick={() => deleteVideo(video.id)}
@@ -385,7 +436,7 @@ export default function AdminVideosPage() {
         {/* Footer link */}
         <div className="mt-8 pt-6 border-t border-white/5 flex justify-center">
           <Link href="/videos" className="text-sm text-[#9b98b0] hover:text-[#7c6df2] transition-colors">
-            → Öffentliche Video-Seite ansehen
+            → View public videos page
           </Link>
         </div>
 

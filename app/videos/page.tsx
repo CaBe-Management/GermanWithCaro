@@ -54,7 +54,7 @@ function ProgressBadge({ video }: { video: Video }) {
   if (added_count >= sentence_count) {
     return (
       <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-        ✓ Alle gespeichert
+        ✓ All saved
       </span>
     )
   }
@@ -62,7 +62,7 @@ function ProgressBadge({ video }: { video: Video }) {
   if (learned) {
     return (
       <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
-        ✓ Gelernt
+        ✓ Learned
       </span>
     )
   }
@@ -70,7 +70,7 @@ function ProgressBadge({ video }: { video: Video }) {
   if (added_count > 0) {
     return (
       <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-[#7c6df2]/10 text-[#9b8cf5] border border-[#7c6df2]/20">
-        {added_count}/{sentence_count} gespeichert
+        {added_count}/{sentence_count} saved
       </span>
     )
   }
@@ -207,7 +207,7 @@ export default function VideosPage() {
         {/* Platform filter */}
         <div className="flex gap-2 flex-wrap mb-3">
           {([
-            { key: 'all',     label: 'Alle Plattformen' },
+            { key: 'all',     label: 'All platforms' },
             { key: 'tiktok',  label: '📱 TikTok' },
             { key: 'youtube', label: '▶️ YouTube' },
           ] as const).map(p => (
@@ -228,10 +228,10 @@ export default function VideosPage() {
         {/* Status filter */}
         <div className="flex gap-2 flex-wrap mb-8">
           {([
-            { key: 'all',      label: 'Alle',              count: null,          activeClass: 'bg-white/15 text-[#e8e6f0]' },
-            { key: 'open',     label: 'Noch offen',        count: openCount,     activeClass: 'bg-[#7c6df2]/30 text-[#9b8cf5]' },
-            { key: 'learned',  label: 'Gelernt',           count: learnedCount,  activeClass: 'bg-emerald-500/20 text-emerald-400' },
-            { key: 'complete', label: 'Alle gespeichert',  count: completeCount, activeClass: 'bg-emerald-500/20 text-emerald-400' },
+            { key: 'all',      label: 'All',              count: null,          activeClass: 'bg-white/15 text-[#e8e6f0]' },
+            { key: 'open',     label: 'Not started',      count: openCount,     activeClass: 'bg-[#7c6df2]/30 text-[#9b8cf5]' },
+            { key: 'learned',  label: 'Learned',          count: learnedCount,  activeClass: 'bg-emerald-500/20 text-emerald-400' },
+            { key: 'complete', label: 'All saved',        count: completeCount, activeClass: 'bg-emerald-500/20 text-emerald-400' },
           ] as const).map(f => (
             <button
               key={f.key}
@@ -260,8 +260,8 @@ export default function VideosPage() {
             <p className="text-5xl mb-4">🎬</p>
             <p className="text-[#9b98b0] text-lg">
               {videos.length === 0
-                ? 'Noch keine Videos veröffentlicht.'
-                : 'Keine Videos in dieser Kategorie.'}
+                ? 'No videos published yet.'
+                : 'No videos in this category.'}
             </p>
           </div>
         ) : (
@@ -293,11 +293,11 @@ export default function VideosPage() {
                       </div>
                     </div>
                   )}
-                  {/* Gelernt badge overlaid on thumbnail */}
+                  {/* Learned badge overlaid on thumbnail */}
                   {video.learned && (
                     <div className="absolute top-2 right-2">
                       <span className="text-xs px-2 py-0.5 rounded-md font-bold bg-emerald-500/90 text-white shadow-lg">
-                        ✓ Gelernt
+                        ✓ Learned
                       </span>
                     </div>
                   )}
