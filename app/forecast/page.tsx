@@ -154,7 +154,7 @@ export default function ForecastPage() {
         // ── Upcoming reviews: next 7 days ────────────────────────────────────
         const sevenDaysLater = new Date(now.getTime() + 7 * 86400000)
         const { data: upcomingRows } = await supabase
-          .from('gwc_grammar_reviews')
+          .from('gwc_video_reviews')
           .select('next_review_at')
           .eq('session_id', sessionId)
           .gte('next_review_at', now.toISOString())
@@ -162,7 +162,7 @@ export default function ForecastPage() {
 
         // Also count reviews due NOW (already overdue / due today)
         const { count: dueNow } = await supabase
-          .from('gwc_grammar_reviews')
+          .from('gwc_video_reviews')
           .select('*', { count: 'exact', head: true })
           .eq('session_id', sessionId)
           .lte('next_review_at', now.toISOString())
@@ -194,7 +194,7 @@ export default function ForecastPage() {
         const oldestDate = past21[0]
 
         const { data: pastRows } = await supabase
-          .from('gwc_grammar_reviews')
+          .from('gwc_video_reviews')
           .select('updated_at')
           .eq('session_id', sessionId)
           .gte('updated_at', oldestDate + 'T00:00:00')

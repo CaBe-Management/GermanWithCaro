@@ -252,7 +252,7 @@ export default function ProfilePage() {
 
           // All review rows for SRS breakdown, total count, and correct rate
           supabase
-            .from('gwc_grammar_reviews')
+            .from('gwc_video_reviews')
             .select('interval_days, updated_at, correct_reviews, total_reviews')
             .eq('session_id', sessionId),
 
@@ -260,7 +260,7 @@ export default function ProfilePage() {
           (() => {
             const days = getCurrentWeekDays()
             return supabase
-              .from('gwc_grammar_reviews')
+              .from('gwc_video_reviews')
               .select('updated_at')
               .eq('session_id', sessionId)
               .gte('updated_at', days[0] + 'T00:00:00')
@@ -277,12 +277,8 @@ export default function ProfilePage() {
         const correctCount = reviews.reduce((sum, r) => sum + (r.correct_reviews || 0), 0)
         const correctRate  = totalReviews > 0 ? Math.round((correctCount / totalReviews) * 100) : 0
 
-        // Unique vocab learned (distinct vocab_id from gwc_vocab_reviews)
-        const { data: learnedVocabRows } = await supabase
-          .from('gwc_vocab_reviews')
-          .select('vocab_id')
-          .eq('session_id', sessionId)
-        const learnedWords = new Set((learnedVocabRows || []).map((r: { vocab_id: string }) => r.vocab_id)).size
+        // Total sentences in the SRS deck
+        const learnedWords = (allReviews || []).length
 
         // ── User progress (XP, streak, daily goal, german level) ────────────
         const prog = await getOrCreateProgress(sessionId)
@@ -429,7 +425,7 @@ export default function ProfilePage() {
           {[
             { label: 'Reviews',    value: stats?.totalReviews ?? 0,  color: 'text-[#9b8cf5]' },
             { label: 'Correct',    value: `${stats?.correctRate ?? 0}%`, color: 'text-[#4ade80]' },
-            { label: 'Words',      value: stats?.learnedWords ?? 0,  color: 'text-[#e8e6f0]' },
+            { label: 'Sentences',  value: stats?.learnedWords ?? 0,  color: 'text-[#e8e6f0]' },
             { label: 'Days studied', value: stats?.daysStudied ?? 0,   color: 'text-orange-400' },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-[#1a1830] rounded-2xl p-4 border border-white/5 text-center">

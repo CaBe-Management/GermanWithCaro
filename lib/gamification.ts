@@ -361,59 +361,6 @@ export async function saveGermanLevel(
     .eq('session_id', sessionId)
 }
 
-/**
- * When german_level goes up, insert missing kasus rows for all NOMEN already
- * in gwc_vocab_reviews so they appear in reviews without a separate learn step.
- */
-export async function backfillKasusRows(
-  sessionId: string,
-  newLevel: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
-): Promise<void> {
-  const allowedCases = KASUS_BY_LEVEL[newLevel] ?? ['NOMINATIV', 'AKKUSATIV']
-
-  // Load all existing NOMEN review rows (grammatical_case IS NOT NULL)
-  const { data: existing } = await supabase
-    .from('gwc_vocab_reviews')
-    .select('vocab_id, grammatical_case')
-    .eq('session_id', sessionId)
-    .not('grammatical_case', 'is', null)
-
-  if (!existing?.length) return
-
-  // Group existing cases by vocab_id
-  const byVocab = new Map<string, Set<string>>()
-  for (const row of existing) {
-    if (!byVocab.has(row.vocab_id)) byVocab.set(row.vocab_id, new Set())
-    if (row.grammatical_case) byVocab.get(row.vocab_id)!.add(row.grammatical_case)
-  }
-
-  // Build rows that are missing
-  const now = new Date().toISOString()
-  const toInsert: object[] = []
-  for (const [vocabId, existingCases] of byVocab) {
-    for (const kasus of allowedCases) {
-      if (!existingCases.has(kasus)) {
-        toInsert.push({
-          session_id:       sessionId,
-          vocab_id:         vocabId,
-          grammatical_case: kasus,
-          next_review_at:   now,
-          last_sentence_idx: -1,
-          ease_factor:      2.5,
-          interval_days:    1,
-          repetitions:      0,
-          total_reviews:    0,
-          correct_reviews:  0,
-          correct_streak:   0,
-        })
-      }
-    }
-  }
-
-  if (toInsert.length > 0) {
-    await supabase.from('gwc_vocab_reviews').insert(toInsert)
-  }
-}
 
 /**
  * Checks which badges should now be unlocked, saves any new ones to the DB,
