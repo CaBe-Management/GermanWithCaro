@@ -70,7 +70,7 @@ function SubscriptionSection() {
         <div>
           <h2 className="text-base font-bold text-[#e8e6f0] mb-1">Subscription</h2>
           <p className="text-sm text-[#9b98b0]">
-            {isPro(status) ? '✓ Pro — €9.99/month' : status === 'past_due' ? '⚠️ Payment failed' : 'Free plan'}
+            {isPro(status) ? '✓ Pro — €4.99/month' : status === 'past_due' ? '⚠️ Payment failed' : 'Free plan'}
           </p>
         </div>
         {isPro(status) || status === 'past_due' ? (

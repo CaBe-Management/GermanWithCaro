@@ -407,7 +407,7 @@ function ReviewPageInner() {
         <p className="text-[#9b98b0] mb-8">SRS reviews are part of the Pro plan. Upgrade to start reviewing your saved sentences.</p>
         <div className="flex gap-3 justify-center">
           <Link href="/upgrade" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
-            Upgrade → €9.99/mo
+            Upgrade → €4.99/mo
           </Link>
           <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">
             Browse videos

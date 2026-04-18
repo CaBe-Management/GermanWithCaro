@@ -62,7 +62,7 @@ function UpgradePageInner() {
 
         <div className="bg-[#1a1830] border border-[#7c6df2]/40 rounded-2xl p-8 mb-6 text-left">
           <div className="flex items-end gap-2 mb-6">
-            <span className="text-4xl font-bold text-[#e8e6f0]">€9.99</span>
+            <span className="text-4xl font-bold text-[#e8e6f0]">€4.99</span>
             <span className="text-[#9b98b0] mb-1">/ month</span>
           </div>
           <ul className="space-y-3 mb-8">

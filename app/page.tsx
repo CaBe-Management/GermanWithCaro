@@ -588,7 +588,7 @@ function LandingContent() {
             {/* Pro */}
             <div className="bg-[#1a1830] border border-[#7c6df2]/40 rounded-2xl p-7 relative">
               <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-4">Pro</p>
-              <p className="text-4xl font-bold text-[#e8e6f0] mb-1">€9.99</p>
+              <p className="text-4xl font-bold text-[#e8e6f0] mb-1">€4.99</p>
               <p className="text-sm text-[#6b6880] mb-6">per month · cancel any time</p>
               <ul className="space-y-3 mb-7">
                 {['Everything in Free', 'Save sentences to your deck', 'Daily SRS review', 'Track your progress'].map(f => (
