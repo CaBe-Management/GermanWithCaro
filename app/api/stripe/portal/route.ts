@@ -11,7 +11,15 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json()
+    // Verify JWT — don't trust userId from request body
+    const authHeader = request.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const userId = user.id
 
     const { data: progress } = await supabaseAdmin
       .from('gwc_user_progress')
