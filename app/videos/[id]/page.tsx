@@ -234,11 +234,7 @@ export default function VideoDetailPage() {
                 </div>
                 {/* Direct link button — shown when embed fails or for direct access */}
                 <a
-                  href={
-                    video.platform === 'tiktok'
-                      ? `https://www.tiktok.com/video/${video.video_id}`
-                      : `https://www.youtube.com/watch?v=${video.video_id}`
-                  }
+                  href={video.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 transition-colors text-sm text-[#9b98b0] hover:text-[#e8e6f0] border-t border-white/8"
