@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import { Suspense } from 'react'
+import { getSubscriptionStatus, isPro } from '@/lib/subscription'
 
 function UpgradePageInner() {
   const router = useRouter()
@@ -15,36 +16,46 @@ function UpgradePageInner() {
   const [loading, setLoading] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [alreadyPro, setAlreadyPro] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserEmail(user.email ?? null)
-        setUserId(user.id)
-      } else {
-        router.push('/login')
-      }
-    })
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      setUserEmail(user.email ?? null)
+      setUserId(user.id)
+      const status = await getSubscriptionStatus()
+      if (isPro(status)) setAlreadyPro(true)
+    }
+    init()
   }, [router])
 
   async function handleCheckout() {
     if (!userId || !userEmail) return
     setLoading(true)
-    const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token}`,
-      },
-      body: JSON.stringify({}),
-    })
-    const { url, error } = await res.json()
-    if (error || !url) {
+    setCheckoutError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({}),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error || !json.url) {
+        setCheckoutError('Could not start checkout. Please try again or contact support.')
+        setLoading(false)
+        return
+      }
+      window.location.href = json.url
+    } catch {
+      setCheckoutError('Something went wrong. Please check your connection and try again.')
       setLoading(false)
-      return
     }
-    window.location.href = url
   }
 
   return (
@@ -83,16 +94,35 @@ function UpgradePageInner() {
               </li>
             ))}
           </ul>
-          <button
-            onClick={handleCheckout}
-            disabled={loading || !userId}
-            className="w-full py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold text-base hover:bg-[#9b8cf5] transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Redirecting…' : 'Start subscription →'}
-          </button>
-          <p className="text-xs text-[#4a4760] text-center mt-3">
-            Secure payment via Stripe. Cancel any time from your profile.
-          </p>
+          {alreadyPro ? (
+            <div className="text-center">
+              <p className="text-[#4ade80] font-semibold mb-3">✓ You're already on Pro!</p>
+              <Link
+                href="/profile"
+                className="inline-block w-full py-3.5 rounded-xl bg-white/10 text-[#e8e6f0] font-bold text-base hover:bg-white/15 transition-colors text-center"
+              >
+                Manage subscription →
+              </Link>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={handleCheckout}
+                disabled={loading || !userId}
+                className="w-full py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold text-base hover:bg-[#9b8cf5] transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Redirecting…' : 'Start subscription →'}
+              </button>
+              {checkoutError && (
+                <p className="text-xs text-red-400 text-center mt-3">{checkoutError}</p>
+              )}
+              {!checkoutError && (
+                <p className="text-xs text-[#4a4760] text-center mt-3">
+                  Secure payment via Stripe. Cancel any time from your profile.
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         <Link href="/videos" className="text-sm text-[#9b98b0] hover:text-[#e8e6f0] transition-colors">

@@ -284,10 +284,33 @@ export default function VideosPage() {
                       className={`w-full object-cover ${
                         video.platform === 'tiktok' ? 'aspect-[9/16]' : 'aspect-video'
                       }`}
+                      onError={e => {
+                        // Thumbnail URL expired or invalid — hide and show placeholder
+                        ;(e.target as HTMLImageElement).style.display = 'none'
+                        const parent = (e.target as HTMLImageElement).parentElement
+                        if (parent) {
+                          const fb = parent.querySelector('.thumb-fallback') as HTMLElement | null
+                          if (fb) fb.style.display = 'flex'
+                        }
+                      }}
                     />
-                  ) : video.platform === 'tiktok' ? (
+                  ) : null}
+                  {/* Fallback shown if thumbnail fails to load */}
+                  {video.thumbnail_url && (
+                    <div
+                      className={`thumb-fallback w-full items-center justify-center bg-gradient-to-br from-[#1a1830] to-[#0f0e17] rounded-t-xl ${video.platform === 'tiktok' ? 'aspect-[9/16]' : 'aspect-video'}`}
+                      style={{ display: 'none' }}
+                    >
+                      {video.platform === 'tiktok' ? <TikTokPlaceholder /> : (
+                        <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-red-400 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!video.thumbnail_url && video.platform === 'tiktok' ? (
                     <TikTokPlaceholder />
-                  ) : (
+                  ) : !video.thumbnail_url ? (
                     <div className="w-full aspect-video bg-gradient-to-br from-[#1a1830] to-[#0f0e17] flex items-center justify-center rounded-t-xl">
                       <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center">
                         <svg className="w-5 h-5 text-red-400 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -295,7 +318,7 @@ export default function VideosPage() {
                         </svg>
                       </div>
                     </div>
-                  )}
+                  ) : null}
                   {/* Learned badge overlaid on thumbnail */}
                   {video.learned && (
                     <div className="absolute top-2 right-2">

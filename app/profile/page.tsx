@@ -16,6 +16,7 @@ import {
   todayStr,
   type UserProgress,
 } from '@/lib/gamification'
+import { validateDisplayName } from '@/lib/profanity'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -292,6 +293,11 @@ export default function ProfilePage() {
   const [activeDays, setActiveDays]       = useState<Set<string>>(new Set())
   const [unlockedBadges, setUnlockedBadges] = useState<UnlockedBadge[]>([])
   const [userEmail, setUserEmail]         = useState<string | null>(null)
+  const [displayName, setDisplayName]     = useState<string>('')
+  const [editingName, setEditingName]     = useState(false)
+  const [nameInput, setNameInput]         = useState('')
+  const [nameError, setNameError]         = useState<string | null>(null)
+  const [nameSaving, setNameSaving]       = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -306,10 +312,10 @@ export default function ProfilePage() {
         ] = await Promise.all([
           supabase.auth.getUser(),
 
-          // All review rows for SRS breakdown, total count, and correct rate
+          // All review rows for SRS breakdown, total count, correct rate, mastered count
           supabase
             .from('gwc_video_reviews')
-            .select('interval_days, updated_at, correct_reviews, total_reviews')
+            .select('interval_days, updated_at, correct_reviews, total_reviews, repetitions, sentence_id')
             .eq('session_id', sessionId),
 
           // Reviews from this week (Mon–Sun) for the weekly dot view
@@ -325,6 +331,18 @@ export default function ProfilePage() {
         ])
 
         if (user?.email) setUserEmail(user.email)
+
+        // Load display name from progress row
+        if (user) {
+          const { data: progRow } = await supabase
+            .from('gwc_user_progress')
+            .select('display_name')
+            .eq('session_id', user.id)
+            .single()
+          const name = progRow?.display_name ?? ''
+          setDisplayName(name)
+          setNameInput(name)
+        }
 
         const reviews = allReviews || []
 
@@ -363,12 +381,31 @@ export default function ProfilePage() {
         )
         setActiveDays(daySet)
 
+        // ── Mastered sentences (repetitions >= 11) ──────────────────────────
+        const masteredSentences = reviews.filter(r => (r.repetitions ?? 0) >= 11).length
+
+        // ── Distinct videos with saved sentences ─────────────────────────────
+        let distinctVideos = 0
+        if (reviews.length > 0) {
+          const sentenceIds = reviews.map(r => r.sentence_id).filter(Boolean)
+          if (sentenceIds.length > 0) {
+            const { data: sentRows } = await supabase
+              .from('gwc_video_sentences')
+              .select('video_id')
+              .in('id', sentenceIds)
+            const uniqueVids = new Set((sentRows ?? []).map(s => s.video_id))
+            distinctVideos = uniqueVids.size
+          }
+        }
+
         // ── Check + award any new badges ─────────────────────────────────────
         await checkAndAwardBadges(sessionId, {
           streakCurrent: prog?.streak_current ?? 0,
           totalReviews,
           learnedWords,
           daysStudied,
+          distinctVideos,
+          masteredSentences,
         })
 
         // ── Load unlocked badges (after potentially awarding new ones) ────────
@@ -389,6 +426,23 @@ export default function ProfilePage() {
     load()
   }, [])
 
+  async function saveName() {
+    setNameError(null)
+    const error = validateDisplayName(nameInput)
+    if (error) { setNameError(error); return }
+    setNameSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase
+        .from('gwc_user_progress')
+        .update({ display_name: nameInput.trim() })
+        .eq('session_id', user.id)
+      setDisplayName(nameInput.trim())
+    }
+    setEditingName(false)
+    setNameSaving(false)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
@@ -408,17 +462,21 @@ export default function ProfilePage() {
 
   // Group badges by category for display
   const badgeCategories = [
+    { label: 'Videos',          ids: ['videos_1', 'videos_3', 'videos_10', 'videos_25', 'videos_50'] },
+    { label: 'Sentences',       ids: ['sentences_10', 'sentences_25', 'sentences_50', 'sentences_100', 'sentences_250', 'sentences_500', 'sentences_1000'] },
+    { label: 'Mastered ⭐',     ids: ['mastered_1', 'mastered_5', 'mastered_25', 'mastered_100'] },
     { label: 'Streak',          ids: ['streak_3', 'streak_7', 'streak_14', 'streak_30', 'streak_60', 'streak_90', 'streak_180', 'streak_365'] },
-    { label: 'Days Studied',    ids: ['days_7', 'days_30', 'days_50', 'days_100', 'days_200', 'days_365'] },
     { label: 'Reviews',         ids: ['reviews_50', 'reviews_100', 'reviews_250', 'reviews_500', 'reviews_1k', 'reviews_2500', 'reviews_5k', 'reviews_10k'] },
-    { label: 'Words Learned',   ids: ['words_10', 'words_25', 'words_50', 'words_100', 'words_250', 'words_500', 'words_750', 'words_1000'] },
+    { label: 'Days Studied',    ids: ['days_7', 'days_30', 'days_50', 'days_100', 'days_200', 'days_365'] },
   ]
 
   const statValues = {
-    streakCurrent: streak,
-    totalReviews:  stats?.totalReviews ?? 0,
-    learnedWords:  stats?.learnedWords ?? 0,
-    daysStudied:   stats?.daysStudied ?? 0,
+    streakCurrent:     streak,
+    totalReviews:      stats?.totalReviews ?? 0,
+    learnedWords:      stats?.learnedWords ?? 0,
+    daysStudied:       stats?.daysStudied ?? 0,
+    distinctVideos:    0,   // loaded async above, reflected in unlockedBadges
+    masteredSentences: 0,
   }
 
   return (
@@ -443,10 +501,46 @@ export default function ProfilePage() {
             </div>
             {/* Name + XP total */}
             <div className="flex-1 min-w-0">
-              <p className="text-[#e8e6f0] font-bold text-lg truncate">
-                {userEmail ?? 'Profile'}
-              </p>
-              <p className="text-[#9b98b0] text-sm">{xp.toLocaleString('en')} XP total</p>
+              {editingName ? (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={nameInput}
+                      onChange={e => { setNameInput(e.target.value); setNameError(null) }}
+                      onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
+                      maxLength={30}
+                      autoFocus
+                      placeholder="Your name"
+                      className="flex-1 bg-white/5 border border-[#7c6df2]/40 rounded-lg px-3 py-1.5 text-sm text-[#e8e6f0] placeholder-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
+                    />
+                    <button
+                      onClick={saveName}
+                      disabled={nameSaving}
+                      className="px-3 py-1.5 rounded-lg bg-[#7c6df2] text-white text-xs font-bold hover:bg-[#9b8cf5] transition-colors disabled:opacity-50"
+                    >
+                      {nameSaving ? '…' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => { setEditingName(false); setNameInput(displayName); setNameError(null) }}
+                      className="px-2 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] text-xs hover:bg-white/10 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {nameError && <p className="text-xs text-red-400">{nameError}</p>}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingName(true)}
+                  className="group flex items-center gap-1.5 text-left"
+                >
+                  <p className="text-[#e8e6f0] font-bold text-lg truncate">
+                    {displayName || (userEmail ? userEmail.split('@')[0] : 'Set your name')}
+                  </p>
+                  <span className="text-xs text-[#4a4760] group-hover:text-[#7c6df2] transition-colors">✏</span>
+                </button>
+              )}
+              <p className="text-[#9b98b0] text-sm mt-0.5">{xp.toLocaleString('en')} XP total</p>
             </div>
             <Link href="/forecast" className="text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors shrink-0">
               Forecast→

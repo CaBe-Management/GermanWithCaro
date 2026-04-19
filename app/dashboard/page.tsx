@@ -54,6 +54,7 @@ function pastDays(n: number): string[] {
 export default function Dashboard() {
   const [loading, setLoading]           = useState(true)
   const [userEmail, setUserEmail]       = useState<string | null>(null)
+  const [displayName, setDisplayName]   = useState<string | null>(null)
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null)
   const [reviewDue, setReviewDue]       = useState(0)
   const [totalSentences, setTotalSentences] = useState(0)     // all video sentences in SRS
@@ -92,6 +93,15 @@ export default function Dashboard() {
       ])
 
       if (user?.email) setUserEmail(user.email)
+      // Load display name
+      if (user) {
+        const { data: progRow } = await supabase
+          .from('gwc_user_progress')
+          .select('display_name')
+          .eq('session_id', user.id)
+          .single()
+        if (progRow?.display_name) setDisplayName(progRow.display_name)
+      }
       setReviewDue(videoDue ?? 0)
       setTotalSentences(allVideoReviews?.length ?? 0)
 
@@ -128,7 +138,7 @@ export default function Dashboard() {
   }
 
   const xpInfo   = userProgress ? getXPProgress(userProgress.xp_total) : null
-  const username = userEmail ? userEmail.split('@')[0] : null
+  const username = displayName || (userEmail ? userEmail.split('@')[0] : null)
   const level    = xpInfo ? getLevelFromXP(userProgress?.xp_total ?? 0) : null
 
   // Weekly streak dots (Mon → Sun)

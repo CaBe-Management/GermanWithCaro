@@ -107,68 +107,81 @@ export interface BadgeDef {
   name: string
   description: string
   icon: string
-  category: 'streak' | 'reviews' | 'words' | 'days'
+  category: 'streak' | 'reviews' | 'sentences' | 'days' | 'videos' | 'mastered'
   /** The stat value required to earn this badge */
   threshold: number
 }
 
 export const BADGE_DEFS: BadgeDef[] = [
   // ── Streak badges ──
-  { id: 'streak_3',    name: '3-Day Streak',        description: 'Studied 3 days in a row',             icon: '🔥', category: 'streak',  threshold: 3    },
-  { id: 'streak_7',    name: '7-Day Streak',        description: 'Studied 7 days in a row',             icon: '🔥', category: 'streak',  threshold: 7    },
-  { id: 'streak_14',   name: 'Persistent',          description: 'Studied 14 days in a row',            icon: '💪', category: 'streak',  threshold: 14   },
-  { id: 'streak_30',   name: '30-Day Streak',       description: 'Studied 30 days in a row',            icon: '🏆', category: 'streak',  threshold: 30   },
-  { id: 'streak_60',   name: 'Iron Will',           description: 'Studied 60 days in a row',            icon: '⚡', category: 'streak',  threshold: 60   },
-  { id: 'streak_90',   name: 'Unshakeable',         description: 'Studied 90 days in a row',            icon: '🌟', category: 'streak',  threshold: 90   },
-  { id: 'streak_180',  name: 'Half-Year Champion',  description: 'Studied 180 days in a row',           icon: '👑', category: 'streak',  threshold: 180  },
-  { id: 'streak_365',  name: 'Year-Long Record',    description: 'Studied 365 days in a row',           icon: '🎖️', category: 'streak',  threshold: 365  },
+  { id: 'streak_3',    name: '3-Day Streak',        description: 'Studied 3 days in a row',              icon: '🔥', category: 'streak',    threshold: 3    },
+  { id: 'streak_7',    name: '7-Day Streak',        description: 'Studied 7 days in a row',              icon: '🔥', category: 'streak',    threshold: 7    },
+  { id: 'streak_14',   name: 'Persistent',          description: 'Studied 14 days in a row',             icon: '💪', category: 'streak',    threshold: 14   },
+  { id: 'streak_30',   name: '30-Day Streak',       description: 'Studied 30 days in a row',             icon: '🏆', category: 'streak',    threshold: 30   },
+  { id: 'streak_60',   name: 'Iron Will',           description: 'Studied 60 days in a row',             icon: '⚡', category: 'streak',    threshold: 60   },
+  { id: 'streak_90',   name: 'Unshakeable',         description: 'Studied 90 days in a row',             icon: '🌟', category: 'streak',    threshold: 90   },
+  { id: 'streak_180',  name: 'Half-Year Champion',  description: 'Studied 180 days in a row',            icon: '👑', category: 'streak',    threshold: 180  },
+  { id: 'streak_365',  name: 'Year-Long Record',    description: 'Studied 365 days in a row',            icon: '🎖️', category: 'streak',    threshold: 365  },
   // ── Days studied badges ──
-  { id: 'days_7',      name: 'Regular',             description: 'Studied on 7 days',                   icon: '📅', category: 'days',    threshold: 7    },
-  { id: 'days_30',     name: 'Consistent',          description: 'Studied on 30 days',                  icon: '📅', category: 'days',    threshold: 30   },
-  { id: 'days_50',     name: 'Creature of Habit',   description: 'Studied on 50 days',                  icon: '📆', category: 'days',    threshold: 50   },
-  { id: 'days_100',    name: 'Unstoppable',         description: 'Studied on 100 days',                 icon: '🌟', category: 'days',    threshold: 100  },
-  { id: 'days_200',    name: 'Everburning',         description: 'Studied on 200 days',                 icon: '🔥', category: 'days',    threshold: 200  },
-  { id: 'days_365',    name: 'Year-Round Learner',  description: 'Studied on 365 days',                 icon: '🏅', category: 'days',    threshold: 365  },
+  { id: 'days_7',      name: 'Regular',             description: 'Studied on 7 different days',          icon: '📅', category: 'days',      threshold: 7    },
+  { id: 'days_30',     name: 'Consistent',          description: 'Studied on 30 different days',         icon: '📅', category: 'days',      threshold: 30   },
+  { id: 'days_50',     name: 'Creature of Habit',   description: 'Studied on 50 different days',         icon: '📆', category: 'days',      threshold: 50   },
+  { id: 'days_100',    name: 'Unstoppable',         description: 'Studied on 100 different days',        icon: '🌟', category: 'days',      threshold: 100  },
+  { id: 'days_200',    name: 'Everburning',         description: 'Studied on 200 different days',        icon: '🔥', category: 'days',      threshold: 200  },
+  { id: 'days_365',    name: 'Year-Round Learner',  description: 'Studied on 365 different days',        icon: '🏅', category: 'days',      threshold: 365  },
   // ── Review count badges ──
-  { id: 'reviews_50',   name: 'Diligent',           description: 'Completed 50 reviews',                icon: '📝', category: 'reviews', threshold: 50   },
-  { id: 'reviews_100',  name: 'Committed',          description: 'Completed 100 reviews',               icon: '📝', category: 'reviews', threshold: 100  },
-  { id: 'reviews_250',  name: 'Enduring',           description: 'Completed 250 reviews',               icon: '💫', category: 'reviews', threshold: 250  },
-  { id: 'reviews_500',  name: 'Seasoned',           description: 'Completed 500 reviews',               icon: '🎯', category: 'reviews', threshold: 500  },
-  { id: 'reviews_1k',   name: 'Master',             description: 'Completed 1,000 reviews',             icon: '🏅', category: 'reviews', threshold: 1000 },
-  { id: 'reviews_2500', name: 'Grandmaster',        description: 'Completed 2,500 reviews',             icon: '🏆', category: 'reviews', threshold: 2500 },
-  { id: 'reviews_5k',   name: 'Legend',             description: 'Completed 5,000 reviews',             icon: '👑', category: 'reviews', threshold: 5000 },
-  { id: 'reviews_10k',  name: 'Immortal',           description: 'Completed 10,000 reviews',            icon: '⭐', category: 'reviews', threshold: 10000},
-  // ── Words learned badges ──
-  { id: 'words_10',    name: 'First Steps',         description: 'Learned 10 words',                    icon: '🌱', category: 'words',   threshold: 10   },
-  { id: 'words_25',    name: 'Vocabulary Builder',   description: 'Learned 25 words',                   icon: '📖', category: 'words',   threshold: 25   },
-  { id: 'words_50',    name: 'Word Collector',      description: 'Learned 50 words',                    icon: '📚', category: 'words',   threshold: 50   },
-  { id: 'words_100',   name: 'Well-Read',           description: 'Learned 100 words',                   icon: '📖', category: 'words',   threshold: 100  },
-  { id: 'words_250',   name: 'Language Talent',     description: 'Learned 250 words',                   icon: '🎓', category: 'words',   threshold: 250  },
-  { id: 'words_500',   name: 'Word Master',         description: 'Learned 500 words',                   icon: '🌟', category: 'words',   threshold: 500  },
-  { id: 'words_750',   name: 'Word Acrobat',        description: 'Learned 750 words',                   icon: '🎪', category: 'words',   threshold: 750  },
-  { id: 'words_1000',  name: 'Thousand Words',      description: 'Learned 1,000 words',                 icon: '👑', category: 'words',   threshold: 1000 },
+  { id: 'reviews_50',   name: 'Diligent',           description: 'Completed 50 reviews',                 icon: '📝', category: 'reviews',   threshold: 50   },
+  { id: 'reviews_100',  name: 'Committed',          description: 'Completed 100 reviews',                icon: '📝', category: 'reviews',   threshold: 100  },
+  { id: 'reviews_250',  name: 'Enduring',           description: 'Completed 250 reviews',                icon: '💫', category: 'reviews',   threshold: 250  },
+  { id: 'reviews_500',  name: 'Seasoned',           description: 'Completed 500 reviews',                icon: '🎯', category: 'reviews',   threshold: 500  },
+  { id: 'reviews_1k',   name: 'Review Master',      description: 'Completed 1,000 reviews',              icon: '🏅', category: 'reviews',   threshold: 1000 },
+  { id: 'reviews_2500', name: 'Grandmaster',        description: 'Completed 2,500 reviews',              icon: '🏆', category: 'reviews',   threshold: 2500 },
+  { id: 'reviews_5k',   name: 'Legend',             description: 'Completed 5,000 reviews',              icon: '👑', category: 'reviews',   threshold: 5000 },
+  { id: 'reviews_10k',  name: 'Immortal',           description: 'Completed 10,000 reviews',             icon: '⭐', category: 'reviews',   threshold: 10000},
+  // ── Sentences saved to SRS ──
+  { id: 'sentences_10',   name: 'First Steps',      description: '10 sentences saved to your SRS deck',  icon: '🌱', category: 'sentences', threshold: 10   },
+  { id: 'sentences_25',   name: 'Sentence Keeper',  description: '25 sentences saved to your SRS deck',  icon: '📖', category: 'sentences', threshold: 25   },
+  { id: 'sentences_50',   name: 'Deck Builder',     description: '50 sentences saved to your SRS deck',  icon: '📚', category: 'sentences', threshold: 50   },
+  { id: 'sentences_100',  name: 'Well-Read',        description: '100 sentences saved to your SRS deck', icon: '📖', category: 'sentences', threshold: 100  },
+  { id: 'sentences_250',  name: 'Language Talent',  description: '250 sentences saved to your SRS deck', icon: '🎓', category: 'sentences', threshold: 250  },
+  { id: 'sentences_500',  name: 'Sentence Master',  description: '500 sentences saved to your SRS deck', icon: '🌟', category: 'sentences', threshold: 500  },
+  { id: 'sentences_1000', name: 'Thousand Sentences', description: '1,000 sentences in your SRS deck',   icon: '👑', category: 'sentences', threshold: 1000 },
+  // ── Videos with saved sentences ──
+  { id: 'videos_1',    name: 'First Video',         description: 'Saved sentences from your first video', icon: '🎬', category: 'videos',    threshold: 1    },
+  { id: 'videos_3',    name: 'Video Explorer',      description: 'Saved sentences from 3 videos',         icon: '🎬', category: 'videos',    threshold: 3    },
+  { id: 'videos_10',   name: 'Content Collector',   description: 'Saved sentences from 10 videos',        icon: '📱', category: 'videos',    threshold: 10   },
+  { id: 'videos_25',   name: 'Video Enthusiast',    description: 'Saved sentences from 25 videos',        icon: '🎥', category: 'videos',    threshold: 25   },
+  { id: 'videos_50',   name: 'Completionist',       description: 'Saved sentences from 50 videos',        icon: '🏆', category: 'videos',    threshold: 50   },
+  // ── Mastered sentences (SRS level 11) ──
+  { id: 'mastered_1',   name: 'First Mastery',      description: 'Mastered your first sentence (⭐)',      icon: '⭐', category: 'mastered',  threshold: 1    },
+  { id: 'mastered_5',   name: 'Mastery Collector',  description: '5 sentences mastered (⭐)',              icon: '⭐', category: 'mastered',  threshold: 5    },
+  { id: 'mastered_25',  name: 'Master Linguist',    description: '25 sentences mastered (⭐)',             icon: '👑', category: 'mastered',  threshold: 25   },
+  { id: 'mastered_100', name: 'Legendary Master',   description: '100 sentences mastered (⭐)',            icon: '🌟', category: 'mastered',  threshold: 100  },
 ]
 
+export interface BadgeStats {
+  streakCurrent: number
+  totalReviews: number
+  learnedWords: number   // sentences in SRS
+  daysStudied: number
+  distinctVideos: number // videos with at least 1 sentence saved
+  masteredSentences: number // sentences at SRS level 11
+}
+
 /** Returns the current stat value for a badge's category. */
-export function getBadgeStat(
-  badge: BadgeDef,
-  stats: { streakCurrent: number; totalReviews: number; learnedWords: number; daysStudied: number }
-): number {
+export function getBadgeStat(badge: BadgeDef, stats: BadgeStats): number {
   switch (badge.category) {
-    case 'streak':  return stats.streakCurrent
-    case 'reviews': return stats.totalReviews
-    case 'words':   return stats.learnedWords
-    case 'days':    return stats.daysStudied
+    case 'streak':    return stats.streakCurrent
+    case 'reviews':   return stats.totalReviews
+    case 'sentences': return stats.learnedWords
+    case 'days':      return stats.daysStudied
+    case 'videos':    return stats.distinctVideos
+    case 'mastered':  return stats.masteredSentences
   }
 }
 
 /** Returns badge IDs that should be unlocked given the current stats. */
-export function getEarnedBadgeIds(stats: {
-  streakCurrent: number
-  totalReviews: number
-  learnedWords: number
-  daysStudied: number
-}): string[] {
+export function getEarnedBadgeIds(stats: BadgeStats): string[] {
   return BADGE_DEFS
     .filter(b => getBadgeStat(b, stats) >= b.threshold)
     .map(b => b.id)
@@ -368,12 +381,7 @@ export async function saveGermanLevel(
  */
 export async function checkAndAwardBadges(
   sessionId: string,
-  stats: {
-    streakCurrent: number
-    totalReviews: number
-    learnedWords: number
-    daysStudied: number
-  }
+  stats: BadgeStats
 ): Promise<string[]> {
   const earnedIds = getEarnedBadgeIds(stats)
   if (earnedIds.length === 0) return []
