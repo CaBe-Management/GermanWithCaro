@@ -43,7 +43,9 @@ function UpgradePageInner() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+        sessionId: typeof window !== 'undefined' ? localStorage.getItem('gwc_session_id') : null,
+      }),
       })
       const json = await res.json()
       if (!res.ok || json.error || !json.url) {

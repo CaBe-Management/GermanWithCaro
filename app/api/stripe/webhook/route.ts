@@ -26,16 +26,16 @@ export async function POST(request: NextRequest) {
   switch (event.type) {
 
     case 'checkout.session.completed': {
-      // Link subscription to user
-      const userId = session.metadata?.userId
-      if (!userId) break
+      // sessionId is the localStorage progress key; fall back to auth userId
+      const sessionId = session.metadata?.sessionId || session.metadata?.userId
+      if (!sessionId) break
       await supabaseAdmin
         .from('gwc_user_progress')
         .update({
           stripe_subscription_id: session.subscription as string,
           subscription_status:    'active',
         })
-        .eq('session_id', userId)
+        .eq('session_id', sessionId)
       break
     }
 

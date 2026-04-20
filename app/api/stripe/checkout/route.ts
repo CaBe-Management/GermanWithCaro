@@ -28,15 +28,20 @@ export async function POST(request: NextRequest) {
     const userId = user.id
     const email  = user.email!
 
+    // Use the client's localStorage session_id if provided — that's the key
+    // used in gwc_user_progress. Fall back to auth UUID for backward compat.
+    const body = await request.json().catch(() => ({}))
+    const progressSessionId: string = body.sessionId || userId
+
     // Env var check
     if (!process.env.STRIPE_SECRET_KEY) console.error('Stripe checkout: STRIPE_SECRET_KEY missing')
     if (!process.env.STRIPE_PRICE_ID)   console.error('Stripe checkout: STRIPE_PRICE_ID missing')
 
-    // Get or create Stripe customer
+    // Get or create Stripe customer — use progressSessionId (localStorage key)
     const { data: progress, error: dbError } = await supabaseAdmin
       .from('gwc_user_progress')
       .select('stripe_customer_id')
-      .eq('session_id', userId)
+      .eq('session_id', progressSessionId)
       .single()
 
     if (dbError && dbError.code !== 'PGRST116') {
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin
         .from('gwc_user_progress')
         .update({ stripe_customer_id: customerId })
-        .eq('session_id', userId)
+        .eq('session_id', progressSessionId)
     }
 
     const baseUrl = 'https://germanwithcaro.app'
@@ -62,7 +67,7 @@ export async function POST(request: NextRequest) {
       line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
       success_url: `${baseUrl}/dashboard?subscribed=1`,
       cancel_url:  `${baseUrl}/upgrade?canceled=1`,
-      metadata: { userId },
+      metadata: { userId, sessionId: progressSessionId },
     })
 
     return NextResponse.json({ url: session.url })
