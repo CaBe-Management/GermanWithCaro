@@ -40,10 +40,7 @@ export async function POST(request: NextRequest) {
         .eq('session_id', userId)
     }
 
-    // Strip accidental whitespace/newlines from env var, fall back to request origin
-    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/$/, '')
-      || (request.headers.get('origin') ?? '').trim()
-      || 'https://germanwithcaro.app'
+    const baseUrl = 'https://germanwithcaro.app'
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
