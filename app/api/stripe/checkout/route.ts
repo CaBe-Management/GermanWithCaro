@@ -40,10 +40,10 @@ export async function POST(request: NextRequest) {
         .eq('session_id', userId)
     }
 
-    // Use configured site URL, or fall back to the request's own origin
-    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '')
-      || request.headers.get('origin')
-      || 'https://germanwithcaro.com'
+    // Strip accidental whitespace/newlines from env var, fall back to request origin
+    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/$/, '')
+      || (request.headers.get('origin') ?? '').trim()
+      || 'https://germanwithcaro.app'
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
