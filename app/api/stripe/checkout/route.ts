@@ -40,12 +40,17 @@ export async function POST(request: NextRequest) {
         .eq('session_id', userId)
     }
 
+    // Use configured site URL, or fall back to the request's own origin
+    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '')
+      || request.headers.get('origin')
+      || 'https://germanwithcaro.com'
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?subscribed=1`,
-      cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/upgrade?canceled=1`,
+      success_url: `${baseUrl}/dashboard?subscribed=1`,
+      cancel_url:  `${baseUrl}/upgrade?canceled=1`,
       metadata: { userId },
     })
 
