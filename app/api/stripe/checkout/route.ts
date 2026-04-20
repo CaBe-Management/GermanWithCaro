@@ -14,20 +14,34 @@ export async function POST(request: NextRequest) {
     // Verify the caller's JWT — don't trust userId from the request body
     const authHeader = request.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!token) {
+      console.error('Stripe checkout: no auth token')
+      return NextResponse.json({ error: 'no_token' }, { status: 401 })
+    }
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (authError || !user) {
+      console.error('Stripe checkout: auth failed', authError?.message)
+      return NextResponse.json({ error: 'auth_failed', detail: authError?.message }, { status: 401 })
+    }
 
     const userId = user.id
     const email  = user.email!
 
+    // Env var check
+    if (!process.env.STRIPE_SECRET_KEY) console.error('Stripe checkout: STRIPE_SECRET_KEY missing')
+    if (!process.env.STRIPE_PRICE_ID)   console.error('Stripe checkout: STRIPE_PRICE_ID missing')
+
     // Get or create Stripe customer
-    const { data: progress } = await supabaseAdmin
+    const { data: progress, error: dbError } = await supabaseAdmin
       .from('gwc_user_progress')
       .select('stripe_customer_id')
       .eq('session_id', userId)
       .single()
+
+    if (dbError && dbError.code !== 'PGRST116') {
+      console.error('Stripe checkout: DB error', dbError.message)
+    }
 
     let customerId = progress?.stripe_customer_id
 
@@ -52,8 +66,9 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ url: session.url })
-  } catch (e) {
-    console.error('Stripe checkout error:', e)
-    return NextResponse.json({ error: 'Could not create checkout session' }, { status: 500 })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('Stripe checkout error:', msg)
+    return NextResponse.json({ error: 'checkout_failed', detail: msg }, { status: 500 })
   }
 }
