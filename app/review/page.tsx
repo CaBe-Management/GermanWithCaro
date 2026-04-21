@@ -107,10 +107,10 @@ function FlipCard({
   onAnswer: (wasCorrect: boolean) => Promise<void>
   onNext: () => void
 }) {
-  const [flipped, setFlipped]     = useState(false)
-  const [answered, setAnswered]   = useState(false)
+  const [flipped, setFlipped]       = useState(false)
+  const [answered, setAnswered]     = useState(false)
   const [wasCorrect, setWasCorrect] = useState<boolean | null>(null)
-  const [saving, setSaving]       = useState(false)
+  const [saving, setSaving]         = useState(false)
 
   const progress  = (cardNumber - 1) / total
   const srsLabel  = SRS_LABELS[Math.min(card.srsLevel, 11)] ?? 'Novice I' /* SRS stage labels */
@@ -123,15 +123,25 @@ function FlipCard({
     setSaving(false)
   }, [card.reviewId])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts:
+  //   Space (not flipped) → reveal
+  //   1     (flipped)     → "I didn't know"
+  //   2     (flipped)     → "I knew it"
+  //   Space (answered)    → next
   useEffect(() => {
     function handler(e: KeyboardEvent) {
-      if (!flipped && e.key === ' ') { e.preventDefault(); setFlipped(true) }
-      if (flipped && !answered && !saving) {
-        if (e.key === '1') handleMark(true)
-        if (e.key === '2') handleMark(false)
+      if (e.key === ' ') {
+        e.preventDefault()
+        if (!flipped) {
+          setFlipped(true)
+        } else if (answered) {
+          onNext()
+        }
       }
-      if (answered && e.key === 'Enter') onNext()
+      if (flipped && !answered && !saving) {
+        if (e.key === '1') handleMark(false)
+        if (e.key === '2') handleMark(true)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -189,7 +199,7 @@ function FlipCard({
                 <p className="text-2xl sm:text-3xl font-light text-[#e8e6f0] leading-relaxed">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
-                <p className="text-xs text-[#4a4760] mt-8">Click or press Space to reveal</p>
+                <p className="text-xs text-[#4a4760] mt-8">Click or press <kbd className="px-1.5 py-0.5 rounded bg-white/8 text-[#6b6880] font-mono text-xs">Space</kbd> to reveal</p>
               </div>
             )}
 
@@ -243,14 +253,14 @@ function FlipCard({
               disabled={saving}
               className="flex-1 py-3.5 rounded-xl border-2 border-[#f87171]/40 text-[#f87171] font-bold hover:bg-[#f87171]/10 transition-colors disabled:opacity-50"
             >
-              ✗ Didn't know <span className="text-xs opacity-60">[2]</span>
+              ✗ Didn't know <span className="text-xs opacity-60">[1]</span>
             </button>
             <button
               onClick={() => handleMark(true)}
               disabled={saving}
               className="flex-1 py-3.5 rounded-xl border-2 border-[#4ade80]/40 text-[#4ade80] font-bold hover:bg-[#4ade80]/10 transition-colors disabled:opacity-50"
             >
-              ✓ Knew it <span className="text-xs opacity-60">[1]</span>
+              ✓ Knew it <span className="text-xs opacity-60">[2]</span>
             </button>
           </div>
         ) : (
@@ -262,7 +272,7 @@ function FlipCard({
                 : 'border-[#f87171]/40 text-[#f87171] hover:bg-[#f87171]/10'
             }`}
           >
-            Next → <span className="text-xs opacity-60">(Enter)</span>
+            Next → <span className="text-xs opacity-60">[Space]</span>
           </button>
         )}
       </div>
