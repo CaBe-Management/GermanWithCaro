@@ -1,4 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+/** Extract TikTok video ID from URL */
+function extractTikTokId(url: string): string | null {
+  const match = url.match(/\/video\/(\d+)/)
+  return match ? match[1] : null
+}
+
+/** Upload thumbnail to Supabase Storage and return permanent public URL */
+async function uploadThumbnailToStorage(
+  cdnUrl: string,
+  videoId: string
+): Promise<string | null> {
+  try {
+    const imgRes = await fetch(cdnUrl)
+    if (!imgRes.ok) return null
+
+    const blob = await imgRes.blob()
+    const arrayBuffer = await blob.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    const contentType = blob.type || 'image/jpeg'
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg'
+    const path = `tiktok/${videoId}.${ext}`
+
+    const { error } = await supabaseAdmin.storage
+      .from('thumbnails')
+      .upload(path, buffer, {
+        contentType,
+        upsert: true,
+      })
+
+    if (error) {
+      console.error('[tiktok-meta] Storage upload error:', error)
+      return null
+    }
+
+    const { data } = supabaseAdmin.storage.from('thumbnails').getPublicUrl(path)
+    return data.publicUrl ?? null
+  } catch (e) {
+    console.error('[tiktok-meta] Failed to upload thumbnail:', e)
+    return null
+  }
+}
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url')
@@ -16,16 +65,27 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(
-      `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
-      { next: { revalidate: 3600 } } // cache 1h
+      `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`
     )
     if (!res.ok) {
       return NextResponse.json({ error: 'TikTok oEmbed request failed' }, { status: 502 })
     }
     const data = await res.json()
+
+    let thumbnailUrl: string | null = data.thumbnail_url ?? null
+
+    // Upload to Supabase Storage for a permanent URL
+    if (thumbnailUrl) {
+      const videoId = extractTikTokId(url)
+      if (videoId) {
+        const storageUrl = await uploadThumbnailToStorage(thumbnailUrl, videoId)
+        if (storageUrl) thumbnailUrl = storageUrl
+      }
+    }
+
     return NextResponse.json({
       title: data.title ?? null,
-      thumbnail_url: data.thumbnail_url ?? null,
+      thumbnail_url: thumbnailUrl,
     })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch TikTok metadata' }, { status: 500 })
