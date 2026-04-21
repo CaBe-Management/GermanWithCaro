@@ -96,7 +96,6 @@ export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [activeLevel, setActiveLevel] = useState('All')
-  const [platformFilter, setPlatformFilter] = useState<'all' | 'tiktok' | 'youtube'>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [failedThumbs, setFailedThumbs] = useState<Set<string>>(new Set())
@@ -162,11 +161,7 @@ export default function VideosPage() {
     ? videos
     : videos.filter(v => v.level === activeLevel)
 
-  const byPlatform = platformFilter === 'all'
-    ? byLevel
-    : byLevel.filter(v => v.platform === platformFilter)
-
-  const filtered = byPlatform.filter(v => {
+  const filtered = byLevel.filter(v => {
     if (statusFilter === 'all') return true
     if (statusFilter === 'open') return !v.learned && v.added_count < v.sentence_count
     if (statusFilter === 'learned') return v.learned
@@ -174,9 +169,9 @@ export default function VideosPage() {
     return true
   })
 
-  const openCount = byPlatform.filter(v => !v.learned && v.added_count < v.sentence_count).length
-  const learnedCount = byPlatform.filter(v => v.learned).length
-  const completeCount = byPlatform.filter(v => v.sentence_count > 0 && v.added_count >= v.sentence_count).length
+  const openCount = byLevel.filter(v => !v.learned && v.added_count < v.sentence_count).length
+  const learnedCount = byLevel.filter(v => v.learned).length
+  const completeCount = byLevel.filter(v => v.sentence_count > 0 && v.added_count >= v.sentence_count).length
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
@@ -208,26 +203,6 @@ export default function VideosPage() {
           ))}
         </div>
 
-        {/* Platform filter */}
-        <div className="flex gap-2 flex-wrap mb-3">
-          {([
-            { key: 'all',     label: 'All platforms' },
-            { key: 'tiktok',  label: '📱 TikTok' },
-            { key: 'youtube', label: '▶️ YouTube' },
-          ] as const).map(p => (
-            <button
-              key={p.key}
-              onClick={() => setPlatformFilter(p.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                platformFilter === p.key
-                  ? 'bg-white/15 text-[#e8e6f0]'
-                  : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
 
         {/* Status filter — only shown when logged in */}
         {isLoggedIn && <div className="flex gap-2 flex-wrap mb-8">

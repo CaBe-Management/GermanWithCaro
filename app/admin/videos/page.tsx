@@ -42,12 +42,6 @@ function extractTikTokId(url: string): string | null {
   return match ? match[1] : null
 }
 
-// Extract YouTube video ID from URL
-function extractYouTubeId(url: string): string | null {
-  const match = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/)
-  return match ? match[1] : null
-}
-
 export default function AdminVideosPage() {
   const router = useRouter()
   const [videos, setVideos] = useState<Video[]>([])
@@ -62,7 +56,6 @@ export default function AdminVideosPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [level, setLevel] = useState('A1')
-  const [platform, setPlatform] = useState<'tiktok' | 'youtube'>('tiktok')
   const [fetchingMeta, setFetchingMeta] = useState(false)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
 
@@ -94,14 +87,8 @@ export default function AdminVideosPage() {
     setLoading(false)
   }
 
-  // Auto-detect platform from URL and try to fetch metadata
-  async function handleUrlChange(value: string) {
+  function handleUrlChange(value: string) {
     setUrl(value)
-    if (value.includes('tiktok.com')) {
-      setPlatform('tiktok')
-    } else if (value.includes('youtube.com') || value.includes('youtu.be')) {
-      setPlatform('youtube')
-    }
   }
 
   async function fetchTikTokMeta() {
@@ -126,12 +113,10 @@ export default function AdminVideosPage() {
     setError(null)
     setSaving(true)
 
-    const videoId = platform === 'tiktok'
-      ? extractTikTokId(url)
-      : extractYouTubeId(url)
+    const videoId = extractTikTokId(url)
 
     if (!videoId) {
-      setError('Kein gültiger Video-Link.')
+      setError('Kein gültiger TikTok-Link.')
       setSaving(false)
       return
     }
@@ -149,20 +134,15 @@ export default function AdminVideosPage() {
       return
     }
 
-    // Build thumbnail URL
-    const resolvedThumbnailUrl = platform === 'youtube'
-      ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-      : thumbnailUrl // Set via oEmbed when URL was entered
-
     const { data, error } = await supabase
       .from('gwc_videos')
       .insert({
-        platform,
+        platform: 'tiktok',
         video_id: videoId,
         video_url: url.trim(),
         title: title.trim(),
         description: description.trim() || null,
-        thumbnail_url: resolvedThumbnailUrl,
+        thumbnail_url: thumbnailUrl,
         level,
         is_draft: true,
       })
@@ -229,7 +209,7 @@ export default function AdminVideosPage() {
 
               {/* URL */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Video link (TikTok or YouTube)</label>
+                <label className="block text-sm text-[#9b98b0] mb-1.5">TikTok link</label>
                 <div className="flex gap-2">
                   <input
                     type="url"
@@ -241,7 +221,7 @@ export default function AdminVideosPage() {
                     className="flex-1 bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
                   />
                   <span className="flex items-center px-3 py-2 bg-white/5 rounded-lg text-sm text-[#9b98b0] border border-white/8">
-                    {platform === 'tiktok' ? '📱 TikTok' : '▶️ YouTube'}
+                    📱 TikTok
                   </span>
                 </div>
                 {fetchingMeta && <p className="text-xs text-[#7c6df2] mt-1">Loading metadata...</p>}
@@ -389,7 +369,7 @@ export default function AdminVideosPage() {
                         {video.level}
                       </span>
                       <span className="text-xs text-[#9b98b0]">
-                        {video.platform === 'tiktok' ? '📱 TikTok' : '▶️ YouTube'}
+                        📱 TikTok
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${
                         video.is_draft

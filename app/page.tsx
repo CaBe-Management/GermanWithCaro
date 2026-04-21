@@ -328,7 +328,7 @@ function LandingContent() {
               </h1>
 
               <p className="text-lg text-[#9b98b0] leading-relaxed mb-4">
-                Pick sentences from my TikTok and YouTube videos. Add the ones you want to learn. Review them with spaced repetition until they're part of you.
+                Pick sentences from my TikTok videos. Add the ones you want to learn. Review them with spaced repetition until they're part of you.
               </p>
               <p className="text-base text-[#9b98b0] leading-relaxed mb-8">
                 No random word lists. No gamified streaks. Just real German, from real context, drilled until it sticks.

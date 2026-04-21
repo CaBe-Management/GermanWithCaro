@@ -199,9 +199,7 @@ export default function VideoDetailPage() {
   const addedCount = Object.values(srsState).filter(s => s !== 'loading' && s !== null && (s as { inQueue: boolean }).inQueue).length
   const totalCount = sentences.length
 
-  const embedUrl = video.platform === 'tiktok'
-    ? `https://www.tiktok.com/embed/v2/${video.video_id}`
-    : `https://www.youtube.com/embed/${video.video_id}`
+  const embedUrl = `https://www.tiktok.com/embed/v2/${video.video_id}`
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
@@ -222,9 +220,7 @@ export default function VideoDetailPage() {
             <div className="lg:sticky lg:top-20">
               {/* Video */}
               <div className="bg-[#1a1830] rounded-xl border border-white/8 overflow-hidden mb-4">
-                <div className={`relative w-full ${video.platform === 'tiktok' ? '' : 'aspect-video'}`}
-                  style={video.platform === 'tiktok' ? { paddingBottom: '177.78%' } : undefined}
-                >
+                <div className="relative w-full" style={{ paddingBottom: '177.78%' }}>
                   <iframe
                     src={embedUrl}
                     className="absolute inset-0 w-full h-full"
@@ -242,7 +238,7 @@ export default function VideoDetailPage() {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
-                  Watch on {video.platform === 'tiktok' ? 'TikTok' : 'YouTube'} ↗
+                  Watch on TikTok ↗
                 </a>
               </div>
 
@@ -253,7 +249,7 @@ export default function VideoDetailPage() {
                     {video.level}
                   </span>
                   <span className="text-xs text-[#9b98b0]">
-                    {video.platform === 'tiktok' ? '📱 TikTok' : '▶️ YouTube'}
+                    📱 TikTok
                   </span>
                 </div>
                 <h1 className="text-base font-bold text-[#e8e6f0] leading-snug">{video.title}</h1>
