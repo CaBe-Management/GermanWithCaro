@@ -208,7 +208,7 @@ function BrowseDemo() {
 
 const FAQS = [
   {
-    q: 'How is this different from just watching your TikToks?',
+    q: 'How is this different from just watching your videos?',
     a: "Watching gets you exposure. But exposure alone doesn't make things stick. Here you actively retrieve sentences from memory — flip the card, recall the meaning, judge yourself honestly. That retrieval is what builds lasting memory. The videos are the input. This is the practice.",
   },
   {
@@ -474,7 +474,7 @@ function LandingContent() {
             {[
               {
                 emoji: '📱',
-                title: 'You already follow me on TikTok or YouTube',
+                title: 'You already follow me on TikTok, Instagram or YouTube Shorts',
                 desc: "You watch the videos. You understand the concept. But it doesn't stick the way you want it to. This is where you take what you've seen and actually make it yours — sentence by sentence.",
                 tag: 'GWC Community',
                 tagColor: 'bg-[#7c6df2]/15 text-[#9b8cf5] border-[#7c6df2]/25',
@@ -525,12 +525,12 @@ function LandingContent() {
               <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-2">The person behind it</p>
               <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Hi, I'm Caro 👋</h2>
               <p className="text-[#9b98b0] leading-relaxed mb-3">
-                I'm not German — I got fluent by living and working in Germany. I know what it's like to learn this language as an outsider, what actually works, and what's just a waste of time. I make German content on TikTok and YouTube, and people kept asking where they could actually practise the sentences from my videos. I couldn't find anything good, so I built it myself.
+                I'm not German — I got fluent by living and working in Germany. I know what it's like to learn this language as an outsider, what actually works, and what's just a waste of time. I make German content on TikTok, Instagram and YouTube Shorts, and people kept asking where they could actually practise the sentences from my videos. I couldn't find anything good, so I built it myself.
               </p>
               <p className="text-[#9b98b0] leading-relaxed mb-4">
                 Every video, every sentence, every translation in here is made by me. This is the study companion to go with the content you're already watching.
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <a
                   href="https://www.tiktok.com/@germanwithcaro"
                   target="_blank"
@@ -540,12 +540,20 @@ function LandingContent() {
                   📱 TikTok
                 </a>
                 <a
+                  href="https://www.instagram.com/germanwithcaroo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 transition-colors text-sm font-medium"
+                >
+                  📸 Instagram
+                </a>
+                <a
                   href="https://www.youtube.com/@germanwithcaro"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 transition-colors text-sm font-medium"
                 >
-                  ▶️ YouTube
+                  ▶️ YouTube Shorts
                 </a>
               </div>
             </div>
