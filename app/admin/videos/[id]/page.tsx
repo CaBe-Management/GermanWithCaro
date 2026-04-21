@@ -341,13 +341,13 @@ export default function AdminVideoSentencesPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {video.platform === 'tiktok' && !video.thumbnail_url && (
+            {video.platform === 'tiktok' && (
               <button
                 onClick={fetchAndSaveThumbnail}
                 disabled={saving}
                 className="px-3 py-2 rounded-lg text-sm font-semibold bg-white/5 text-[#9b98b0] hover:bg-white/10 transition-colors disabled:opacity-50"
               >
-                🖼 Load cover
+                🖼 {video.thumbnail_url ? 'Refresh cover' : 'Load cover'}
               </button>
             )}
             <button
