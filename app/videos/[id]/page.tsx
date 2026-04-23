@@ -312,8 +312,8 @@ export default function VideoDetailPage() {
           {/* Right: Sentences */}
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gwc-text">
-                Sentences ({totalCount})
+              <h2 className="font-display text-lg text-gwc-text">
+                Sentences <span className="font-mono text-sm text-gwc-muted font-normal">({totalCount})</span>
               </h2>
               {!isAuthed && (
                 <Link href="/login" className="text-xs text-gwc-accent hover:underline">
@@ -349,16 +349,16 @@ export default function VideoDetailPage() {
 
                         {/* Text */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gwc-text leading-relaxed">
+                          <p className="font-display text-base text-gwc-text leading-snug">
                             <HighlightedText text={s.sentence_de} highlight={s.highlight_de} />
                           </p>
-                          <p className="text-sm text-gwc-muted mt-1 leading-relaxed">
+                          <p className="text-sm text-gwc-muted mt-1 leading-relaxed italic">
                             <HighlightedText text={s.sentence_en} highlight={s.highlight_en} />
                           </p>
 
                           {/* SRS badge if in queue */}
                           {inQueue && (
-                            <span className={`text-xs font-medium mt-1.5 inline-block ${srsInfo.color}`}>
+                            <span className={`font-mono text-[9px] font-semibold mt-2 inline-block tracking-widest uppercase ${srsInfo.color}`}>
                               {srsInfo.label}
                             </span>
                           )}
@@ -369,12 +369,12 @@ export default function VideoDetailPage() {
                           <button
                             onClick={() => !inQueue && addToSRS(s.id)}
                             disabled={isLoading || inQueue}
-                            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                               isLoading
-                                ? 'bg-gwc-text/5 text-gwc-muted cursor-wait'
+                                ? 'border border-gwc-text/8 text-gwc-muted cursor-wait'
                                 : inQueue
-                                ? 'bg-gwc-accent/15 text-gwc-accent-soft cursor-default'
-                                : 'bg-gwc-accent/20 text-gwc-accent-soft hover:bg-gwc-accent/40 hover:text-white cursor-pointer'
+                                ? 'bg-gwc-accent/12 text-gwc-accent cursor-default'
+                                : 'border border-gwc-text/10 text-gwc-muted hover:border-gwc-accent/40 hover:text-gwc-accent cursor-pointer'
                             }`}
                           >
                             {isLoading ? (

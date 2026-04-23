@@ -71,17 +71,23 @@ function UpgradePageInner() {
           </div>
         )}
 
-        <p className="text-4xl mb-4">🇩🇪</p>
-        <h1 className="text-3xl font-bold text-gwc-text mb-3">Go Pro</h1>
+        <div className="w-12 h-12 rounded-xl bg-gwc-text flex items-center justify-center mx-auto mb-5">
+          <span className="font-display text-gwc-base text-2xl font-bold italic">C</span>
+        </div>
+        <h1 className="font-display text-4xl text-gwc-text mb-3">Go Pro.</h1>
         <p className="text-gwc-muted mb-10">
-          Get full access to spaced repetition reviews and track your progress.
+          Full access to spaced repetition reviews and progress tracking.
         </p>
 
-        <div className="bg-gwc-panel border border-gwc-accent/40 rounded-2xl p-8 mb-6 text-left">
-          <div className="flex items-end gap-2 mb-6">
-            <span className="text-4xl font-bold text-gwc-text">€4.99</span>
-            <span className="text-gwc-muted mb-1">/ month</span>
+        <div className="bg-gwc-panel border-2 border-gwc-accent/30 rounded-2xl p-8 mb-6 text-left">
+          <div className="mb-1">
+            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">Pro plan</p>
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-5xl text-gwc-text">€4.99</span>
+              <span className="text-gwc-muted">/ month</span>
+            </div>
           </div>
+          <div className="h-px bg-gwc-text/8 my-6" />
           <ul className="space-y-3 mb-8">
             {[
               'Browse all videos',
@@ -91,17 +97,17 @@ function UpgradePageInner() {
               'Cancel any time',
             ].map(f => (
               <li key={f} className="flex items-center gap-3 text-sm text-gwc-muted">
-                <span className="text-gwc-accent font-bold text-base">✓</span>
+                <span className="text-gwc-accent font-bold">✓</span>
                 {f}
               </li>
             ))}
           </ul>
           {alreadyPro ? (
             <div className="text-center">
-              <p className="text-gwc-success font-semibold mb-3">✓ You're already on Pro!</p>
+              <p className="font-display text-gwc-success text-lg mb-3">✓ You're already on Pro.</p>
               <Link
                 href="/profile"
-                className="inline-block w-full py-3.5 rounded-xl bg-gwc-text/8 text-gwc-text font-bold text-base hover:bg-gwc-text/12 transition-colors text-center"
+                className="inline-block w-full py-3.5 rounded-xl bg-gwc-text/8 text-gwc-text font-semibold hover:bg-gwc-text/12 transition-colors text-center"
               >
                 Manage subscription →
               </Link>
@@ -111,16 +117,16 @@ function UpgradePageInner() {
               <button
                 onClick={handleCheckout}
                 disabled={loading || !userId}
-                className="w-full py-3.5 rounded-xl bg-gwc-accent text-white font-bold text-base hover:bg-gwc-accent-soft transition-colors disabled:opacity-50"
+                className="w-full py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold text-base hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {loading ? 'Redirecting…' : 'Start subscription →'}
               </button>
               {checkoutError && (
-                <p className="text-xs text-red-400 text-center mt-3">{checkoutError}</p>
+                <p className="text-xs text-gwc-error text-center mt-3">{checkoutError}</p>
               )}
               {!checkoutError && (
-                <p className="text-xs text-gwc-dim text-center mt-3">
-                  Secure payment via Stripe. Cancel any time from your profile.
+                <p className="font-mono text-[10px] text-gwc-dim text-center mt-3 tracking-wide">
+                  Secure payment via Stripe · Cancel any time
                 </p>
               )}
             </>

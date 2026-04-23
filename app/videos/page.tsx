@@ -180,9 +180,9 @@ export default function VideosPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gwc-text mb-1">🎬 Learn from Videos</h1>
+          <h1 className="font-display text-3xl text-gwc-text mb-1">Videos</h1>
           <p className="text-gwc-muted text-sm">
-            Real sentences from Caro's TikTok videos — click any sentence to add it to your SRS queue.
+            Real sentences from Caro's TikToks — add the ones you want, review until they stick.
           </p>
         </div>
 
@@ -192,9 +192,9 @@ export default function VideosPage() {
             <button
               key={l}
               onClick={() => setActiveLevel(l)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeLevel === l
-                  ? 'bg-gwc-accent text-white'
+                  ? 'bg-gwc-text text-gwc-base font-semibold'
                   : 'bg-gwc-text/5 text-gwc-muted hover:bg-gwc-text/8 hover:text-gwc-text'
               }`}
             >
@@ -295,7 +295,7 @@ export default function VideosPage() {
                     </span>
                     <ProgressBadge video={video} />
                   </div>
-                  <h3 className="text-sm font-semibold text-gwc-text leading-snug group-hover:text-gwc-accent-soft transition-colors line-clamp-2">
+                  <h3 className="font-display text-sm text-gwc-text leading-snug group-hover:text-gwc-accent transition-colors line-clamp-2">
                     {video.title}
                   </h3>
                   {video.description && (
@@ -308,7 +308,7 @@ export default function VideosPage() {
                       <svg className="w-3.5 h-3.5 text-gwc-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
-                      <span className="text-xs text-gwc-muted">{video.sentence_count} sentences to learn</span>
+                      <span className="font-mono text-[10px] text-gwc-muted tracking-wide">{video.sentence_count} sentences</span>
                     </div>
                     <ProgressBar added={video.added_count} total={video.sentence_count} />
                   </div>
