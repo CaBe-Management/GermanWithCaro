@@ -57,13 +57,15 @@ function CompletionScreen({ total, correct }: { total: number; correct: number }
   return (
     <div className="min-h-screen bg-gwc-base flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
-        <div className="text-6xl mb-6">{pct >= 70 ? '🎉' : '📚'}</div>
-        <h2 className="text-3xl font-bold text-gwc-text mb-2">All done!</h2>
-        <p className="text-gwc-muted mb-2">{correct}/{total} correct — {pct}%</p>
-        <p className="text-gwc-muted text-sm mb-8">Your SRS queue has been updated.</p>
+        <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mb-6">Session complete</p>
+        <h2 className="font-display text-5xl text-gwc-text mb-4">
+          {pct >= 70 ? <em className="italic text-gwc-accent">Well done.</em> : 'Keep going.'}
+        </h2>
+        <p className="font-display text-2xl text-gwc-muted mb-1">{correct}/{total}</p>
+        <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mb-8">{pct}% correct</p>
         <div className="flex gap-3 justify-center">
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors">Dashboard</Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-gwc-text/8 text-gwc-text font-bold hover:bg-gwc-text/12 transition-colors">Browse Videos</Link>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-text text-gwc-base font-semibold hover:opacity-90 transition-opacity">Dashboard</Link>
+          <Link href="/videos" className="px-6 py-3 rounded-xl border border-gwc-text/12 text-gwc-muted font-medium hover:border-gwc-text/20 hover:text-gwc-text transition-colors">Browse Videos</Link>
         </div>
       </div>
     </div>
@@ -76,12 +78,14 @@ function EmptyState() {
   return (
     <div className="min-h-screen bg-gwc-base flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
-        <div className="text-6xl mb-6">✅</div>
-        <h2 className="text-2xl font-bold text-gwc-text mb-2">No reviews due!</h2>
-        <p className="text-gwc-muted mb-8">All caught up. Browse videos to add more sentences.</p>
+        <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mb-6">Queue empty</p>
+        <h2 className="font-display text-4xl text-gwc-text mb-3">
+          All caught <em className="italic text-gwc-accent">up.</em>
+        </h2>
+        <p className="text-gwc-muted mb-8">Browse videos to add more sentences to your deck.</p>
         <div className="flex gap-3 justify-center">
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold">Dashboard</Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-gwc-text/8 text-gwc-text font-bold hover:bg-gwc-text/12 transition-colors">Videos</Link>
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-gwc-text text-gwc-base font-semibold hover:opacity-90 transition-opacity">Browse Videos</Link>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl border border-gwc-text/12 text-gwc-muted font-medium hover:border-gwc-text/20 hover:text-gwc-text transition-colors">Dashboard</Link>
         </div>
       </div>
     </div>
