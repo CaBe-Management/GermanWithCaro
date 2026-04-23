@@ -222,20 +222,15 @@ function FAQ() {
 
 function LandingContent() {
   const [activeDemo, setActiveDemo] = useState<'browse' | 'review'>('browse')
-  const [stats, setStats] = useState<{ videos: number; sentences: number; users: number } | null>(null)
+  const [stats, setStats] = useState<{ videos: number; sentences: number } | null>(null)
 
   useEffect(() => {
     async function loadStats() {
-      const [{ count: videos }, { count: sentences }, { count: users }] = await Promise.all([
+      const [{ count: videos }, { count: sentences }] = await Promise.all([
         supabase.from('gwc_videos').select('*', { count: 'exact', head: true }).eq('is_draft', false),
         supabase.from('gwc_video_sentences').select('gwc_videos!inner(is_draft)', { count: 'exact', head: true }).eq('gwc_videos.is_draft', false),
-        supabase.from('gwc_user_progress').select('*', { count: 'exact', head: true }),
       ])
-      setStats({
-        videos:    videos    ?? 0,
-        sentences: sentences ?? 0,
-        users:     users     ?? 0,
-      })
+      setStats({ videos: videos ?? 0, sentences: sentences ?? 0 })
     }
     loadStats()
   }, [])
@@ -364,7 +359,7 @@ function LandingContent() {
       <section className="py-8 px-5 border-t border-b border-gwc-text/6 bg-gwc-raised/40">
         <div className="max-w-2xl mx-auto">
           <p className="font-display text-sm italic text-gwc-muted text-center mb-5">Seen by learners across —</p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-3 gap-6 text-center">
             {[
               { n: '8.9K', l: 'TikTok' },
               { n: '3.7K', l: 'Instagram' },
@@ -375,12 +370,6 @@ function LandingContent() {
                 <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase mt-1">{s.l}</p>
               </div>
             ))}
-            <div>
-              <p className="font-display text-2xl sm:text-3xl font-semibold text-gwc-text tracking-tight">
-                {stats ? stats.users : '—'}
-              </p>
-              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase mt-1">App users</p>
-            </div>
           </div>
         </div>
       </section>
