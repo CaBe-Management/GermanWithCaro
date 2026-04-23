@@ -163,107 +163,97 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gwc-base">
       <Navbar />
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 py-10 space-y-5">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-end justify-between pb-2 border-b border-gwc-text/8">
           <div>
-            <h1 className="font-display text-2xl text-gwc-text">
+            <h1 className="font-display text-3xl text-gwc-text leading-tight">
               {loading ? '…' : `Hey, ${username ?? 'there'}.`}
             </h1>
-            <p className="text-sm text-gwc-muted mt-0.5">
-              {loading ? '' : userProgress?.streak_current
-                ? `🔥 ${userProgress.streak_current} day streak`
-                : 'Start learning today!'}
-            </p>
+            {!loading && userProgress?.streak_current ? (
+              <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mt-1">
+                🔥 {userProgress.streak_current} day streak
+              </p>
+            ) : null}
           </div>
           {level !== null && (
-            <div className="border border-gwc-text/10 rounded-xl px-4 py-2 text-center">
+            <div className="text-right">
               <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">Level</p>
-              <p className="font-display text-2xl text-gwc-accent">{level}</p>
+              <p className="font-display text-3xl text-gwc-accent leading-none">{level}</p>
             </div>
           )}
         </div>
 
-        {/* ── Review + Videos row ── */}
+        {/* ── Review + Sentences row ── */}
         <div className="grid grid-cols-2 gap-3">
-
-          {/* Review */}
           <Link
             href="/review"
-            className={`p-5 rounded-2xl border flex flex-col gap-3 transition-all hover:scale-[1.01] ${
+            className={`p-5 rounded-xl border flex flex-col gap-4 transition-all hover:shadow-sm ${
               reviewDue > 0
-                ? 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50'
+                ? 'bg-orange-500/8 border-orange-500/25 hover:border-orange-500/40'
                 : 'bg-gwc-panel border-gwc-text/8 hover:border-gwc-text/20'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-2xl">📚</span>
-              {!loading && (
-                <span className={`font-display text-2xl ${reviewDue > 0 ? 'text-orange-400' : 'text-gwc-muted'}`}>
-                  {reviewDue}
-                </span>
-              )}
-            </div>
+            <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">
+              {reviewDue > 0 ? 'Due now' : 'Reviews'}
+            </p>
             <div>
-              <p className="font-display text-sm text-gwc-text">Reviews due</p>
-              <p className="text-xs text-gwc-muted mt-0.5">
-                {reviewDue > 0 ? 'Time to review!' : 'All caught up ✓'}
+              <p className={`font-display text-4xl leading-none ${reviewDue > 0 ? 'text-orange-500' : 'text-gwc-muted'}`}>
+                {loading ? '—' : reviewDue}
+              </p>
+              <p className="text-xs text-gwc-muted mt-1.5">
+                {reviewDue > 0 ? 'Tap to start →' : 'All caught up ✓'}
               </p>
             </div>
           </Link>
 
-          {/* Videos */}
           <Link
             href="/videos"
-            className="p-5 rounded-2xl border bg-gwc-panel border-gwc-text/8 hover:border-gwc-accent/40 flex flex-col gap-3 transition-all hover:scale-[1.01]"
+            className="p-5 rounded-xl border bg-gwc-panel border-gwc-text/8 hover:border-gwc-text/20 flex flex-col gap-4 transition-all hover:shadow-sm"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-2xl">🎬</span>
-              {!loading && (
-                <span className="font-display text-2xl text-gwc-accent">{totalSentences}</span>
-              )}
-            </div>
+            <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">In SRS</p>
             <div>
-              <p className="font-display text-sm text-gwc-text">Sentences in SRS</p>
-              <p className="text-xs text-gwc-muted mt-0.5">Browse videos to add more</p>
+              <p className="font-display text-4xl text-gwc-accent leading-none">
+                {loading ? '—' : totalSentences}
+              </p>
+              <p className="text-xs text-gwc-muted mt-1.5">sentences saved</p>
             </div>
           </Link>
-
         </div>
 
         {/* ── XP bar ── */}
         {xpInfo && (
-          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-display text-sm text-gwc-text">Level {xpInfo.level} → {xpInfo.level + 1}</span>
-              <span className="text-xs text-gwc-muted">{xpInfo.xpInLevel} / {xpInfo.xpNeeded} XP</span>
+          <div className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">XP Progress</p>
+              <p className="font-mono text-[10px] text-gwc-muted">{xpInfo.xpInLevel} / {xpInfo.xpNeeded}</p>
             </div>
-            <div className="h-2 bg-gwc-text/5 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gwc-accent rounded-full transition-all duration-700"
-                style={{ width: `${xpInfo.pct}%` }}
-              />
+            <div className="h-1.5 bg-gwc-text/8 rounded-full overflow-hidden">
+              <div className="h-full bg-gwc-accent rounded-full transition-all duration-700" style={{ width: `${xpInfo.pct}%` }} />
             </div>
+            <p className="font-mono text-[9px] text-gwc-muted mt-2 tracking-wide">
+              Level {xpInfo.level} → {xpInfo.level + 1}
+            </p>
           </div>
         )}
 
         {/* ── Weekly streak ── */}
         {userProgress && (
-          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
+          <div className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-sm text-gwc-text">This Week</h2>
-              <span className="text-sm text-orange-400 font-bold">🔥 {userProgress.streak_current ?? 0} days</span>
+              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">This Week</p>
+              <p className="font-mono text-[10px] text-gwc-muted">{userProgress.streak_current ?? 0} day streak</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               {DAY_LABELS.map((label, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className={`w-full aspect-square max-w-[32px] rounded-md transition-colors ${
-                    i === todayDow
-                      ? studiedDow.has(i) ? 'bg-orange-500' : 'bg-orange-500/20 border border-orange-500/40'
-                      : studiedDow.has(i) ? 'bg-gwc-accent' : 'bg-gwc-text/5'
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                  <div className={`w-full aspect-square rounded-md transition-all ${
+                    studiedDow.has(i)
+                      ? i === todayDow ? 'bg-gwc-accent' : 'bg-gwc-accent/60'
+                      : i === todayDow ? 'border-2 border-gwc-accent/30 bg-gwc-accent/8' : 'bg-gwc-text/8'
                   }`} />
-                  <span className="text-[10px] text-gwc-muted">{label}</span>
+                  <span className="font-mono text-[9px] text-gwc-muted">{label}</span>
                 </div>
               ))}
             </div>
@@ -272,26 +262,25 @@ export default function Dashboard() {
 
         {/* ── SRS Breakdown ── */}
         {totalInSRS > 0 && (
-          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
+          <div className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-sm text-gwc-text">SRS Progress</h2>
-              <span className="text-xs text-gwc-muted">{totalInSRS} sentences</span>
+              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">SRS Breakdown</p>
+              <p className="font-mono text-[10px] text-gwc-muted">{totalInSRS} total</p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {SRS_STAGE_ORDER.map(stage => {
                 const count = srsBreakdown[stage]
                 const pct = totalInSRS > 0 ? (count / totalInSRS) * 100 : 0
-                const meta = SRS_STAGE_META[stage]
                 return (
                   <div key={stage} className="flex items-center gap-3">
-                    <span className={`text-xs font-bold w-20 shrink-0 ${meta.color}`}>{stage}</span>
-                    <div className="flex-1 h-1.5 bg-gwc-text/5 rounded-full overflow-hidden">
+                    <span className="font-mono text-[9px] text-gwc-muted w-20 shrink-0 tracking-widest uppercase">{stage}</span>
+                    <div className="flex-1 h-1 bg-gwc-text/8 rounded-full overflow-hidden">
                       <div
-                        className={`h-full ${meta.bg}/70 rounded-full transition-all duration-700`}
+                        className="h-full bg-gwc-accent/70 rounded-full transition-all duration-700"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gwc-muted w-6 text-right shrink-0">{count}</span>
+                    <span className="font-mono text-[10px] text-gwc-muted w-5 text-right shrink-0">{count}</span>
                   </div>
                 )
               })}
@@ -301,24 +290,23 @@ export default function Dashboard() {
 
         {/* ── Recent Videos ── */}
         {recentVideos.length > 0 && (
-          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
+          <div className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-sm text-gwc-text">Recent Videos</h2>
-              <Link href="/videos" className="text-xs text-gwc-accent hover:underline">View all →</Link>
+              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">Recent Videos</p>
+              <Link href="/videos" className="font-mono text-[9px] text-gwc-accent tracking-widest uppercase hover:opacity-70 transition-opacity">View all →</Link>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {recentVideos.map(v => (
                 <Link
                   key={v.id}
                   href={`/videos/${v.id}`}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gwc-text/5 transition-colors -mx-1"
+                  className="flex items-center gap-3 py-2.5 border-b border-gwc-text/6 last:border-0 hover:opacity-70 transition-opacity"
                 >
-                  <span className="text-xl">🎬</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gwc-text font-medium truncate">{v.title}</p>
-                    <p className="text-xs text-gwc-muted">{v.sentence_count} sentences · {v.level}</p>
+                    <p className="font-display text-sm text-gwc-text truncate leading-snug">{v.title}</p>
+                    <p className="font-mono text-[9px] text-gwc-muted mt-0.5 tracking-wide">{v.sentence_count} sentences · {v.level}</p>
                   </div>
-                  <svg className="w-4 h-4 text-gwc-dim shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3.5 h-3.5 text-gwc-dim shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
@@ -327,19 +315,16 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Admin shortcut (Caroline only) ── */}
+        {/* ── Admin shortcut ── */}
         {userEmail === ADMIN_EMAIL && (
-          <div className="bg-gwc-panel rounded-2xl border border-gwc-accent/20 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">⚙️</span>
-              <div>
-                <p className="font-display text-sm text-gwc-text">Video Management</p>
-                <p className="text-xs text-gwc-muted">Add videos and sentences</p>
-              </div>
+          <div className="border border-gwc-text/8 rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase mb-1">Admin</p>
+              <p className="font-display text-sm text-gwc-text">Video Management</p>
             </div>
             <Link
               href="/admin/videos"
-              className="px-3 py-1.5 bg-gwc-accent/20 text-gwc-accent-soft rounded-lg text-xs font-semibold hover:bg-gwc-accent/30 transition-colors"
+              className="px-3 py-1.5 border border-gwc-text/10 text-gwc-muted rounded-lg font-mono text-[9px] tracking-widest uppercase hover:border-gwc-accent/30 hover:text-gwc-accent transition-colors"
             >
               Open →
             </Link>
