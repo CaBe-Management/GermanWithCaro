@@ -242,6 +242,9 @@ function LandingContent() {
   const [stats, setStats] = useState<{ videos: number; sentences: number } | null>(null)
   const [demoSentences, setDemoSentences] = useState<DemoSentence[]>([])
   const [demoVideoTitle, setDemoVideoTitle] = useState<string | undefined>()
+  const [libraryVideos, setLibraryVideos] = useState<{
+    id: string; title: string; level: string; thumbnail_url: string | null; sentence_count: number
+  }[]>([])
 
   useEffect(() => {
     async function loadStats() {
@@ -281,8 +284,27 @@ function LandingContent() {
       }
     }
 
+    async function loadLibraryVideos() {
+      const { data } = await supabase
+        .from('gwc_videos')
+        .select('id, title, level, thumbnail_url, gwc_video_sentences(id)')
+        .eq('is_draft', false)
+        .order('sort_order', { ascending: true })
+        .limit(4)
+      if (data) {
+        setLibraryVideos(data.map((v: { id: string; title: string; level: string; thumbnail_url: string | null; gwc_video_sentences?: { id: string }[] }) => ({
+          id: v.id,
+          title: v.title,
+          level: v.level,
+          thumbnail_url: v.thumbnail_url,
+          sentence_count: v.gwc_video_sentences?.length ?? 0,
+        })))
+      }
+    }
+
     loadStats()
     loadDemoSentences()
+    loadLibraryVideos()
   }, [])
 
   const howRef    = useFadeIn()
@@ -483,11 +505,64 @@ function LandingContent() {
         </div>
       </section>
 
+      {/* ── Library ────────────────────────────────────────────────────────── */}
+      {libraryVideos.length > 0 && (
+        <section className="py-16 px-5">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">03 — Library</p>
+                <h2 className="font-display text-4xl text-gwc-text leading-tight">
+                  Fresh, <em className="italic text-gwc-muted">weekly.</em>
+                </h2>
+              </div>
+              <Link href="/videos" className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold hover:opacity-70 transition-opacity">
+                See all →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {libraryVideos.map(video => (
+                <Link key={video.id} href={`/videos/${video.id}`} className="group bg-gwc-panel rounded-xl border border-gwc-text/8 overflow-hidden hover:border-gwc-accent/30 transition-colors">
+                  {/* Thumbnail */}
+                  <div className="relative" style={{ aspectRatio: '9/14' }}>
+                    {video.thumbnail_url ? (
+                      <img
+                        src={video.thumbnail_url}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-b from-gwc-accent to-gwc-accent-deep" />
+                    )}
+                    {/* Overlay gradient */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(43,27,58,0.6) 100%)' }} />
+                    {/* Level badge */}
+                    <span className="absolute top-2 left-2 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded bg-gwc-base text-gwc-text tracking-widest">
+                      {video.level}
+                    </span>
+                    {/* Play button */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gwc-base/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-0 h-0 ml-0.5" style={{ borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderLeft: '8px solid #6b2b5e' }} />
+                    </div>
+                  </div>
+                  {/* Info */}
+                  <div className="p-2.5">
+                    <p className="font-display text-xs text-gwc-text leading-snug line-clamp-2">{video.title}</p>
+                    <p className="font-mono text-[9px] text-gwc-muted mt-1 tracking-wide">{video.sentence_count} sentences</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── Who it's for ───────────────────────────────────────────────────── */}
       <section id="for-who" className="py-20 px-5" ref={forWhoRef}>
         <div className="max-w-3xl mx-auto">
           <div className="mb-12">
-            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">03 — Who it's for</p>
+            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">04 — Who it's for</p>
             <h2 className="font-display text-4xl text-gwc-text leading-tight">This is for you if…</h2>
           </div>
 
@@ -529,7 +604,7 @@ function LandingContent() {
       <section id="caro" className="py-20 px-5 bg-gwc-raised/40" ref={caroRef}>
         <div className="max-w-3xl mx-auto">
           <div className="mb-10">
-            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">04 — The founder</p>
+            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">05 — The founder</p>
           </div>
           <div className="grid sm:grid-cols-[auto,1fr] gap-8 items-start">
             <img
@@ -573,7 +648,7 @@ function LandingContent() {
       <section id="faq" className="py-20 px-5" ref={faqRef}>
         <div className="max-w-2xl mx-auto">
           <div className="mb-10">
-            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">05 — Questions</p>
+            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">06 — Questions</p>
             <h2 className="font-display text-4xl text-gwc-text">FAQ</h2>
           </div>
           <FAQ />
@@ -584,7 +659,7 @@ function LandingContent() {
       <section id="pricing" className="py-20 px-5 bg-gwc-raised/40">
         <div className="max-w-2xl mx-auto">
           <div className="mb-12">
-            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">06 — Pricing</p>
+            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">07 — Pricing</p>
             <h2 className="font-display text-4xl text-gwc-text mb-2">Simple.</h2>
             <p className="text-gwc-muted">Browse videos for free. Pay when you want to review.</p>
           </div>
