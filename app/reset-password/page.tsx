@@ -83,7 +83,7 @@ export default function ResetPasswordPage() {
           {mode === 'request' ? (
             <form onSubmit={handleRequest} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gwc-muted uppercase tracking-wider mb-1.5">
+                <label className="block font-mono text-[10px] font-semibold text-gwc-muted uppercase tracking-widest mb-1.5">
                   Email
                 </label>
                 <input
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
                   placeholder="you@example.com"
                   required
                   autoFocus
-                  className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                  className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-gwc-muted/60 focus:outline-none focus:border-gwc-accent transition-colors"
                 />
               </div>
 
@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || !!success}
-                className="w-full py-3.5 rounded-xl bg-gwc-accent text-white font-bold text-base hover:bg-gwc-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold text-base hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-2"
               >
                 {loading ? 'Sending…' : 'Send reset link'}
               </button>
@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
           ) : (
             <form onSubmit={handleSetNew} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gwc-muted uppercase tracking-wider mb-1.5">
+                <label className="block font-mono text-[10px] font-semibold text-gwc-muted uppercase tracking-widest mb-1.5">
                   New password
                 </label>
                 <input
@@ -130,7 +130,7 @@ export default function ResetPasswordPage() {
                   required
                   minLength={6}
                   autoFocus
-                  className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                  className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-gwc-muted/60 focus:outline-none focus:border-gwc-accent transition-colors"
                 />
               </div>
 
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || !!success}
-                className="w-full py-3.5 rounded-xl bg-gwc-accent text-white font-bold text-base hover:bg-gwc-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold text-base hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-2"
               >
                 {loading ? 'Updating…' : 'Update password'}
               </button>

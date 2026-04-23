@@ -110,8 +110,8 @@ function ActivityGrid({ data }: { data: DayActivity[] }) {
                   }`}
                   style={{
                     backgroundColor: day.count > 0
-                      ? `rgba(124, 109, 242, ${intensity})`
-                      : 'rgba(255,255,255,0.04)',
+                      ? `rgba(var(--gwc-accent), ${intensity})`
+                      : 'rgba(var(--gwc-text), 0.06)',
                   }}
                   title={`${day.dateStr}: ${day.count} Reviews`}
                 />
@@ -127,7 +127,7 @@ function ActivityGrid({ data }: { data: DayActivity[] }) {
           <div
             key={op}
             className="w-3 h-3 rounded-sm"
-            style={{ backgroundColor: `rgba(124, 109, 242, ${op})` }}
+            style={{ backgroundColor: `rgba(var(--gwc-accent), ${op})` }}
           />
         ))}
         <span className="text-[10px] text-gwc-muted">More</span>

@@ -30,7 +30,7 @@ export default function CookiesPage() {
 
             {/* Cookie table */}
             <div className="rounded-xl border border-gwc-text/8 overflow-hidden text-sm">
-              <div className="grid grid-cols-3 px-4 py-2.5 bg-white/4 text-gwc-text font-semibold text-xs uppercase tracking-wider">
+              <div className="grid grid-cols-3 px-4 py-2.5 bg-gwc-text/4 text-gwc-text font-semibold text-xs uppercase tracking-wider">
                 <span>Cookie</span>
                 <span>Provider</span>
                 <span>Purpose</span>

@@ -48,9 +48,9 @@ export default function CookieBanner() {
       aria-label="Cookie information"
     >
       <div className="m-3 sm:m-4 md:mx-auto md:max-w-2xl">
-        <div className="bg-gwc-panel border border-white/15 rounded-2xl px-5 py-4 shadow-2xl shadow-black/50 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="bg-gwc-panel border border-gwc-text/10 rounded-2xl px-5 py-4 shadow-lg shadow-gwc-text/8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           {/* Text */}
-          <p className="flex-1 text-sm text-[#c5c3d4] leading-relaxed">
+          <p className="flex-1 text-sm text-gwc-muted leading-relaxed">
             This site uses essential cookies for authentication.{' '}
             <Link
               href="/cookies"

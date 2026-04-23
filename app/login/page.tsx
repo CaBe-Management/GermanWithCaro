@@ -83,7 +83,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 required
                 autoFocus
-                className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-gwc-muted/60 focus:outline-none focus:border-gwc-accent transition-colors"
               />
             </div>
 
@@ -99,7 +99,7 @@ export default function LoginPage() {
                 placeholder={mode === 'register' ? 'At least 6 characters' : '••••••••'}
                 required
                 minLength={6}
-                className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-gwc-muted/60 focus:outline-none focus:border-gwc-accent transition-colors"
               />
             </div>
 

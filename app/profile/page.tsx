@@ -129,7 +129,7 @@ function XPBar({ xp }: { xp: number }) {
       </div>
       <div className="h-2.5 bg-gwc-text/8 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-gwc-accent to-[#9b8cf5] rounded-full transition-all duration-700"
+          className="h-full bg-gradient-to-r from-gwc-accent to-gwc-accent-soft rounded-full transition-all duration-700"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -511,7 +511,7 @@ export default function ProfilePage() {
                       maxLength={30}
                       autoFocus
                       placeholder="Your name"
-                      className="flex-1 bg-gwc-text/5 border border-gwc-accent/40 rounded-lg px-3 py-1.5 text-sm text-gwc-text placeholder-[#4a4760] focus:outline-none focus:border-gwc-accent"
+                      className="flex-1 bg-gwc-text/5 border border-gwc-accent/40 rounded-lg px-3 py-1.5 text-sm text-gwc-text placeholder-gwc-dim focus:outline-none focus:border-gwc-accent"
                     />
                     <button
                       onClick={saveName}
