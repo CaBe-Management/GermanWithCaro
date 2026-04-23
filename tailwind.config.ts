@@ -41,6 +41,11 @@ const config: Config = {
         success: '#4ade80',
         error:   '#f87171',
       },
+      fontFamily: {
+        display: ['var(--font-fraunces)', 'Georgia', 'serif'],
+        tight:   ['var(--font-inter-tight)', 'system-ui', 'sans-serif'],
+        sans:    ['var(--font-inter-tight)', 'system-ui', 'sans-serif'],
+      },
     },
   },
   plugins: [],

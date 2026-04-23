@@ -1,7 +1,21 @@
 import type { Metadata } from 'next'
+import { Fraunces, Inter_Tight } from 'next/font/google'
 import AuthGuard from '@/components/AuthGuard'
 import CookieBanner from '@/components/CookieBanner'
 import './globals.css'
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces',
+  display: 'swap',
+  style: ['normal', 'italic'],
+})
+
+const interTight = Inter_Tight({
+  subsets: ['latin'],
+  variable: '--font-inter-tight',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'German With Caro - Learn German',
@@ -14,12 +28,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="bg-gwc-base text-gwc-text">
+    <html lang="en" data-theme="plum" className={`${fraunces.variable} ${interTight.variable}`}>
+      <body className="bg-gwc-base text-gwc-text font-sans">
         <AuthGuard>
           <main className="min-h-screen">{children}</main>
         </AuthGuard>
-        {/* Cookie info banner — essential cookies only, no opt-in required */}
         <CookieBanner />
       </body>
     </html>
