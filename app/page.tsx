@@ -21,25 +21,36 @@ function useFadeIn() {
   return ref
 }
 
-// ─── Interactive flip card demo ───────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const DEMO_SENTENCES = [
+interface DemoSentence {
+  de: string
+  en: string
+  hl?: string | null
+}
+
+const FALLBACK_SENTENCES: DemoSentence[] = [
   { de: 'Ich bin super müde heute.', en: 'I am super tired today.', hl: 'müde' },
   { de: 'Das ist mein Lieblingsessen.', en: 'That is my favourite food.', hl: 'Lieblingsessen' },
   { de: 'Wo wohnst du gerade?', en: 'Where do you live right now?', hl: 'wohnst' },
 ]
 
-function FlipCardDemo() {
+// ─── Interactive flip card demo ───────────────────────────────────────────────
+
+function FlipCardDemo({ sentences = FALLBACK_SENTENCES }: { sentences?: DemoSentence[] }) {
   const [idx, setIdx]     = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [answered, setAnswered] = useState<'knew' | 'didnt' | null>(null)
 
-  const s = DEMO_SENTENCES[idx]
+  // Reset when sentences change
+  useEffect(() => { setIdx(0); setFlipped(false); setAnswered(null) }, [sentences])
+
+  const s = sentences[idx] ?? FALLBACK_SENTENCES[0]
 
   function handleAnswer(result: 'knew' | 'didnt') {
     setAnswered(result)
     setTimeout(() => {
-      setIdx(i => (i + 1) % DEMO_SENTENCES.length)
+      setIdx(i => (i + 1) % sentences.length)
       setFlipped(false)
       setAnswered(null)
     }, 650)
@@ -50,7 +61,7 @@ function FlipCardDemo() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-1.5">
-          {DEMO_SENTENCES.map((_, i) => (
+          {sentences.map((_, i) => (
             <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i <= idx ? 'w-6 bg-gwc-accent' : 'w-6 bg-gwc-text/10'}`} />
           ))}
         </div>
@@ -109,15 +120,21 @@ function FlipCardDemo() {
 
 // ─── Browse demo ──────────────────────────────────────────────────────────────
 
-const DEMO_SENTENCES_BROWSE = [
+const FALLBACK_BROWSE: (DemoSentence & { added: boolean })[] = [
   { de: 'Ich bin super müde heute.', en: 'I am super tired today.', added: false },
   { de: 'Das ist mein Lieblingsessen.', en: 'That is my favourite food.', added: false },
   { de: 'Wo wohnst du gerade?', en: 'Where do you live right now?', added: false },
   { de: 'Ich lerne Deutsch seit einem Jahr.', en: 'I\'ve been learning German for a year.', added: false },
 ]
 
-function BrowseDemo() {
-  const [sentences, setSentences] = useState(DEMO_SENTENCES_BROWSE)
+function BrowseDemo({ sentences: initialSentences, videoTitle }: { sentences?: DemoSentence[]; videoTitle?: string }) {
+  const base = (initialSentences ?? FALLBACK_BROWSE).map(s => ({ ...s, added: false }))
+  const [sentences, setSentences] = useState(base)
+
+  useEffect(() => {
+    setSentences((initialSentences ?? FALLBACK_BROWSE).map(s => ({ ...s, added: false })))
+  }, [initialSentences])
+
   const added = sentences.filter(s => s.added).length
 
   function toggle(i: number) {
@@ -130,7 +147,7 @@ function BrowseDemo() {
       <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gwc-text/6">
         <div className="w-10 h-10 rounded-lg bg-gwc-accent/12 flex items-center justify-center shrink-0 text-lg">📱</div>
         <div className="flex-1 min-w-0">
-          <p className="font-display text-sm text-gwc-text truncate">I speak SLOW German everyday</p>
+          <p className="font-display text-sm text-gwc-text truncate">{videoTitle ?? 'I speak SLOW German everyday'}</p>
           <p className="font-mono text-[10px] text-gwc-muted mt-0.5 tracking-wide uppercase">{added}/{sentences.length} sentences saved</p>
         </div>
       </div>
@@ -223,6 +240,8 @@ function FAQ() {
 function LandingContent() {
   const [activeDemo, setActiveDemo] = useState<'browse' | 'review'>('browse')
   const [stats, setStats] = useState<{ videos: number; sentences: number } | null>(null)
+  const [demoSentences, setDemoSentences] = useState<DemoSentence[]>([])
+  const [demoVideoTitle, setDemoVideoTitle] = useState<string | undefined>()
 
   useEffect(() => {
     async function loadStats() {
@@ -232,7 +251,38 @@ function LandingContent() {
       ])
       setStats({ videos: videos ?? 0, sentences: sentences ?? 0 })
     }
+
+    async function loadDemoSentences() {
+      // Pick the first published video with sentences
+      const { data: video } = await supabase
+        .from('gwc_videos')
+        .select('id, title')
+        .eq('is_draft', false)
+        .order('sort_order', { ascending: true })
+        .limit(1)
+        .single()
+
+      if (!video) return
+
+      const { data: sents } = await supabase
+        .from('gwc_video_sentences')
+        .select('sentence_de, sentence_en, highlight_de')
+        .eq('video_id', video.id)
+        .order('sort_order', { ascending: true })
+        .limit(4)
+
+      if (sents && sents.length >= 3) {
+        setDemoVideoTitle(video.title)
+        setDemoSentences(sents.map(s => ({
+          de: s.sentence_de,
+          en: s.sentence_en,
+          hl: s.highlight_de,
+        })))
+      }
+    }
+
     loadStats()
+    loadDemoSentences()
   }, [])
 
   const howRef    = useFadeIn()
@@ -435,7 +485,10 @@ function LandingContent() {
               </button>
             ))}
           </div>
-          {activeDemo === 'browse' ? <BrowseDemo /> : <FlipCardDemo />}
+          {activeDemo === 'browse'
+            ? <BrowseDemo sentences={demoSentences.length >= 3 ? demoSentences : undefined} videoTitle={demoVideoTitle} />
+            : <FlipCardDemo sentences={demoSentences.length >= 3 ? demoSentences.slice(0, 3) : undefined} />
+          }
         </div>
       </section>
 
