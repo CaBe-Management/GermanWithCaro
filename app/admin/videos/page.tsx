@@ -50,6 +50,8 @@ export default function AdminVideosPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [adminFilter, setAdminFilter] = useState<AdminFilter>('all')
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshResult, setRefreshResult] = useState<string | null>(null)
 
   // Form state
   const [url, setUrl] = useState('')
@@ -85,6 +87,29 @@ export default function AdminVideosPage() {
       setVideos(enriched)
     }
     setLoading(false)
+  }
+
+  async function handleRefreshAllThumbnails() {
+    if (!confirm('Alle TikTok Thumbnails neu in Supabase Storage hochladen? Kann etwas dauern.')) return
+    setRefreshing(true)
+    setRefreshResult(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/refresh-thumbnails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      })
+      const json = await res.json()
+      if (json.success) {
+        setRefreshResult(`✓ ${json.updated} aktualisiert · ${json.skipped} bereits ok · ${json.failed} fehlgeschlagen`)
+        await loadVideos()
+      } else {
+        setRefreshResult(`Fehler: ${json.error}`)
+      }
+    } catch {
+      setRefreshResult('Netzwerkfehler')
+    }
+    setRefreshing(false)
   }
 
   function handleUrlChange(value: string) {
@@ -187,19 +212,35 @@ export default function AdminVideosPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gwc-text">🎬 Video Management</h1>
-            <p className="text-gwc-muted text-sm mt-1">TikTok & YouTube Videos with learning sentences</p>
+            <p className="text-gwc-muted text-sm mt-1">TikTok videos with learning sentences</p>
           </div>
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className="flex items-center gap-2 px-4 py-2 bg-gwc-accent text-white rounded-lg font-semibold text-sm hover:bg-gwc-accent-deep transition-colors"
-          >
-            <span className="text-base">{showForm ? '✕' : '+'}</span>
-            {showForm ? 'Cancel' : 'Add video'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefreshAllThumbnails}
+              disabled={refreshing}
+              className="px-3 py-2 rounded-lg border border-gwc-text/12 text-gwc-muted text-xs font-medium hover:border-gwc-accent/30 hover:text-gwc-accent transition-colors disabled:opacity-50"
+              title="Alle Thumbnails in Supabase Storage hochladen"
+            >
+              {refreshing ? 'Lädt...' : '🖼 Refresh all thumbnails'}
+            </button>
+            <button
+              onClick={() => setShowForm(v => !v)}
+              className="flex items-center gap-2 px-4 py-2 bg-gwc-accent text-white rounded-lg font-semibold text-sm hover:bg-gwc-accent-deep transition-colors"
+            >
+              <span className="text-base">{showForm ? '✕' : '+'}</span>
+              {showForm ? 'Cancel' : 'Add video'}
+            </button>
+          </div>
         </div>
+
+        {refreshResult && (
+          <div className="mb-4 px-4 py-2.5 rounded-lg bg-gwc-text/5 border border-gwc-text/8 text-sm text-gwc-muted">
+            {refreshResult}
+          </div>
+        )}
 
         {/* Add Video Form */}
         {showForm && (
