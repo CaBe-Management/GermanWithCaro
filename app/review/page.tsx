@@ -162,22 +162,22 @@ function FlipCard({
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gwc-text/6">
         <Link href="/dashboard" className="text-gwc-muted hover:text-gwc-text transition-colors text-sm">
-          ← Dashboard {/* Navigation link */}
+          ← Dashboard
         </Link>
         <div className="flex items-center gap-3">
-          <span className="px-2 py-0.5 rounded-md text-xs text-[#6b6880] bg-gwc-text/5 border border-gwc-text/8">
+          <span className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase px-2 py-0.5 rounded border border-gwc-text/8">
             {srsLabel}
           </span>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-gwc-muted">□ <span className="font-bold text-gwc-text">{total - (cardNumber - 1)}</span></span>
-            <span className="text-gwc-success">✓ <span className="font-bold">{correct}</span></span>
-            <span className="text-gwc-error">✗ <span className={`font-bold ${mistakes > 0 ? '' : 'text-gwc-muted'}`}>{mistakes}</span></span>
+          <div className="flex items-center gap-3 font-mono text-sm">
+            <span className="text-gwc-muted">{total - (cardNumber - 1)} left</span>
+            <span className="text-gwc-success">✓ {correct}</span>
+            <span className={mistakes > 0 ? 'text-gwc-error' : 'text-gwc-muted'}>✗ {mistakes}</span>
           </div>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-0.5 bg-gwc-text/5">
+      <div className="h-0.5 bg-gwc-text/6">
         <div className="h-full bg-gwc-accent transition-all duration-500" style={{ width: `${progress * 100}%` }} />
       </div>
 
@@ -188,31 +188,33 @@ function FlipCard({
             className={`bg-gwc-panel rounded-2xl border p-8 sm:p-12 text-center cursor-pointer select-none transition-all duration-200 ${
               answered
                 ? wasCorrect ? 'border-gwc-success/40' : 'border-gwc-error/40'
-                : flipped   ? 'border-gwc-accent/40'  : 'border-gwc-text/8 hover:border-gwc-accent/30'
+                : flipped   ? 'border-gwc-accent/30'  : 'border-gwc-text/8 hover:border-gwc-text/20'
             }`}
             onClick={() => !flipped && setFlipped(true)}
           >
             {/* Front */}
             {!flipped && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-gwc-muted mb-6 font-medium">🇩🇪 German (to reveal)</p>
-                <p className="text-2xl sm:text-3xl font-light text-gwc-text leading-relaxed">
+                <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mb-8">🇩🇪 German</p>
+                <p className="font-display text-2xl sm:text-3xl text-gwc-text leading-snug">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
-                <p className="text-xs text-gwc-dim mt-8">Click or press <kbd className="px-1.5 py-0.5 rounded bg-gwc-text/8 text-[#6b6880] font-mono text-xs">Space</kbd> to reveal</p>
+                <p className="font-mono text-[10px] text-gwc-dim mt-8 tracking-widest uppercase">
+                  Space to reveal
+                </p>
               </div>
             )}
 
             {/* Back */}
             {flipped && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-gwc-muted mb-4 font-medium">🇩🇪 German</p>
-                <p className="text-xl sm:text-2xl font-light text-gwc-text leading-relaxed mb-6">
+                <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mb-4">🇩🇪 German</p>
+                <p className="font-display text-xl sm:text-2xl text-gwc-text leading-snug mb-6">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
                 <div className="h-px bg-gwc-text/8 mb-6" />
-                <p className="text-xs uppercase tracking-widest text-gwc-muted mb-4 font-medium">🇬🇧 English</p>
-                <p className="text-xl sm:text-2xl text-gwc-muted leading-relaxed italic">
+                <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mb-4">🇬🇧 English</p>
+                <p className="font-display text-xl sm:text-2xl text-gwc-muted leading-snug italic">
                   <HighlightText text={card.sentence.sentence_en} highlight={card.sentence.highlight_en} />
                 </p>
                 <div className="mt-6">
@@ -220,9 +222,9 @@ function FlipCard({
                     href={`/videos/${card.sentence.video_id}`}
                     target="_blank"
                     onClick={e => e.stopPropagation()}
-                    className="inline-flex items-center gap-1.5 text-xs text-[#6b6880] hover:text-gwc-accent-soft transition-colors"
+                    className="font-mono text-[10px] text-gwc-dim hover:text-gwc-accent transition-colors tracking-widest uppercase"
                   >
-                    ▶ Go to video page
+                    ▶ Go to video
                   </Link>
                 </div>
               </div>
@@ -230,7 +232,7 @@ function FlipCard({
           </div>
 
           {answered && (
-            <p className={`mt-4 text-center text-sm font-semibold ${wasCorrect ? 'text-gwc-success' : 'text-gwc-error'}`}>
+            <p className={`mt-4 text-center font-mono text-xs tracking-widest uppercase ${wasCorrect ? 'text-gwc-success' : 'text-gwc-error'}`}>
               {wasCorrect ? '✓ Nice!' : '✗ Keep going!'}
             </p>
           )}
@@ -238,11 +240,11 @@ function FlipCard({
       </div>
 
       {/* Bottom controls */}
-      <div className="bg-gwc-base border-t border-gwc-text/6 px-5 py-4">
+      <div className="bg-gwc-panel border-t border-gwc-text/6 px-5 py-4">
         {!flipped ? (
           <button
             onClick={() => setFlipped(true)}
-            className="w-full max-w-xl mx-auto flex justify-center py-3.5 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors"
+            className="w-full max-w-xl mx-auto flex justify-center py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold hover:opacity-90 transition-opacity"
           >
             Reveal Translation
           </button>
@@ -251,25 +253,25 @@ function FlipCard({
             <button
               onClick={() => handleMark(false)}
               disabled={saving}
-              className="flex-1 py-3.5 rounded-xl border-2 border-gwc-error/40 text-gwc-error font-bold hover:bg-gwc-error/10 transition-colors disabled:opacity-50"
+              className="flex-1 py-3.5 rounded-xl border border-gwc-text/12 text-gwc-muted font-medium hover:border-gwc-error/40 hover:text-gwc-error transition-colors disabled:opacity-50"
             >
-              ✗ Didn't know <span className="text-xs opacity-60">[1]</span>
+              Didn't know <span className="font-mono text-xs opacity-50">[1]</span>
             </button>
             <button
               onClick={() => handleMark(true)}
               disabled={saving}
-              className="flex-1 py-3.5 rounded-xl border-2 border-gwc-success/40 text-gwc-success font-bold hover:bg-gwc-success/10 transition-colors disabled:opacity-50"
+              className="flex-1 py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              ✓ Knew it <span className="text-xs opacity-60">[2]</span>
+              Knew it <span className="font-mono text-xs opacity-50">[2]</span>
             </button>
           </div>
         ) : (
           <button
             onClick={onNext}
-            className={`w-full max-w-xl mx-auto flex justify-center gap-2 py-3.5 rounded-xl border-2 font-bold transition-colors ${
+            className={`w-full max-w-xl mx-auto flex justify-center gap-2 py-3.5 rounded-xl font-semibold transition-colors ${
               wasCorrect
-                ? 'border-gwc-success/40 text-gwc-success hover:bg-gwc-success/10'
-                : 'border-gwc-error/40 text-gwc-error hover:bg-gwc-error/10'
+                ? 'bg-gwc-success/12 text-gwc-success hover:bg-gwc-success/20'
+                : 'bg-gwc-error/12 text-gwc-error hover:bg-gwc-error/20'
             }`}
           >
             Next → <span className="text-xs opacity-60">[Space]</span>
