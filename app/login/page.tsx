@@ -54,24 +54,26 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="text-5xl mb-4">🇩🇪</div>
-          <h1 className="text-2xl font-bold text-gwc-text">German With Caro</h1>
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-xl bg-gwc-text flex items-center justify-center mx-auto mb-4">
+            <span className="font-display text-gwc-base text-2xl font-bold italic">C</span>
+          </div>
+          <h1 className="font-display text-2xl text-gwc-text">German with Caro</h1>
           <p className="text-gwc-muted text-sm mt-1">
-            {mode === 'login' ? 'Welcome back!' : 'Start learning German today.'}
+            {mode === 'login' ? 'Welcome back.' : 'Start learning German today.'}
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-gwc-panel rounded-2xl border border-gwc-text/6 p-7">
-          <h2 className="text-lg font-bold text-gwc-text mb-6">
+        <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-7">
+          <h2 className="font-display text-xl text-gwc-text mb-6">
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-xs font-bold text-gwc-muted uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-[10px] font-semibold text-gwc-muted uppercase tracking-widest mb-1.5">
                 Email
               </label>
               <input
@@ -87,7 +89,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-bold text-gwc-muted uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-[10px] font-semibold text-gwc-muted uppercase tracking-widest mb-1.5">
                 Password
               </label>
               <input
@@ -131,7 +133,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-gwc-accent text-white font-bold text-base hover:bg-gwc-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold text-base hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {loading
                 ? mode === 'login' ? 'Signing in…' : 'Creating account…'

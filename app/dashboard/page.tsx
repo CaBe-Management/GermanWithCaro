@@ -168,8 +168,8 @@ export default function Dashboard() {
         {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gwc-text">
-              {loading ? '…' : `Hey, ${username ?? 'there'} 👋`}
+            <h1 className="font-display text-2xl text-gwc-text">
+              {loading ? '…' : `Hey, ${username ?? 'there'}.`}
             </h1>
             <p className="text-sm text-gwc-muted mt-0.5">
               {loading ? '' : userProgress?.streak_current
@@ -178,9 +178,9 @@ export default function Dashboard() {
             </p>
           </div>
           {level !== null && (
-            <div className="bg-gwc-accent/20 border border-gwc-accent/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-xs text-gwc-muted">Level</p>
-              <p className="text-2xl font-bold text-gwc-accent-soft">{level}</p>
+            <div className="border border-gwc-text/10 rounded-xl px-4 py-2 text-center">
+              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase">Level</p>
+              <p className="font-display text-2xl text-gwc-accent">{level}</p>
             </div>
           )}
         </div>
@@ -194,19 +194,19 @@ export default function Dashboard() {
             className={`p-5 rounded-2xl border flex flex-col gap-3 transition-all hover:scale-[1.01] ${
               reviewDue > 0
                 ? 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50'
-                : 'bg-gwc-panel border-gwc-text/8 hover:border-white/15'
+                : 'bg-gwc-panel border-gwc-text/8 hover:border-gwc-text/20'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-2xl">📚</span>
               {!loading && (
-                <span className={`text-2xl font-bold ${reviewDue > 0 ? 'text-orange-400' : 'text-gwc-muted'}`}>
+                <span className={`font-display text-2xl ${reviewDue > 0 ? 'text-orange-400' : 'text-gwc-muted'}`}>
                   {reviewDue}
                 </span>
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-gwc-text">Reviews due</p>
+              <p className="font-display text-sm text-gwc-text">Reviews due</p>
               <p className="text-xs text-gwc-muted mt-0.5">
                 {reviewDue > 0 ? 'Time to review!' : 'All caught up ✓'}
               </p>
@@ -221,11 +221,11 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <span className="text-2xl">🎬</span>
               {!loading && (
-                <span className="text-2xl font-bold text-gwc-accent-soft">{totalSentences}</span>
+                <span className="font-display text-2xl text-gwc-accent">{totalSentences}</span>
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-gwc-text">Sentences in SRS</p>
+              <p className="font-display text-sm text-gwc-text">Sentences in SRS</p>
               <p className="text-xs text-gwc-muted mt-0.5">Browse videos to add more</p>
             </div>
           </Link>
@@ -236,7 +236,7 @@ export default function Dashboard() {
         {xpInfo && (
           <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gwc-text">Level {xpInfo.level} → {xpInfo.level + 1}</span>
+              <span className="font-display text-sm text-gwc-text">Level {xpInfo.level} → {xpInfo.level + 1}</span>
               <span className="text-xs text-gwc-muted">{xpInfo.xpInLevel} / {xpInfo.xpNeeded} XP</span>
             </div>
             <div className="h-2 bg-gwc-text/5 rounded-full overflow-hidden">
@@ -252,7 +252,7 @@ export default function Dashboard() {
         {userProgress && (
           <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gwc-text">This Week</h2>
+              <h2 className="font-display text-sm text-gwc-text">This Week</h2>
               <span className="text-sm text-orange-400 font-bold">🔥 {userProgress.streak_current ?? 0} days</span>
             </div>
             <div className="flex gap-2">
@@ -274,7 +274,7 @@ export default function Dashboard() {
         {totalInSRS > 0 && (
           <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gwc-text">SRS Progress</h2>
+              <h2 className="font-display text-sm text-gwc-text">SRS Progress</h2>
               <span className="text-xs text-gwc-muted">{totalInSRS} sentences</span>
             </div>
             <div className="space-y-2">
@@ -303,7 +303,7 @@ export default function Dashboard() {
         {recentVideos.length > 0 && (
           <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gwc-text">Recent Videos</h2>
+              <h2 className="font-display text-sm text-gwc-text">Recent Videos</h2>
               <Link href="/videos" className="text-xs text-gwc-accent hover:underline">View all →</Link>
             </div>
             <div className="space-y-2">
@@ -333,7 +333,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <span className="text-xl">⚙️</span>
               <div>
-                <p className="text-sm font-semibold text-gwc-text">Video Management</p>
+                <p className="font-display text-sm text-gwc-text">Video Management</p>
                 <p className="text-xs text-gwc-muted">Add videos and sentences</p>
               </div>
             </div>
