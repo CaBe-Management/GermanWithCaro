@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
 
 // ─── Scroll fade-in hook ──────────────────────────────────────────────────────
 
@@ -221,6 +222,24 @@ function FAQ() {
 
 function LandingContent() {
   const [activeDemo, setActiveDemo] = useState<'browse' | 'review'>('browse')
+  const [stats, setStats] = useState<{ videos: number; sentences: number; users: number } | null>(null)
+
+  useEffect(() => {
+    async function loadStats() {
+      const [{ count: videos }, { count: sentences }, { count: users }] = await Promise.all([
+        supabase.from('gwc_videos').select('*', { count: 'exact', head: true }).eq('is_draft', false),
+        supabase.from('gwc_video_sentences').select('gwc_videos!inner(is_draft)', { count: 'exact', head: true }).eq('gwc_videos.is_draft', false),
+        supabase.from('gwc_user_progress').select('*', { count: 'exact', head: true }),
+      ])
+      setStats({
+        videos:    videos    ?? 0,
+        sentences: sentences ?? 0,
+        users:     users     ?? 0,
+      })
+    }
+    loadStats()
+  }, [])
+
   const howRef    = useFadeIn()
   const demoRef   = useFadeIn()
   const forWhoRef = useFadeIn()
@@ -271,7 +290,11 @@ function LandingContent() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-gwc-text/10 bg-gwc-panel mb-6">
                 <span className="font-mono text-[9px] text-gwc-base bg-gwc-accent px-2 py-0.5 rounded-full tracking-widest uppercase font-bold">New</span>
-                <span className="font-tight text-xs text-gwc-muted">142 videos · 900+ sentences</span>
+                <span className="font-tight text-xs text-gwc-muted">
+                  {stats
+                    ? `${stats.videos} videos · ${stats.sentences}+ sentences`
+                    : '142 videos · 900+ sentences'}
+                </span>
               </div>
 
               <h1 className="font-display text-[clamp(3rem,8vw,5.5rem)] leading-[0.95] tracking-[-0.04em] text-gwc-text mb-5">
@@ -340,8 +363,8 @@ function LandingContent() {
       {/* ── Social strip ───────────────────────────────────────────────────── */}
       <section className="py-8 px-5 border-t border-b border-gwc-text/6 bg-gwc-raised/40">
         <div className="max-w-2xl mx-auto">
-          <p className="font-display text-sm italic text-gwc-muted text-center mb-5">Seen by 12K+ learners across —</p>
-          <div className="grid grid-cols-3 gap-6 text-center">
+          <p className="font-display text-sm italic text-gwc-muted text-center mb-5">Seen by learners across —</p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-6 text-center">
             {[
               { n: '8.9K', l: 'TikTok' },
               { n: '3.7K', l: 'Instagram' },
@@ -352,6 +375,12 @@ function LandingContent() {
                 <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase mt-1">{s.l}</p>
               </div>
             ))}
+            <div>
+              <p className="font-display text-2xl sm:text-3xl font-semibold text-gwc-text tracking-tight">
+                {stats ? stats.users : '—'}
+              </p>
+              <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase mt-1">App users</p>
+            </div>
           </div>
         </div>
       </section>
