@@ -101,7 +101,7 @@ function UpgradePageInner() {
               <p className="text-gwc-success font-semibold mb-3">✓ You're already on Pro!</p>
               <Link
                 href="/profile"
-                className="inline-block w-full py-3.5 rounded-xl bg-white/10 text-gwc-text font-bold text-base hover:bg-white/15 transition-colors text-center"
+                className="inline-block w-full py-3.5 rounded-xl bg-gwc-text/8 text-gwc-text font-bold text-base hover:bg-gwc-text/12 transition-colors text-center"
               >
                 Manage subscription →
               </Link>

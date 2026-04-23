@@ -83,7 +83,7 @@ function ProgressBar({ added, total }: { added: number; total: number }) {
   const pct = Math.min(100, Math.round((added / total) * 100))
   const isComplete = added >= total
   return (
-    <div className="mt-2 h-1 bg-white/5 rounded-full overflow-hidden">
+    <div className="mt-2 h-1 bg-gwc-text/5 rounded-full overflow-hidden">
       <div
         className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-gwc-accent'}`}
         style={{ width: `${pct}%` }}
@@ -195,7 +195,7 @@ export default function VideosPage() {
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                 activeLevel === l
                   ? 'bg-gwc-accent text-white'
-                  : 'bg-white/5 text-gwc-muted hover:bg-white/10 hover:text-gwc-text'
+                  : 'bg-gwc-text/5 text-gwc-muted hover:bg-gwc-text/8 hover:text-gwc-text'
               }`}
             >
               {l}
@@ -207,7 +207,7 @@ export default function VideosPage() {
         {/* Status filter — only shown when logged in */}
         {isLoggedIn && <div className="flex gap-2 flex-wrap mb-8">
           {([
-            { key: 'all',      label: 'All',              count: null,          activeClass: 'bg-white/15 text-gwc-text' },
+            { key: 'all',      label: 'All',              count: null,          activeClass: 'bg-gwc-text/12 text-gwc-text' },
             { key: 'open',     label: 'Not started',      count: openCount,     activeClass: 'bg-gwc-accent/30 text-gwc-accent-soft' },
             { key: 'learned',  label: 'Learned',          count: learnedCount,  activeClass: 'bg-emerald-500/20 text-emerald-400' },
             { key: 'complete', label: 'All saved',        count: completeCount, activeClass: 'bg-emerald-500/20 text-emerald-400' },
@@ -216,13 +216,13 @@ export default function VideosPage() {
               key={f.key}
               onClick={() => setStatusFilter(f.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                statusFilter === f.key ? f.activeClass : 'bg-white/5 text-gwc-muted hover:bg-white/10'
+                statusFilter === f.key ? f.activeClass : 'bg-gwc-text/5 text-gwc-muted hover:bg-gwc-text/8'
               }`}
             >
               {f.label}
               {f.count !== null && f.count > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-                  statusFilter === f.key ? 'bg-white/20' : 'bg-white/10 text-gwc-muted'
+                  statusFilter === f.key ? 'bg-gwc-text/15' : 'bg-gwc-text/8 text-gwc-muted'
                 }`}>{f.count}</span>
               )}
             </button>
@@ -249,7 +249,7 @@ export default function VideosPage() {
               <Link
                 key={video.id}
                 href={`/videos/${video.id}`}
-                className="group bg-gwc-panel rounded-xl border border-white/8 hover:border-gwc-accent/40 transition-all overflow-hidden hover:shadow-lg hover:shadow-gwc-accent/5"
+                className="group bg-gwc-panel rounded-xl border border-gwc-text/8 hover:border-gwc-accent/40 transition-all overflow-hidden hover:shadow-lg hover:shadow-gwc-accent/5"
               >
                 {/* Thumbnail */}
                 <div className="relative">
@@ -287,7 +287,7 @@ export default function VideosPage() {
                 {/* Info */}
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${LEVEL_COLORS[video.level] ?? 'bg-white/10 text-gwc-muted border-white/10'}`}>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${LEVEL_COLORS[video.level] ?? 'bg-gwc-text/8 text-gwc-muted border-gwc-text/10'}`}>
                       {video.level}
                     </span>
                     <span className="text-xs text-gwc-muted">

@@ -31,7 +31,7 @@ function formatDate(isoString: string): string {
 
 // Color per SRS tier
 function blockColor(level: number, i: number): string {
-  if (i > level) return 'bg-white/8'
+  if (i > level) return 'bg-gwc-text/8'
   if (i <= 2)  return 'bg-[#f472b6]'   // Novice    — pink
   if (i <= 5)  return 'bg-gwc-accent'   // Apprentice — purple
   if (i <= 7)  return 'bg-[#60a5fa]'   // Journeyman — blue
@@ -57,7 +57,7 @@ export function SrsProgressCard({ data }: { data: SrsReviewData }) {
     : null
 
   return (
-    <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5">
+    <div className="bg-gwc-panel border border-gwc-text/6 rounded-2xl p-5">
       <p className="text-[0.7rem] font-bold tracking-widest uppercase text-gwc-muted mb-4">Your Progress</p>
 
       {/* Stats grid */}

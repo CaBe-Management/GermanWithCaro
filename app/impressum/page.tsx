@@ -33,7 +33,7 @@ export default function ImpressumPage() {
           </p>
         </section>
 
-        <div className="border-t border-white/5 pt-8 flex flex-wrap gap-4 text-xs text-gwc-muted">
+        <div className="border-t border-gwc-text/6 pt-8 flex flex-wrap gap-4 text-xs text-gwc-muted">
           <Link href="/privacy" className="hover:text-gwc-text transition-colors">Privacy Policy</Link>
           <Link href="/cookies" className="hover:text-gwc-text transition-colors">Cookie Policy</Link>
           <Link href="/terms"   className="hover:text-gwc-text transition-colors">Terms of Use</Link>

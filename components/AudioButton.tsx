@@ -76,7 +76,7 @@ export default function AudioButton({ filename, size = 'md' }: AudioButtonProps)
       className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors font-bold ${
         playing
           ? 'bg-gwc-accent text-white'
-          : 'bg-white/10 text-gwc-muted hover:bg-gwc-accent/30 hover:text-gwc-accent-soft'
+          : 'bg-gwc-text/8 text-gwc-muted hover:bg-gwc-accent/30 hover:text-gwc-accent-soft'
       }`}
     >
       {playing ? '⏸' : '▶'}

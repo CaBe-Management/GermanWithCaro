@@ -203,7 +203,7 @@ export default function AdminVideosPage() {
 
         {/* Add Video Form */}
         {showForm && (
-          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-6 mb-8">
+          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-6 mb-8">
             <h2 className="text-lg font-semibold text-gwc-text mb-4">New video</h2>
             <form onSubmit={handleSave} className="space-y-4">
 
@@ -218,9 +218,9 @@ export default function AdminVideosPage() {
                     onBlur={() => url.includes('tiktok.com') && fetchTikTokMeta()}
                     placeholder="https://www.tiktok.com/@germanwithcaro/video/..."
                     required
-                    className="flex-1 bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                    className="flex-1 bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                   />
-                  <span className="flex items-center px-3 py-2 bg-white/5 rounded-lg text-sm text-gwc-muted border border-white/8">
+                  <span className="flex items-center px-3 py-2 bg-gwc-text/5 rounded-lg text-sm text-gwc-muted border border-gwc-text/8">
                     📱 TikTok
                   </span>
                 </div>
@@ -242,7 +242,7 @@ export default function AdminVideosPage() {
                   onChange={e => setTitle(e.target.value)}
                   placeholder='z.B. "10 German sentences for beginners"'
                   required
-                  className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                  className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                 />
               </div>
 
@@ -254,7 +254,7 @@ export default function AdminVideosPage() {
                   onChange={e => setDescription(e.target.value)}
                   rows={2}
                   placeholder="Kurze Beschreibung des Videos..."
-                  className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent resize-none"
+                  className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent resize-none"
                 />
               </div>
 
@@ -270,7 +270,7 @@ export default function AdminVideosPage() {
                       className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                         level === l
                           ? 'bg-gwc-accent text-white'
-                          : 'bg-white/5 text-gwc-muted hover:bg-white/10'
+                          : 'bg-gwc-text/5 text-gwc-muted hover:bg-gwc-text/8'
                       }`}
                     >
                       {l}
@@ -315,11 +315,11 @@ export default function AdminVideosPage() {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   adminFilter === f.key
                     ? 'bg-gwc-accent/30 text-gwc-accent-soft'
-                    : 'bg-white/5 text-gwc-muted hover:bg-white/10'
+                    : 'bg-gwc-text/5 text-gwc-muted hover:bg-gwc-text/8'
                 }`}
               >
                 {f.label}
-                <span className="bg-white/10 px-1.5 py-0.5 rounded-full">{f.count}</span>
+                <span className="bg-gwc-text/8 px-1.5 py-0.5 rounded-full">{f.count}</span>
               </button>
             ))}
           </div>
@@ -345,7 +345,7 @@ export default function AdminVideosPage() {
               <div
                 key={video.id}
                 className={`bg-gwc-panel rounded-xl border p-4 transition-colors ${
-                  video.is_draft ? 'border-white/5 opacity-75' : 'border-white/8'
+                  video.is_draft ? 'border-gwc-text/6 opacity-75' : 'border-gwc-text/8'
                 }`}
               >
                 <div className="flex items-start gap-4">
@@ -354,10 +354,10 @@ export default function AdminVideosPage() {
                     <img
                       src={video.thumbnail_url}
                       alt={video.title}
-                      className="w-20 h-14 object-cover rounded-lg shrink-0 bg-white/5"
+                      className="w-20 h-14 object-cover rounded-lg shrink-0 bg-gwc-text/5"
                     />
                   ) : (
-                    <div className="w-20 h-14 rounded-lg bg-white/5 flex items-center justify-center shrink-0 text-2xl">
+                    <div className="w-20 h-14 rounded-lg bg-gwc-text/5 flex items-center justify-center shrink-0 text-2xl">
                       {video.platform === 'tiktok' ? '📱' : '▶️'}
                     </div>
                   )}
@@ -365,7 +365,7 @@ export default function AdminVideosPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${LEVEL_COLORS[video.level] ?? 'bg-white/10 text-gwc-muted'}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${LEVEL_COLORS[video.level] ?? 'bg-gwc-text/8 text-gwc-muted'}`}>
                         {video.level}
                       </span>
                       <span className="text-xs text-gwc-muted">
@@ -393,7 +393,7 @@ export default function AdminVideosPage() {
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                         video.sentences_done
                           ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
-                          : 'bg-white/5 text-gwc-muted hover:bg-white/10'
+                          : 'bg-gwc-text/5 text-gwc-muted hover:bg-gwc-text/8'
                       }`}
                     >
                       {video.sentences_done ? '✅ Done' : '⬜ To Do'}
@@ -428,7 +428,7 @@ export default function AdminVideosPage() {
         )}
 
         {/* Footer link */}
-        <div className="mt-8 pt-6 border-t border-white/5 flex justify-center">
+        <div className="mt-8 pt-6 border-t border-gwc-text/6 flex justify-center">
           <Link href="/videos" className="text-sm text-gwc-muted hover:text-gwc-accent transition-colors">
             → View public videos page
           </Link>

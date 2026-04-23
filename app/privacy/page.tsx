@@ -121,7 +121,7 @@ export default function PrivacyPage() {
 
         </div>
 
-        <div className="border-t border-white/5 mt-12 pt-8 flex flex-wrap gap-4 text-xs text-gwc-muted">
+        <div className="border-t border-gwc-text/6 mt-12 pt-8 flex flex-wrap gap-4 text-xs text-gwc-muted">
           <Link href="/impressum" className="hover:text-gwc-text transition-colors">Impressum</Link>
           <Link href="/cookies"   className="hover:text-gwc-text transition-colors">Cookie Policy</Link>
           <Link href="/terms"     className="hover:text-gwc-text transition-colors">Terms of Use</Link>

@@ -86,7 +86,7 @@ export function VocabInfoBody({
             {vocab.level}
           </span>
           {vocab.type && (
-            <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-white/5 text-gwc-muted px-2.5 py-1 rounded-full capitalize">
+            <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-gwc-text/5 text-gwc-muted px-2.5 py-1 rounded-full capitalize">
               {vocab.type.charAt(0) + vocab.type.slice(1).toLowerCase()}
             </span>
           )}
@@ -96,7 +96,7 @@ export function VocabInfoBody({
             </span>
           )}
           {grammaticalCase && (
-            <span className={`text-[0.65rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border ${CASE_COLOR[grammaticalCase] ?? 'bg-white/5 border-white/10 text-gwc-muted'}`}>
+            <span className={`text-[0.65rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border ${CASE_COLOR[grammaticalCase] ?? 'bg-gwc-text/5 border-gwc-text/10 text-gwc-muted'}`}>
               {CASE_LABEL[grammaticalCase] ?? grammaticalCase}
             </span>
           )}
@@ -104,13 +104,13 @@ export function VocabInfoBody({
       </div>
 
       {/* ── Explanation + Usage Notes ─────────────────────────────────── */}
-      <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5">
+      <div className="bg-gwc-panel border border-gwc-text/6 rounded-2xl p-5">
         <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-2">
           Meaning & Explanation
         </p>
         <p className="text-sm text-[#c8c5d8] leading-relaxed">{vocab.explanation_en}</p>
         {vocab.usage_notes && (
-          <p className="text-xs text-gwc-muted leading-relaxed mt-3 pt-3 border-t border-white/5">
+          <p className="text-xs text-gwc-muted leading-relaxed mt-3 pt-3 border-t border-gwc-text/6">
             💡 <strong className="text-gwc-text">Usage:</strong> {vocab.usage_notes}
           </p>
         )}
@@ -126,13 +126,13 @@ export function VocabInfoBody({
 
       {/* ── Declension table (Nouns) ──────────────────────────────────── */}
       {isNoun && declRows.length > 0 && (
-        <div className="bg-gwc-panel border border-white/5 rounded-2xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-white/5">
+        <div className="bg-gwc-panel border border-gwc-text/6 rounded-2xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gwc-text/6">
             <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted">Declension</p>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr className="border-b border-gwc-text/6">
                 <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted py-2 px-5">Case</th>
                 <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted py-2 px-5">Singular</th>
                 <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted py-2 px-5">Plural</th>
@@ -140,7 +140,7 @@ export function VocabInfoBody({
             </thead>
             <tbody>
               {declRows.map(({ key, sg, pl }) => (
-                <tr key={key} className={`border-t border-white/5 ${grammaticalCase === key ? 'bg-gwc-accent/8' : ''}`}>
+                <tr key={key} className={`border-t border-gwc-text/6 ${grammaticalCase === key ? 'bg-gwc-accent/8' : ''}`}>
                   <td className={`py-2.5 px-5 text-xs font-bold ${grammaticalCase === key ? 'text-gwc-accent-soft' : 'text-[#c084fc]'}`}>
                     {CASE_LABEL[key]}
                   </td>
@@ -155,7 +155,7 @@ export function VocabInfoBody({
 
       {/* ── Adjective forms (Comparative / Superlative) ───────────────── */}
       {isAdj && (vocab.comparative || vocab.superlative) && (
-        <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5">
+        <div className="bg-gwc-panel border border-gwc-text/6 rounded-2xl p-5">
           <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-4">Forms</p>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
@@ -180,14 +180,14 @@ export function VocabInfoBody({
 
       {/* ── Synonyms + Related words ──────────────────────────────────── */}
       {(vocab.synonyms || vocab.related_words) && (
-        <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5 space-y-3">
+        <div className="bg-gwc-panel border border-gwc-text/6 rounded-2xl p-5 space-y-3">
           <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted">Related Words</p>
           {vocab.synonyms && (
             <div>
               <p className="text-xs text-gwc-muted mb-1.5">Synonyms</p>
               <div className="flex flex-wrap gap-2">
                 {vocab.synonyms.split(',').map(s => (
-                  <span key={s} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">
+                  <span key={s} className="bg-gwc-text/5 border border-gwc-text/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">
                     {s.trim()}
                   </span>
                 ))}
@@ -199,7 +199,7 @@ export function VocabInfoBody({
               <p className="text-xs text-gwc-muted mb-1.5">Related forms</p>
               <div className="flex flex-wrap gap-2">
                 {vocab.related_words.split(',').map(r => (
-                  <span key={r} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">
+                  <span key={r} className="bg-gwc-text/5 border border-gwc-text/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">
                     {r.trim()}
                   </span>
                 ))}

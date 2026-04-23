@@ -69,7 +69,7 @@ function SubscriptionSection() {
   }
 
   return (
-    <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
+    <div className="bg-gwc-panel rounded-2xl p-6 border border-gwc-text/6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-gwc-text mb-1">Subscription</h2>
@@ -81,7 +81,7 @@ function SubscriptionSection() {
           <button
             onClick={openPortal}
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-white/5 text-sm text-gwc-muted hover:bg-white/10 hover:text-gwc-text transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-gwc-text/5 text-sm text-gwc-muted hover:bg-gwc-text/8 hover:text-gwc-text transition-colors disabled:opacity-50"
           >
             {loading ? '…' : 'Manage'}
           </button>
@@ -127,7 +127,7 @@ function XPBar({ xp }: { xp: number }) {
         <span className="text-xs text-gwc-muted">{xpInLevel} / {xpNeeded} XP</span>
         <span className="text-xs text-gwc-muted">Level {level + 1}</span>
       </div>
-      <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-gwc-text/8 rounded-full overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-gwc-accent to-[#9b8cf5] rounded-full transition-all duration-700"
           style={{ width: `${pct}%` }}
@@ -155,8 +155,8 @@ function WeekView({ activeDays, weekDays }: { activeDays: Set<string>; weekDays:
               active
                 ? 'bg-gwc-accent text-white shadow-md shadow-gwc-accent/30'
                 : isToday
-                  ? 'bg-white/5 text-gwc-accent-soft border-2 border-gwc-accent/40'
-                  : 'bg-white/5 text-gwc-muted'
+                  ? 'bg-gwc-text/5 text-gwc-accent-soft border-2 border-gwc-accent/40'
+                  : 'bg-gwc-text/5 text-gwc-muted'
             }`}>
               {label}
             </div>
@@ -178,7 +178,7 @@ function SRSBar({ label, count, total, color }: {
         <span className="text-gwc-text font-medium">{label}</span>
         <span className="text-gwc-muted">{count}</span>
       </div>
-      <div className="h-2 bg-white/8 rounded-full overflow-hidden">
+      <div className="h-2 bg-gwc-text/8 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -205,12 +205,12 @@ function BadgeCard({
     <div className={`rounded-xl p-4 border transition-all ${
       unlocked
         ? 'bg-gwc-panel border-gwc-accent/30 shadow-sm shadow-gwc-accent/10'
-        : 'bg-gwc-base border-white/5 opacity-60'
+        : 'bg-gwc-base border-gwc-text/6 opacity-60'
     }`}>
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${
-          unlocked ? 'bg-gwc-accent/20' : 'bg-white/5'
+          unlocked ? 'bg-gwc-accent/20' : 'bg-gwc-text/5'
         }`}>
           {unlocked ? badge.icon : '🔒'}
         </div>
@@ -222,7 +222,7 @@ function BadgeCard({
           {/* Progress bar for locked badges */}
           {!unlocked && progress !== undefined && (
             <div className="mt-2">
-              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-1 bg-gwc-text/8 rounded-full overflow-hidden">
                 <div className="h-full bg-gwc-accent/50 rounded-full" style={{ width: `${pct}%` }} />
               </div>
               <p className="text-xs text-gwc-muted mt-0.5">{progress} / {badge.threshold}</p>
@@ -264,7 +264,7 @@ function DailyGoalControl({ initialGoal }: { initialGoal: number }) {
         {/* min-w/h = 44px satisfies Apple HIG touch target requirement */}
         <button
           onClick={() => update(goal - 1)}
-          className="w-11 h-11 rounded-full bg-white/5 text-gwc-muted hover:bg-gwc-accent/20 hover:text-gwc-accent-soft transition-colors font-bold text-lg flex items-center justify-center"
+          className="w-11 h-11 rounded-full bg-gwc-text/5 text-gwc-muted hover:bg-gwc-accent/20 hover:text-gwc-accent-soft transition-colors font-bold text-lg flex items-center justify-center"
         >
           −
         </button>
@@ -273,7 +273,7 @@ function DailyGoalControl({ initialGoal }: { initialGoal: number }) {
         </span>
         <button
           onClick={() => update(goal + 1)}
-          className="w-11 h-11 rounded-full bg-white/5 text-gwc-muted hover:bg-gwc-accent/20 hover:text-gwc-accent-soft transition-colors font-bold text-lg flex items-center justify-center"
+          className="w-11 h-11 rounded-full bg-gwc-text/5 text-gwc-muted hover:bg-gwc-accent/20 hover:text-gwc-accent-soft transition-colors font-bold text-lg flex items-center justify-center"
         >
           +
         </button>
@@ -485,7 +485,7 @@ export default function ProfilePage() {
       <div className="max-w-2xl mx-auto px-5 py-10 space-y-6">
 
         {/* ── Header: Avatar + Level + XP bar ──────────────────────────────── */}
-        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-gwc-text/6">
           <div className="flex items-center gap-4 mb-5">
             {/* Avatar */}
             <div className="relative shrink-0">
@@ -511,7 +511,7 @@ export default function ProfilePage() {
                       maxLength={30}
                       autoFocus
                       placeholder="Your name"
-                      className="flex-1 bg-white/5 border border-gwc-accent/40 rounded-lg px-3 py-1.5 text-sm text-gwc-text placeholder-[#4a4760] focus:outline-none focus:border-gwc-accent"
+                      className="flex-1 bg-gwc-text/5 border border-gwc-accent/40 rounded-lg px-3 py-1.5 text-sm text-gwc-text placeholder-[#4a4760] focus:outline-none focus:border-gwc-accent"
                     />
                     <button
                       onClick={saveName}
@@ -522,7 +522,7 @@ export default function ProfilePage() {
                     </button>
                     <button
                       onClick={() => { setEditingName(false); setNameInput(displayName); setNameError(null) }}
-                      className="px-2 py-1.5 rounded-lg bg-white/5 text-gwc-muted text-xs hover:bg-white/10 transition-colors"
+                      className="px-2 py-1.5 rounded-lg bg-gwc-text/5 text-gwc-muted text-xs hover:bg-gwc-text/8 transition-colors"
                     >
                       ✕
                     </button>
@@ -551,7 +551,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Streak + Week view ────────────────────────────────────────────── */}
-        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-gwc-text/6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold text-gwc-text">Streak</h2>
@@ -578,7 +578,7 @@ export default function ProfilePage() {
             { label: 'Sentences',  value: stats?.learnedWords ?? 0,  color: 'text-gwc-text' },
             { label: 'Days studied', value: stats?.daysStudied ?? 0,   color: 'text-orange-400' },
           ].map(({ label, value, color }) => (
-            <div key={label} className="bg-gwc-panel rounded-2xl p-4 border border-white/5 text-center">
+            <div key={label} className="bg-gwc-panel rounded-2xl p-4 border border-gwc-text/6 text-center">
               <p className={`text-2xl font-bold mb-0.5 ${color}`}>{value}</p>
               <p className="text-xs text-gwc-muted uppercase tracking-wider">{label}</p>
             </div>
@@ -586,7 +586,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ── SRS Stage Overview ────────────────────────────────────────────── */}
-        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-gwc-text/6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-gwc-text">SRS progress</h2>
             <span className="text-sm text-gwc-muted">{totalCards} cards</span>
@@ -603,7 +603,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Badges ───────────────────────────────────────────────────────── */}
-        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-gwc-text/6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-gwc-text">Achievements</h2>
             <span className="text-sm text-gwc-muted">
@@ -642,7 +642,7 @@ export default function ProfilePage() {
           <Link href="/dashboard" className="flex-1 py-3 rounded-xl bg-gwc-accent text-white font-bold text-center hover:bg-gwc-accent-soft transition-colors">
             Dashboard
           </Link>
-          <Link href="/forecast" className="flex-1 py-3 rounded-xl bg-white/5 text-gwc-text font-bold text-center hover:bg-white/10 transition-colors border border-white/5">
+          <Link href="/forecast" className="flex-1 py-3 rounded-xl bg-gwc-text/5 text-gwc-text font-bold text-center hover:bg-gwc-text/8 transition-colors border border-gwc-text/6">
             Forecast →
           </Link>
         </div>

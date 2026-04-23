@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-gwc-panel rounded-2xl border border-white/5 p-7">
+        <div className="bg-gwc-panel rounded-2xl border border-gwc-text/6 p-7">
           <h2 className="text-lg font-bold text-gwc-text mb-6">
             {mode === 'request' ? 'Forgot password?' : 'Choose a new password'}
           </h2>
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
                   placeholder="you@example.com"
                   required
                   autoFocus
-                  className="w-full bg-gwc-raised border border-white/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                  className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
                 />
               </div>
 
@@ -130,7 +130,7 @@ export default function ResetPasswordPage() {
                   required
                   minLength={6}
                   autoFocus
-                  className="w-full bg-gwc-raised border border-white/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                  className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
                 />
               </div>
 

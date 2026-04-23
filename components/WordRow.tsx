@@ -11,10 +11,10 @@ interface WordRowProps {
 
 export default function WordRow({ word, reviewCount = 0, onClick }: WordRowProps) {
   const content = (
-    <div className="flex items-center justify-between gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors border border-white/5">
+    <div className="flex items-center justify-between gap-4 p-4 rounded-lg hover:bg-gwc-text/5 transition-colors border border-gwc-text/6">
       <div className="flex-1 flex items-center gap-4">
         <div className="flex gap-2">
-          <span className="px-2 py-0.5 rounded text-xs font-bold bg-white/10 text-gwc-muted border border-white/10">
+          <span className="px-2 py-0.5 rounded text-xs font-bold bg-gwc-text/8 text-gwc-muted border border-gwc-text/10">
             {word.type}
           </span>
           <span className="px-2 py-0.5 rounded text-xs font-bold bg-gwc-accent/20 text-gwc-accent-soft border border-gwc-accent/30">

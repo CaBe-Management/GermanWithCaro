@@ -29,7 +29,7 @@ export default function CookiesPage() {
             </p>
 
             {/* Cookie table */}
-            <div className="rounded-xl border border-white/8 overflow-hidden text-sm">
+            <div className="rounded-xl border border-gwc-text/8 overflow-hidden text-sm">
               <div className="grid grid-cols-3 px-4 py-2.5 bg-white/4 text-gwc-text font-semibold text-xs uppercase tracking-wider">
                 <span>Cookie</span>
                 <span>Provider</span>
@@ -39,7 +39,7 @@ export default function CookiesPage() {
                 ['sb-access-token',  'Supabase', 'Stores your authentication access token to keep you logged in.'],
                 ['sb-refresh-token', 'Supabase', 'Stores a refresh token used to renew your session without re-logging in.'],
               ].map(([name, provider, purpose]) => (
-                <div key={name} className="grid grid-cols-3 px-4 py-3 border-t border-white/5 items-start gap-2">
+                <div key={name} className="grid grid-cols-3 px-4 py-3 border-t border-gwc-text/6 items-start gap-2">
                   <span className="font-mono text-gwc-accent-soft text-xs break-all">{name}</span>
                   <span>{provider}</span>
                   <span className="text-xs">{purpose}</span>
@@ -91,7 +91,7 @@ export default function CookiesPage() {
 
         </div>
 
-        <div className="border-t border-white/5 mt-12 pt-8 flex flex-wrap gap-4 text-xs text-gwc-muted">
+        <div className="border-t border-gwc-text/6 mt-12 pt-8 flex flex-wrap gap-4 text-xs text-gwc-muted">
           <Link href="/impressum" className="hover:text-gwc-text transition-colors">Impressum</Link>
           <Link href="/privacy"   className="hover:text-gwc-text transition-colors">Privacy Policy</Link>
           <Link href="/terms"     className="hover:text-gwc-text transition-colors">Terms of Use</Link>

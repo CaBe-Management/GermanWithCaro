@@ -64,7 +64,7 @@ function ForecastBar({ label, count, max, isToday }: {
         {label}
       </div>
       {/* Bar */}
-      <div className="flex-1 h-6 bg-white/5 rounded-lg overflow-hidden relative">
+      <div className="flex-1 h-6 bg-gwc-text/5 rounded-lg overflow-hidden relative">
         <div
           className={`h-full rounded-lg transition-all duration-700 ${
             isToday ? 'bg-gwc-accent' : 'bg-gwc-accent/40'
@@ -267,7 +267,7 @@ export default function ForecastPage() {
         )}
 
         {/* ── Upcoming 7 days ───────────────────────────────────────────────── */}
-        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-gwc-text/6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-gwc-text">Next 7 days</h2>
             <span className="text-sm text-gwc-muted">{totalUpcoming} reviews scheduled</span>
@@ -293,7 +293,7 @@ export default function ForecastPage() {
         </div>
 
         {/* ── Activity grid (21 days) ───────────────────────────────────────── */}
-        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-gwc-text/6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-bold text-gwc-text">Activity</h2>
             <span className="text-sm text-gwc-muted">Last 21 days</span>
@@ -311,7 +311,7 @@ export default function ForecastPage() {
           </Link>
           <Link
             href="/profile"
-            className="flex-1 py-3 rounded-xl bg-white/5 text-gwc-text font-bold text-center hover:bg-white/10 transition-colors border border-white/5"
+            className="flex-1 py-3 rounded-xl bg-gwc-text/5 text-gwc-text font-bold text-center hover:bg-gwc-text/8 transition-colors border border-gwc-text/6"
           >
             Profile
           </Link>

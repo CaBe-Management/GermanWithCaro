@@ -345,7 +345,7 @@ export default function AdminVideoSentencesPage() {
               <button
                 onClick={fetchAndSaveThumbnail}
                 disabled={saving}
-                className="px-3 py-2 rounded-lg text-sm font-semibold bg-white/5 text-gwc-muted hover:bg-white/10 transition-colors disabled:opacity-50"
+                className="px-3 py-2 rounded-lg text-sm font-semibold bg-gwc-text/5 text-gwc-muted hover:bg-gwc-text/8 transition-colors disabled:opacity-50"
               >
                 🖼 {video.thumbnail_url ? 'Refresh cover' : 'Load cover'}
               </button>
@@ -365,7 +365,7 @@ export default function AdminVideoSentencesPage() {
 
         {/* Video meta editor */}
         {!editingMeta ? (
-          <div className="mb-6 bg-gwc-panel rounded-xl border border-white/8 px-5 py-4 flex items-start justify-between gap-4">
+          <div className="mb-6 bg-gwc-panel rounded-xl border border-gwc-text/8 px-5 py-4 flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               {video.description && (
                 <p className="text-sm text-gwc-muted truncate">{video.description}</p>
@@ -392,7 +392,7 @@ export default function AdminVideoSentencesPage() {
               <input
                 value={editTitle}
                 onChange={e => setEditTitle(e.target.value)}
-                className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text focus:outline-none focus:border-gwc-accent"
+                className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text focus:outline-none focus:border-gwc-accent"
               />
             </div>
             <div>
@@ -400,7 +400,7 @@ export default function AdminVideoSentencesPage() {
               <select
                 value={editLevel}
                 onChange={e => setEditLevel(e.target.value)}
-                className="bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text focus:outline-none focus:border-gwc-accent"
+                className="bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text focus:outline-none focus:border-gwc-accent"
               >
                 {['A1','A2','B1','B2','C1','C2'].map(l => (
                   <option key={l} value={l}>{l}</option>
@@ -413,7 +413,7 @@ export default function AdminVideoSentencesPage() {
                 value={editDescription}
                 onChange={e => setEditDescription(e.target.value)}
                 rows={3}
-                className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text focus:outline-none focus:border-gwc-accent resize-none"
+                className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text focus:outline-none focus:border-gwc-accent resize-none"
               />
             </div>
             <button
@@ -433,7 +433,7 @@ export default function AdminVideoSentencesPage() {
 
             {/* Embed preview */}
             {tiktokEmbedUrl && (
-              <div className="bg-gwc-panel rounded-xl border border-white/8 p-4">
+              <div className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-4">
                 <p className="text-xs text-gwc-muted mb-3 font-medium">Video preview</p>
                 <div className="relative w-full" style={{ paddingBottom: '177.78%' }}>
                   <iframe
@@ -447,7 +447,7 @@ export default function AdminVideoSentencesPage() {
             )}
 
             {/* Add sentence form */}
-            <div className="bg-gwc-panel rounded-xl border border-white/8 p-5">
+            <div className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-gwc-text">Add sentence</h2>
                 <button
@@ -466,14 +466,14 @@ export default function AdminVideoSentencesPage() {
                 <form onSubmit={addBulk} className="space-y-3">
                   <div>
                     <label className="block text-xs text-gwc-muted mb-1.5">
-                      Format: <code className="bg-white/5 px-1 rounded text-gwc-accent">German sentence | English sentence</code> — one line per sentence
+                      Format: <code className="bg-gwc-text/5 px-1 rounded text-gwc-accent">German sentence | English sentence</code> — one line per sentence
                     </label>
                     <textarea
                       value={bulkText}
                       onChange={e => setBulkText(e.target.value)}
                       rows={8}
                       placeholder={`Ich bin müde. | I am tired.\nWo wohnst du? | Where do you live?\nDas ist sehr schön! | That is very beautiful!`}
-                      className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent resize-none font-mono"
+                      className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent resize-none font-mono"
                     />
                   </div>
                   <button
@@ -494,7 +494,7 @@ export default function AdminVideoSentencesPage() {
                       onChange={e => setSentenceDe(e.target.value)}
                       placeholder="Ich bin sehr müde heute."
                       required
-                      className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                      className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                     />
                   </div>
                   <div>
@@ -505,7 +505,7 @@ export default function AdminVideoSentencesPage() {
                       onChange={e => setSentenceEn(e.target.value)}
                       placeholder="I am very tired today."
                       required
-                      className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                      className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -516,7 +516,7 @@ export default function AdminVideoSentencesPage() {
                         value={highlightDe}
                         onChange={e => setHighlightDe(e.target.value)}
                         placeholder="müde"
-                        className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                        className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                       />
                     </div>
                     <div>
@@ -526,7 +526,7 @@ export default function AdminVideoSentencesPage() {
                         value={highlightEn}
                         onChange={e => setHighlightEn(e.target.value)}
                         placeholder="tired"
-                        className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                        className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                       />
                     </div>
                   </div>
@@ -561,7 +561,7 @@ export default function AdminVideoSentencesPage() {
             </div>
 
             {sentences.length === 0 ? (
-              <div className="bg-gwc-panel rounded-xl border border-white/8 p-8 text-center">
+              <div className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-8 text-center">
                 <p className="text-3xl mb-3">📝</p>
                 <p className="text-gwc-muted text-sm">No sentences yet.</p>
                 <p className="text-gwc-muted text-xs mt-1">Add sentences from the video.</p>
@@ -571,7 +571,7 @@ export default function AdminVideoSentencesPage() {
                 {sentences.map((s, i) => (
                   <div
                     key={s.id}
-                    className="bg-gwc-panel rounded-xl border border-white/8 p-4"
+                    className="bg-gwc-panel rounded-xl border border-gwc-text/8 p-4"
                   >
                     {editingId === s.id ? (
                       /* ── Edit mode ── */
@@ -600,14 +600,14 @@ export default function AdminVideoSentencesPage() {
                             value={editHighlightDe}
                             onChange={e => setEditHighlightDe(e.target.value)}
                             placeholder="Highlight DE (optional)"
-                            className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                            className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                           />
                           <input
                             type="text"
                             value={editHighlightEn}
                             onChange={e => setEditHighlightEn(e.target.value)}
                             placeholder="Highlight EN (optional)"
-                            className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
+                            className="w-full bg-gwc-base border border-gwc-text/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                           />
                         </div>
                         <div className="flex gap-2 pt-1">
@@ -620,7 +620,7 @@ export default function AdminVideoSentencesPage() {
                           </button>
                           <button
                             onClick={cancelEdit}
-                            className="px-4 py-1.5 bg-white/5 text-gwc-muted rounded-lg text-xs font-semibold hover:bg-white/10 transition-colors"
+                            className="px-4 py-1.5 bg-gwc-text/5 text-gwc-muted rounded-lg text-xs font-semibold hover:bg-gwc-text/8 transition-colors"
                           >
                             Cancel
                           </button>

@@ -194,7 +194,7 @@ export default function Dashboard() {
             className={`p-5 rounded-2xl border flex flex-col gap-3 transition-all hover:scale-[1.01] ${
               reviewDue > 0
                 ? 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50'
-                : 'bg-gwc-panel border-white/8 hover:border-white/15'
+                : 'bg-gwc-panel border-gwc-text/8 hover:border-white/15'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -216,7 +216,7 @@ export default function Dashboard() {
           {/* Videos */}
           <Link
             href="/videos"
-            className="p-5 rounded-2xl border bg-gwc-panel border-white/8 hover:border-gwc-accent/40 flex flex-col gap-3 transition-all hover:scale-[1.01]"
+            className="p-5 rounded-2xl border bg-gwc-panel border-gwc-text/8 hover:border-gwc-accent/40 flex flex-col gap-3 transition-all hover:scale-[1.01]"
           >
             <div className="flex items-center justify-between">
               <span className="text-2xl">🎬</span>
@@ -234,12 +234,12 @@ export default function Dashboard() {
 
         {/* ── XP bar ── */}
         {xpInfo && (
-          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold text-gwc-text">Level {xpInfo.level} → {xpInfo.level + 1}</span>
               <span className="text-xs text-gwc-muted">{xpInfo.xpInLevel} / {xpInfo.xpNeeded} XP</span>
             </div>
-            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-2 bg-gwc-text/5 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gwc-accent rounded-full transition-all duration-700"
                 style={{ width: `${xpInfo.pct}%` }}
@@ -250,7 +250,7 @@ export default function Dashboard() {
 
         {/* ── Weekly streak ── */}
         {userProgress && (
-          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gwc-text">This Week</h2>
               <span className="text-sm text-orange-400 font-bold">🔥 {userProgress.streak_current ?? 0} days</span>
@@ -261,7 +261,7 @@ export default function Dashboard() {
                   <div className={`w-full aspect-square max-w-[32px] rounded-md transition-colors ${
                     i === todayDow
                       ? studiedDow.has(i) ? 'bg-orange-500' : 'bg-orange-500/20 border border-orange-500/40'
-                      : studiedDow.has(i) ? 'bg-gwc-accent' : 'bg-white/5'
+                      : studiedDow.has(i) ? 'bg-gwc-accent' : 'bg-gwc-text/5'
                   }`} />
                   <span className="text-[10px] text-gwc-muted">{label}</span>
                 </div>
@@ -272,7 +272,7 @@ export default function Dashboard() {
 
         {/* ── SRS Breakdown ── */}
         {totalInSRS > 0 && (
-          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gwc-text">SRS Progress</h2>
               <span className="text-xs text-gwc-muted">{totalInSRS} sentences</span>
@@ -285,7 +285,7 @@ export default function Dashboard() {
                 return (
                   <div key={stage} className="flex items-center gap-3">
                     <span className={`text-xs font-bold w-20 shrink-0 ${meta.color}`}>{stage}</span>
-                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-gwc-text/5 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${meta.bg}/70 rounded-full transition-all duration-700`}
                         style={{ width: `${pct}%` }}
@@ -301,7 +301,7 @@ export default function Dashboard() {
 
         {/* ── Recent Videos ── */}
         {recentVideos.length > 0 && (
-          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-gwc-text/8 p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gwc-text">Recent Videos</h2>
               <Link href="/videos" className="text-xs text-gwc-accent hover:underline">View all →</Link>
@@ -311,7 +311,7 @@ export default function Dashboard() {
                 <Link
                   key={v.id}
                   href={`/videos/${v.id}`}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors -mx-1"
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gwc-text/5 transition-colors -mx-1"
                 >
                   <span className="text-xl">🎬</span>
                   <div className="flex-1 min-w-0">

@@ -63,7 +63,7 @@ function CompletionScreen({ total, correct }: { total: number; correct: number }
         <p className="text-gwc-muted text-sm mb-8">Your SRS queue has been updated.</p>
         <div className="flex gap-3 justify-center">
           <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors">Dashboard</Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-gwc-text font-bold hover:bg-white/15 transition-colors">Browse Videos</Link>
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-gwc-text/8 text-gwc-text font-bold hover:bg-gwc-text/12 transition-colors">Browse Videos</Link>
         </div>
       </div>
     </div>
@@ -81,7 +81,7 @@ function EmptyState() {
         <p className="text-gwc-muted mb-8">All caught up. Browse videos to add more sentences.</p>
         <div className="flex gap-3 justify-center">
           <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold">Dashboard</Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-gwc-text font-bold hover:bg-white/15 transition-colors">Videos</Link>
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-gwc-text/8 text-gwc-text font-bold hover:bg-gwc-text/12 transition-colors">Videos</Link>
         </div>
       </div>
     </div>
@@ -160,12 +160,12 @@ function FlipCard({
     <div className="min-h-screen bg-gwc-base flex flex-col">
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gwc-text/6">
         <Link href="/dashboard" className="text-gwc-muted hover:text-gwc-text transition-colors text-sm">
           ← Dashboard {/* Navigation link */}
         </Link>
         <div className="flex items-center gap-3">
-          <span className="px-2 py-0.5 rounded-md text-xs text-[#6b6880] bg-white/5 border border-white/8">
+          <span className="px-2 py-0.5 rounded-md text-xs text-[#6b6880] bg-gwc-text/5 border border-gwc-text/8">
             {srsLabel}
           </span>
           <div className="flex items-center gap-3 text-sm">
@@ -177,7 +177,7 @@ function FlipCard({
       </div>
 
       {/* Progress bar */}
-      <div className="h-0.5 bg-white/5">
+      <div className="h-0.5 bg-gwc-text/5">
         <div className="h-full bg-gwc-accent transition-all duration-500" style={{ width: `${progress * 100}%` }} />
       </div>
 
@@ -188,7 +188,7 @@ function FlipCard({
             className={`bg-gwc-panel rounded-2xl border p-8 sm:p-12 text-center cursor-pointer select-none transition-all duration-200 ${
               answered
                 ? wasCorrect ? 'border-gwc-success/40' : 'border-gwc-error/40'
-                : flipped   ? 'border-gwc-accent/40'  : 'border-white/8 hover:border-gwc-accent/30'
+                : flipped   ? 'border-gwc-accent/40'  : 'border-gwc-text/8 hover:border-gwc-accent/30'
             }`}
             onClick={() => !flipped && setFlipped(true)}
           >
@@ -199,7 +199,7 @@ function FlipCard({
                 <p className="text-2xl sm:text-3xl font-light text-gwc-text leading-relaxed">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
-                <p className="text-xs text-gwc-dim mt-8">Click or press <kbd className="px-1.5 py-0.5 rounded bg-white/8 text-[#6b6880] font-mono text-xs">Space</kbd> to reveal</p>
+                <p className="text-xs text-gwc-dim mt-8">Click or press <kbd className="px-1.5 py-0.5 rounded bg-gwc-text/8 text-[#6b6880] font-mono text-xs">Space</kbd> to reveal</p>
               </div>
             )}
 
@@ -210,7 +210,7 @@ function FlipCard({
                 <p className="text-xl sm:text-2xl font-light text-gwc-text leading-relaxed mb-6">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
-                <div className="h-px bg-white/8 mb-6" />
+                <div className="h-px bg-gwc-text/8 mb-6" />
                 <p className="text-xs uppercase tracking-widest text-gwc-muted mb-4 font-medium">🇬🇧 English</p>
                 <p className="text-xl sm:text-2xl text-gwc-muted leading-relaxed italic">
                   <HighlightText text={card.sentence.sentence_en} highlight={card.sentence.highlight_en} />
@@ -238,7 +238,7 @@ function FlipCard({
       </div>
 
       {/* Bottom controls */}
-      <div className="bg-gwc-base border-t border-white/5 px-5 py-4">
+      <div className="bg-gwc-base border-t border-gwc-text/6 px-5 py-4">
         {!flipped ? (
           <button
             onClick={() => setFlipped(true)}
@@ -419,7 +419,7 @@ function ReviewPageInner() {
           <Link href="/upgrade" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors">
             Upgrade → €4.99/mo
           </Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-gwc-text font-bold hover:bg-white/15 transition-colors">
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-gwc-text/8 text-gwc-text font-bold hover:bg-gwc-text/12 transition-colors">
             Browse videos
           </Link>
         </div>

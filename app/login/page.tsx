@@ -63,7 +63,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-gwc-panel rounded-2xl border border-white/5 p-7">
+        <div className="bg-gwc-panel rounded-2xl border border-gwc-text/6 p-7">
           <h2 className="text-lg font-bold text-gwc-text mb-6">
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </h2>
@@ -81,7 +81,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 required
                 autoFocus
-                className="w-full bg-gwc-raised border border-white/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
               />
             </div>
 
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 placeholder={mode === 'register' ? 'At least 6 characters' : '••••••••'}
                 required
                 minLength={6}
-                className="w-full bg-gwc-raised border border-white/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
+                className="w-full bg-gwc-raised border border-gwc-text/8 rounded-xl px-4 py-3 text-gwc-text placeholder-[#9b98b0]/50 focus:outline-none focus:border-gwc-accent transition-colors"
               />
             </div>
 
