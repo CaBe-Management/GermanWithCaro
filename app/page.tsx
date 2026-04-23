@@ -380,25 +380,16 @@ function LandingContent() {
               </div>
             </div>
 
-            {/* Right: Caro photo mockup — hidden on mobile, shown on lg */}
+            {/* Right: TikTok embed */}
             <div className="hidden lg:block mt-2">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '9/14', boxShadow: '0 2px 6px rgba(43,27,58,0.08), 0 20px 50px rgba(43,27,58,0.18)' }}>
-                <img src="/caro.jpg" alt="Caro" className="w-full h-full object-cover" style={{ filter: 'brightness(0.9) contrast(1.05)' }} />
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(43,27,58,0.08) 0%, rgba(43,27,58,0.04) 40%, rgba(43,27,58,0.72) 100%)' }} />
-                {/* Badges */}
-                <div className="absolute top-3 left-3 flex gap-1.5">
-                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-gwc-base text-gwc-text tracking-widest uppercase">A1</span>
-                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-gwc-accent text-gwc-base tracking-widest uppercase">● Live</span>
-                </div>
-                {/* Play button */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gwc-base/95 flex items-center justify-center">
-                  <div className="w-0 h-0 ml-1" style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderLeft: '14px solid #6b2b5e' }} />
-                </div>
-                {/* Bottom title */}
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <p className="font-mono text-[9px] tracking-widest uppercase opacity-80 mb-1">Sample video</p>
-                  <p className="font-display text-base leading-tight">German pronouns explained in 60 seconds</p>
-                </div>
+              <div className="rounded-2xl overflow-hidden" style={{ aspectRatio: '9/16', boxShadow: '0 2px 6px rgba(43,27,58,0.08), 0 20px 50px rgba(43,27,58,0.18)' }}>
+                <iframe
+                  src="https://www.tiktok.com/embed/v2/7630862943831280918"
+                  className="w-full h-full"
+                  allowFullScreen
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  style={{ border: 'none' }}
+                />
               </div>
             </div>
           </div>
