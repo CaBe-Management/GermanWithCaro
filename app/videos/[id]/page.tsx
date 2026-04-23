@@ -199,7 +199,7 @@ export default function VideoDetailPage() {
   const addedCount = Object.values(srsState).filter(s => s !== 'loading' && s !== null && (s as { inQueue: boolean }).inQueue).length
   const totalCount = sentences.length
 
-  const embedUrl = `https://www.tiktok.com/embed/v2/${video.video_id}`
+  const embedUrl = `https://www.tiktok.com/player/v1/${video.video_id}?music_info=1&description=0&autoplay=1`
 
   return (
     <div className="min-h-screen bg-[#0f0e17]">
