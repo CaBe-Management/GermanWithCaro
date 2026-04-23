@@ -258,91 +258,89 @@ function LandingContent() {
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <section className="pt-24 pb-20 px-5">
-        <div className="max-w-5xl mx-auto">
+      <section className="pt-20 pb-10 px-5 relative overflow-hidden">
+        {/* blush background blob */}
+        <div className="absolute -top-20 -right-32 w-[500px] h-[380px] rounded-full opacity-40 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse, #f4dce5 0%, #ecd7e4 50%, transparent 80%)' }} />
 
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-gwc-accent/20 bg-gwc-accent/6 mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-gwc-accent animate-pulse" />
-            <span className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold">Real sentences · Real retention</span>
-          </div>
+        <div className="max-w-2xl mx-auto lg:max-w-5xl relative">
+          <div className="lg:grid lg:grid-cols-[1fr,340px] lg:gap-16 lg:items-start">
 
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-
-            {/* Left */}
+            {/* Left: text */}
             <div>
-              <h1 className="font-display text-5xl sm:text-6xl leading-[0.95] tracking-tight text-gwc-text mb-6">
-                Learn German<br />
-                from the videos<br />
-                you{' '}
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-gwc-text/10 bg-gwc-panel mb-6">
+                <span className="font-mono text-[9px] text-gwc-base bg-gwc-accent px-2 py-0.5 rounded-full tracking-widest uppercase font-bold">New</span>
+                <span className="font-tight text-xs text-gwc-muted">142 videos · 900+ sentences</span>
+              </div>
+
+              <h1 className="font-display text-[clamp(3rem,8vw,5.5rem)] leading-[0.95] tracking-[-0.04em] text-gwc-text mb-5">
+                Learn German from<br />
+                the videos you{' '}
                 <em className="italic text-gwc-accent">already watch.</em>
               </h1>
 
-              <p className="font-tight text-lg text-gwc-muted leading-relaxed mb-3">
-                Pick sentences from Caro's TikToks, Reels and Shorts. Add the ones you want. Review with spaced repetition until they stick.
-              </p>
-              <p className="font-tight text-base text-gwc-muted/70 leading-relaxed mb-8">
-                No word lists. No streaks. Just real German drilled until it's yours.
+              <p className="font-display text-lg sm:text-xl text-gwc-muted leading-relaxed mb-8 max-w-lg" style={{ fontStyle: 'normal' }}>
+                The study companion to Caro's TikToks, Reels and Shorts. Pick what catches your ear.{' '}
+                <em className="italic">Review until it sticks.</em>
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <div className="flex flex-col sm:flex-row gap-3 mb-6 max-w-sm lg:max-w-none">
                 <Link
                   href="/videos"
-                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold text-base hover:opacity-90 transition-opacity"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-gwc-text text-gwc-base font-semibold text-base hover:opacity-90 transition-opacity shadow-lg"
+                  style={{ boxShadow: '0 4px 16px rgba(43,27,58,0.16)' }}
                 >
                   Start learning — free
                 </Link>
                 <a
                   href="#how"
-                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl border border-gwc-text/12 text-gwc-muted font-medium hover:border-gwc-text/20 hover:text-gwc-text transition-colors"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-3.5 rounded-xl border border-gwc-text/12 text-gwc-muted font-medium hover:border-gwc-text/20 hover:text-gwc-text transition-colors"
                 >
-                  See how it works ↓
+                  ▶ How it works
                 </a>
               </div>
 
               {/* Social proof */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex">
-                  {['#6b2b5e','#c79b3a','#5e7b56','#8a7689'].map((bg, i) => (
-                    <div key={i} className="w-7 h-7 rounded-full border-2 border-gwc-base flex items-center justify-center" style={{ background: bg, marginLeft: i === 0 ? 0 : -10 }} />
+                  {['#6b2b5e','#c79b3a','#5e7b56','#bca8bb'].map((bg, i) => (
+                    <div key={i} className="w-6 h-6 rounded-full border-2 border-gwc-base" style={{ background: bg, marginLeft: i === 0 ? 0 : -8 }} />
                   ))}
                 </div>
-                <p className="font-tight text-xs text-gwc-muted">12K+ learners across TikTok, Instagram & YouTube</p>
+                <p className="font-tight text-xs text-gwc-muted">12K+ learners · IG, TikTok, YouTube</p>
               </div>
             </div>
 
-            {/* Right: interactive demo */}
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex gap-1 p-1 bg-gwc-panel rounded-xl border border-gwc-text/6">
-                {(['browse', 'review'] as const).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveDemo(tab)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
-                      activeDemo === tab ? 'bg-gwc-text text-gwc-base font-semibold' : 'text-gwc-muted hover:text-gwc-text'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
+            {/* Right: Caro photo mockup — hidden on mobile, shown on lg */}
+            <div className="hidden lg:block mt-2">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '9/14', boxShadow: '0 2px 6px rgba(43,27,58,0.08), 0 20px 50px rgba(43,27,58,0.18)' }}>
+                <img src="/caro.jpg" alt="Caro" className="w-full h-full object-cover" style={{ filter: 'brightness(0.9) contrast(1.05)' }} />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(43,27,58,0.08) 0%, rgba(43,27,58,0.04) 40%, rgba(43,27,58,0.72) 100%)' }} />
+                {/* Badges */}
+                <div className="absolute top-3 left-3 flex gap-1.5">
+                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-gwc-base text-gwc-text tracking-widest uppercase">A1</span>
+                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-gwc-accent text-gwc-base tracking-widest uppercase">● Live</span>
+                </div>
+                {/* Play button */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gwc-base/95 flex items-center justify-center">
+                  <div className="w-0 h-0 ml-1" style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderLeft: '14px solid #6b2b5e' }} />
+                </div>
+                {/* Bottom title */}
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <p className="font-mono text-[9px] tracking-widest uppercase opacity-80 mb-1">Sample video</p>
+                  <p className="font-display text-base leading-tight">German pronouns explained in 60 seconds</p>
+                </div>
               </div>
-              <div className="w-full animate-float-bob">
-                {activeDemo === 'browse' ? <BrowseDemo /> : <FlipCardDemo />}
-              </div>
-              <p className="font-mono text-[10px] text-gwc-dim tracking-widest uppercase">↑ Live demo — try it</p>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* ── Divider ────────────────────────────────────────────────────────── */}
-      <div className="border-t border-gwc-text/6" />
-
       {/* ── Social strip ───────────────────────────────────────────────────── */}
-      <section className="py-10 px-5 bg-gwc-raised/40">
+      <section className="py-8 px-5 border-t border-b border-gwc-text/6 bg-gwc-raised/40">
         <div className="max-w-2xl mx-auto">
-          <p className="font-display text-sm italic text-gwc-muted text-center mb-6">Followed by learners across —</p>
+          <p className="font-display text-sm italic text-gwc-muted text-center mb-5">Seen by 12K+ learners across —</p>
           <div className="grid grid-cols-3 gap-6 text-center">
             {[
               { n: '8.9K', l: 'TikTok' },
@@ -350,8 +348,8 @@ function LandingContent() {
               { n: '249',  l: 'YouTube' },
             ].map(s => (
               <div key={s.l}>
-                <p className="font-display text-3xl font-semibold text-gwc-text tracking-tight">{s.n}</p>
-                <p className="font-mono text-[10px] text-gwc-muted tracking-widest uppercase mt-1">{s.l}</p>
+                <p className="font-display text-2xl sm:text-3xl font-semibold text-gwc-text tracking-tight">{s.n}</p>
+                <p className="font-mono text-[9px] text-gwc-muted tracking-widest uppercase mt-1">{s.l}</p>
               </div>
             ))}
           </div>
@@ -399,25 +397,27 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* ── Why SRS ────────────────────────────────────────────────────────── */}
+      {/* ── Try it ─────────────────────────────────────────────────────────── */}
       <section className="py-16 px-5 bg-gwc-raised/40" ref={demoRef}>
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-10">
-            <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">02 — The science</p>
-            <h2 className="font-display text-3xl text-gwc-text">Why spaced repetition?</h2>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {[
-              { title: 'We forget fast', desc: "Without review, you forget 70% of new information within 24 hours. Passive reading doesn't help." },
-              { title: 'Timing matters', desc: "Reviewing at the right moment — just before you forget — is far more effective than reviewing randomly." },
-              { title: 'Retrieval builds memory', desc: "Every time you successfully recall something, the memory gets stronger. Flip cards force retrieval. Scrolling doesn't." },
-            ].map(({ title, desc }) => (
-              <div key={title} className="bg-gwc-panel rounded-xl border border-gwc-text/6 p-5">
-                <p className="font-display text-gwc-text font-semibold mb-2 leading-snug">{title}</p>
-                <p className="text-xs text-gwc-muted leading-relaxed">{desc}</p>
-              </div>
+        <div className="max-w-2xl mx-auto">
+          <p className="font-mono text-[10px] text-gwc-accent tracking-widest uppercase font-semibold mb-3">02 — Try it</p>
+          <h2 className="font-display text-3xl text-gwc-text mb-6">
+            A real card from the app.
+          </h2>
+          <div className="flex gap-1 p-1 bg-gwc-panel rounded-xl border border-gwc-text/6 mb-4 w-fit">
+            {(['browse', 'review'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveDemo(tab)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
+                  activeDemo === tab ? 'bg-gwc-text text-gwc-base font-semibold' : 'text-gwc-muted hover:text-gwc-text'
+                }`}
+              >
+                {tab}
+              </button>
             ))}
           </div>
+          {activeDemo === 'browse' ? <BrowseDemo /> : <FlipCardDemo />}
         </div>
       </section>
 
