@@ -48,13 +48,13 @@ export default function CookieBanner() {
       aria-label="Cookie information"
     >
       <div className="m-3 sm:m-4 md:mx-auto md:max-w-2xl">
-        <div className="bg-[#1a1830] border border-white/15 rounded-2xl px-5 py-4 shadow-2xl shadow-black/50 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="bg-gwc-panel border border-white/15 rounded-2xl px-5 py-4 shadow-2xl shadow-black/50 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           {/* Text */}
           <p className="flex-1 text-sm text-[#c5c3d4] leading-relaxed">
             This site uses essential cookies for authentication.{' '}
             <Link
               href="/cookies"
-              className="text-[#9b8cf5] hover:text-[#7c6df2] underline underline-offset-2 transition-colors"
+              className="text-gwc-accent-soft hover:text-gwc-accent underline underline-offset-2 transition-colors"
             >
               See our Cookie Policy
             </Link>{' '}
@@ -64,7 +64,7 @@ export default function CookieBanner() {
           {/* Dismiss button */}
           <button
             onClick={handleDismiss}
-            className="shrink-0 px-5 py-2.5 rounded-xl bg-[#7c6df2] text-white text-sm font-bold hover:bg-[#9b8cf5] active:scale-95 transition-all"
+            className="shrink-0 px-5 py-2.5 rounded-xl bg-gwc-accent text-white text-sm font-bold hover:bg-gwc-accent-soft active:scale-95 transition-all"
           >
             Got it
           </button>

@@ -49,8 +49,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // While checking auth state — show spinner on protected pages, nothing on public
   if (checking && !isPublic) {
     return (
-      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gwc-base flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gwc-accent border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }

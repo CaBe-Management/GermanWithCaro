@@ -182,19 +182,19 @@ export default function AdminVideosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0e17]">
+    <div className="min-h-screen bg-gwc-base">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-[#e8e6f0]">🎬 Video Management</h1>
-            <p className="text-[#9b98b0] text-sm mt-1">TikTok & YouTube Videos with learning sentences</p>
+            <h1 className="text-2xl font-bold text-gwc-text">🎬 Video Management</h1>
+            <p className="text-gwc-muted text-sm mt-1">TikTok & YouTube Videos with learning sentences</p>
           </div>
           <button
             onClick={() => setShowForm(v => !v)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#7c6df2] text-white rounded-lg font-semibold text-sm hover:bg-[#6b5de0] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gwc-accent text-white rounded-lg font-semibold text-sm hover:bg-gwc-accent-deep transition-colors"
           >
             <span className="text-base">{showForm ? '✕' : '+'}</span>
             {showForm ? 'Cancel' : 'Add video'}
@@ -203,13 +203,13 @@ export default function AdminVideosPage() {
 
         {/* Add Video Form */}
         {showForm && (
-          <div className="bg-[#1a1830] rounded-2xl border border-white/8 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-[#e8e6f0] mb-4">New video</h2>
+          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gwc-text mb-4">New video</h2>
             <form onSubmit={handleSave} className="space-y-4">
 
               {/* URL */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">TikTok link</label>
+                <label className="block text-sm text-gwc-muted mb-1.5">TikTok link</label>
                 <div className="flex gap-2">
                   <input
                     type="url"
@@ -218,13 +218,13 @@ export default function AdminVideosPage() {
                     onBlur={() => url.includes('tiktok.com') && fetchTikTokMeta()}
                     placeholder="https://www.tiktok.com/@germanwithcaro/video/..."
                     required
-                    className="flex-1 bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
+                    className="flex-1 bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                   />
-                  <span className="flex items-center px-3 py-2 bg-white/5 rounded-lg text-sm text-[#9b98b0] border border-white/8">
+                  <span className="flex items-center px-3 py-2 bg-white/5 rounded-lg text-sm text-gwc-muted border border-white/8">
                     📱 TikTok
                   </span>
                 </div>
-                {fetchingMeta && <p className="text-xs text-[#7c6df2] mt-1">Loading metadata...</p>}
+                {fetchingMeta && <p className="text-xs text-gwc-accent mt-1">Loading metadata...</p>}
                 {thumbnailUrl && (
                   <div className="mt-2 flex items-center gap-2">
                     <img src={thumbnailUrl} alt="Cover preview" className="w-20 h-14 object-cover rounded-lg" />
@@ -235,32 +235,32 @@ export default function AdminVideosPage() {
 
               {/* Title */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Title</label>
+                <label className="block text-sm text-gwc-muted mb-1.5">Title</label>
                 <input
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder='z.B. "10 German sentences for beginners"'
                   required
-                  className="w-full bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2]"
+                  className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Description (optional)</label>
+                <label className="block text-sm text-gwc-muted mb-1.5">Description (optional)</label>
                 <textarea
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   rows={2}
                   placeholder="Kurze Beschreibung des Videos..."
-                  className="w-full bg-[#0f0e17] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#e8e6f0] placeholder:text-[#4a4760] focus:outline-none focus:border-[#7c6df2] resize-none"
+                  className="w-full bg-gwc-base border border-white/10 rounded-lg px-3 py-2 text-sm text-gwc-text placeholder:text-gwc-dim focus:outline-none focus:border-gwc-accent resize-none"
                 />
               </div>
 
               {/* Level */}
               <div>
-                <label className="block text-sm text-[#9b98b0] mb-1.5">Level</label> {/* No translation for Level labels A1-C2 */}
+                <label className="block text-sm text-gwc-muted mb-1.5">Level</label> {/* No translation for Level labels A1-C2 */}
                 <div className="flex gap-2 flex-wrap">
                   {LEVELS.map(l => (
                     <button
@@ -269,8 +269,8 @@ export default function AdminVideosPage() {
                       onClick={() => setLevel(l)}
                       className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                         level === l
-                          ? 'bg-[#7c6df2] text-white'
-                          : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+                          ? 'bg-gwc-accent text-white'
+                          : 'bg-white/5 text-gwc-muted hover:bg-white/10'
                       }`}
                     >
                       {l}
@@ -285,14 +285,14 @@ export default function AdminVideosPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm text-[#9b98b0] hover:text-[#e8e6f0] transition-colors"
+                  className="px-4 py-2 text-sm text-gwc-muted hover:text-gwc-text transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-[#7c6df2] text-white rounded-lg text-sm font-semibold hover:bg-[#6b5de0] disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 bg-gwc-accent text-white rounded-lg text-sm font-semibold hover:bg-gwc-accent-deep disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Saving...' : 'Save & add sentences →'}
                 </button>
@@ -314,8 +314,8 @@ export default function AdminVideosPage() {
                 onClick={() => setAdminFilter(f.key)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   adminFilter === f.key
-                    ? 'bg-[#7c6df2]/30 text-[#9b8cf5]'
-                    : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+                    ? 'bg-gwc-accent/30 text-gwc-accent-soft'
+                    : 'bg-white/5 text-gwc-muted hover:bg-white/10'
                 }`}
               >
                 {f.label}
@@ -328,12 +328,12 @@ export default function AdminVideosPage() {
         {/* Video list */}
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-gwc-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : videos.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-4">🎬</p>
-            <p className="text-[#9b98b0]">No videos yet. Add your first video!</p>
+            <p className="text-gwc-muted">No videos yet. Add your first video!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -344,7 +344,7 @@ export default function AdminVideosPage() {
             }).map(video => (
               <div
                 key={video.id}
-                className={`bg-[#1a1830] rounded-xl border p-4 transition-colors ${
+                className={`bg-gwc-panel rounded-xl border p-4 transition-colors ${
                   video.is_draft ? 'border-white/5 opacity-75' : 'border-white/8'
                 }`}
               >
@@ -365,10 +365,10 @@ export default function AdminVideosPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${LEVEL_COLORS[video.level] ?? 'bg-white/10 text-[#9b98b0]'}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${LEVEL_COLORS[video.level] ?? 'bg-white/10 text-gwc-muted'}`}>
                         {video.level}
                       </span>
-                      <span className="text-xs text-[#9b98b0]">
+                      <span className="text-xs text-gwc-muted">
                         📱 TikTok
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${
@@ -379,8 +379,8 @@ export default function AdminVideosPage() {
                         {video.is_draft ? 'Draft' : 'Published'}
                       </span>
                     </div>
-                    <p className="text-[#e8e6f0] font-semibold text-sm truncate">{video.title}</p>
-                    <p className="text-[#9b98b0] text-xs mt-0.5">
+                    <p className="text-gwc-text font-semibold text-sm truncate">{video.title}</p>
+                    <p className="text-gwc-muted text-xs mt-0.5">
                       {video.sentence_count ?? 0} sentences
                     </p>
                   </div>
@@ -393,14 +393,14 @@ export default function AdminVideosPage() {
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                         video.sentences_done
                           ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10'
-                          : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+                          : 'bg-white/5 text-gwc-muted hover:bg-white/10'
                       }`}
                     >
                       {video.sentences_done ? '✅ Done' : '⬜ To Do'}
                     </button>
                     <Link
                       href={`/admin/videos/${video.id}`}
-                      className="px-3 py-1.5 text-xs font-semibold bg-[#7c6df2]/20 text-[#9b8cf5] rounded-lg hover:bg-[#7c6df2]/30 transition-colors"
+                      className="px-3 py-1.5 text-xs font-semibold bg-gwc-accent/20 text-gwc-accent-soft rounded-lg hover:bg-gwc-accent/30 transition-colors"
                     >
                       Edit sentences
                     </Link>
@@ -416,7 +416,7 @@ export default function AdminVideosPage() {
                     </button>
                     <button
                       onClick={() => deleteVideo(video.id)}
-                      className="px-2 py-1.5 text-xs text-[#f87171] hover:bg-[#f87171]/10 rounded-lg transition-colors"
+                      className="px-2 py-1.5 text-xs text-gwc-error hover:bg-gwc-error/10 rounded-lg transition-colors"
                     >
                       ✕
                     </button>
@@ -429,7 +429,7 @@ export default function AdminVideosPage() {
 
         {/* Footer link */}
         <div className="mt-8 pt-6 border-t border-white/5 flex justify-center">
-          <Link href="/videos" className="text-sm text-[#9b98b0] hover:text-[#7c6df2] transition-colors">
+          <Link href="/videos" className="text-sm text-gwc-muted hover:text-gwc-accent transition-colors">
             → View public videos page
           </Link>
         </div>

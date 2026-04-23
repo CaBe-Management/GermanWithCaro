@@ -61,7 +61,7 @@ function UpgradePageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0e17]">
+    <div className="min-h-screen bg-gwc-base">
       <Navbar />
       <div className="max-w-lg mx-auto px-5 py-16 text-center">
 
@@ -72,15 +72,15 @@ function UpgradePageInner() {
         )}
 
         <p className="text-4xl mb-4">🇩🇪</p>
-        <h1 className="text-3xl font-bold text-[#e8e6f0] mb-3">Go Pro</h1>
-        <p className="text-[#9b98b0] mb-10">
+        <h1 className="text-3xl font-bold text-gwc-text mb-3">Go Pro</h1>
+        <p className="text-gwc-muted mb-10">
           Get full access to spaced repetition reviews and track your progress.
         </p>
 
-        <div className="bg-[#1a1830] border border-[#7c6df2]/40 rounded-2xl p-8 mb-6 text-left">
+        <div className="bg-gwc-panel border border-gwc-accent/40 rounded-2xl p-8 mb-6 text-left">
           <div className="flex items-end gap-2 mb-6">
-            <span className="text-4xl font-bold text-[#e8e6f0]">€4.99</span>
-            <span className="text-[#9b98b0] mb-1">/ month</span>
+            <span className="text-4xl font-bold text-gwc-text">€4.99</span>
+            <span className="text-gwc-muted mb-1">/ month</span>
           </div>
           <ul className="space-y-3 mb-8">
             {[
@@ -90,18 +90,18 @@ function UpgradePageInner() {
               'Progress tracking & streaks',
               'Cancel any time',
             ].map(f => (
-              <li key={f} className="flex items-center gap-3 text-sm text-[#9b98b0]">
-                <span className="text-[#7c6df2] font-bold text-base">✓</span>
+              <li key={f} className="flex items-center gap-3 text-sm text-gwc-muted">
+                <span className="text-gwc-accent font-bold text-base">✓</span>
                 {f}
               </li>
             ))}
           </ul>
           {alreadyPro ? (
             <div className="text-center">
-              <p className="text-[#4ade80] font-semibold mb-3">✓ You're already on Pro!</p>
+              <p className="text-gwc-success font-semibold mb-3">✓ You're already on Pro!</p>
               <Link
                 href="/profile"
-                className="inline-block w-full py-3.5 rounded-xl bg-white/10 text-[#e8e6f0] font-bold text-base hover:bg-white/15 transition-colors text-center"
+                className="inline-block w-full py-3.5 rounded-xl bg-white/10 text-gwc-text font-bold text-base hover:bg-white/15 transition-colors text-center"
               >
                 Manage subscription →
               </Link>
@@ -111,7 +111,7 @@ function UpgradePageInner() {
               <button
                 onClick={handleCheckout}
                 disabled={loading || !userId}
-                className="w-full py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold text-base hover:bg-[#9b8cf5] transition-colors disabled:opacity-50"
+                className="w-full py-3.5 rounded-xl bg-gwc-accent text-white font-bold text-base hover:bg-gwc-accent-soft transition-colors disabled:opacity-50"
               >
                 {loading ? 'Redirecting…' : 'Start subscription →'}
               </button>
@@ -119,7 +119,7 @@ function UpgradePageInner() {
                 <p className="text-xs text-red-400 text-center mt-3">{checkoutError}</p>
               )}
               {!checkoutError && (
-                <p className="text-xs text-[#4a4760] text-center mt-3">
+                <p className="text-xs text-gwc-dim text-center mt-3">
                   Secure payment via Stripe. Cancel any time from your profile.
                 </p>
               )}
@@ -127,7 +127,7 @@ function UpgradePageInner() {
           )}
         </div>
 
-        <Link href="/videos" className="text-sm text-[#9b98b0] hover:text-[#e8e6f0] transition-colors">
+        <Link href="/videos" className="text-sm text-gwc-muted hover:text-gwc-text transition-colors">
           ← Back to videos
         </Link>
       </div>
@@ -137,7 +137,7 @@ function UpgradePageInner() {
 
 export default function UpgradePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0f0e17]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-gwc-base" />}>
       <UpgradePageInner />
     </Suspense>
   )

@@ -33,12 +33,12 @@ const LEVEL_COLORS: Record<string, string> = {
 
 function TikTokPlaceholder() {
   return (
-    <div className="w-full aspect-[9/16] bg-gradient-to-br from-[#1a1830] to-[#0f0e17] flex items-center justify-center relative overflow-hidden rounded-t-xl">
+    <div className="w-full aspect-[9/16] bg-gradient-to-br from-gwc-panel to-gwc-base flex items-center justify-center relative overflow-hidden rounded-t-xl">
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-6xl opacity-20">📱</span>
       </div>
-      <div className="relative z-10 w-12 h-12 rounded-full bg-[#7c6df2]/20 border border-[#7c6df2]/40 flex items-center justify-center">
-        <svg className="w-5 h-5 text-[#9b8cf5] ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+      <div className="relative z-10 w-12 h-12 rounded-full bg-gwc-accent/20 border border-gwc-accent/40 flex items-center justify-center">
+        <svg className="w-5 h-5 text-gwc-accent-soft ml-0.5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z" />
         </svg>
       </div>
@@ -69,7 +69,7 @@ function ProgressBadge({ video }: { video: Video }) {
 
   if (added_count > 0) {
     return (
-      <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-[#7c6df2]/10 text-[#9b8cf5] border border-[#7c6df2]/20">
+      <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-gwc-accent/10 text-gwc-accent-soft border border-gwc-accent/20">
         {added_count}/{sentence_count} saved
       </span>
     )
@@ -85,7 +85,7 @@ function ProgressBar({ added, total }: { added: number; total: number }) {
   return (
     <div className="mt-2 h-1 bg-white/5 rounded-full overflow-hidden">
       <div
-        className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-[#7c6df2]'}`}
+        className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-gwc-accent'}`}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -174,14 +174,14 @@ export default function VideosPage() {
   const completeCount = byLevel.filter(v => v.sentence_count > 0 && v.added_count >= v.sentence_count).length
 
   return (
-    <div className="min-h-screen bg-[#0f0e17]">
+    <div className="min-h-screen bg-gwc-base">
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#e8e6f0] mb-1">🎬 Learn from Videos</h1>
-          <p className="text-[#9b98b0] text-sm">
+          <h1 className="text-2xl font-bold text-gwc-text mb-1">🎬 Learn from Videos</h1>
+          <p className="text-gwc-muted text-sm">
             Real sentences from Caro's TikTok videos — click any sentence to add it to your SRS queue.
           </p>
         </div>
@@ -194,8 +194,8 @@ export default function VideosPage() {
               onClick={() => setActiveLevel(l)}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                 activeLevel === l
-                  ? 'bg-[#7c6df2] text-white'
-                  : 'bg-white/5 text-[#9b98b0] hover:bg-white/10 hover:text-[#e8e6f0]'
+                  ? 'bg-gwc-accent text-white'
+                  : 'bg-white/5 text-gwc-muted hover:bg-white/10 hover:text-gwc-text'
               }`}
             >
               {l}
@@ -207,8 +207,8 @@ export default function VideosPage() {
         {/* Status filter — only shown when logged in */}
         {isLoggedIn && <div className="flex gap-2 flex-wrap mb-8">
           {([
-            { key: 'all',      label: 'All',              count: null,          activeClass: 'bg-white/15 text-[#e8e6f0]' },
-            { key: 'open',     label: 'Not started',      count: openCount,     activeClass: 'bg-[#7c6df2]/30 text-[#9b8cf5]' },
+            { key: 'all',      label: 'All',              count: null,          activeClass: 'bg-white/15 text-gwc-text' },
+            { key: 'open',     label: 'Not started',      count: openCount,     activeClass: 'bg-gwc-accent/30 text-gwc-accent-soft' },
             { key: 'learned',  label: 'Learned',          count: learnedCount,  activeClass: 'bg-emerald-500/20 text-emerald-400' },
             { key: 'complete', label: 'All saved',        count: completeCount, activeClass: 'bg-emerald-500/20 text-emerald-400' },
           ] as const).map(f => (
@@ -216,13 +216,13 @@ export default function VideosPage() {
               key={f.key}
               onClick={() => setStatusFilter(f.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                statusFilter === f.key ? f.activeClass : 'bg-white/5 text-[#9b98b0] hover:bg-white/10'
+                statusFilter === f.key ? f.activeClass : 'bg-white/5 text-gwc-muted hover:bg-white/10'
               }`}
             >
               {f.label}
               {f.count !== null && f.count > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-                  statusFilter === f.key ? 'bg-white/20' : 'bg-white/10 text-[#9b98b0]'
+                  statusFilter === f.key ? 'bg-white/20' : 'bg-white/10 text-gwc-muted'
                 }`}>{f.count}</span>
               )}
             </button>
@@ -232,12 +232,12 @@ export default function VideosPage() {
         {/* Grid */}
         {loading ? (
           <div className="flex justify-center py-24">
-            <div className="w-8 h-8 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-gwc-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-24">
             <p className="text-5xl mb-4">🎬</p>
-            <p className="text-[#9b98b0] text-lg">
+            <p className="text-gwc-muted text-lg">
               {videos.length === 0
                 ? 'No videos published yet.'
                 : 'No videos in this category.'}
@@ -249,7 +249,7 @@ export default function VideosPage() {
               <Link
                 key={video.id}
                 href={`/videos/${video.id}`}
-                className="group bg-[#1a1830] rounded-xl border border-white/8 hover:border-[#7c6df2]/40 transition-all overflow-hidden hover:shadow-lg hover:shadow-[#7c6df2]/5"
+                className="group bg-gwc-panel rounded-xl border border-white/8 hover:border-gwc-accent/40 transition-all overflow-hidden hover:shadow-lg hover:shadow-gwc-accent/5"
               >
                 {/* Thumbnail */}
                 <div className="relative">
@@ -265,7 +265,7 @@ export default function VideosPage() {
                   ) : (
                     // Fallback: no URL, or URL failed to load
                     video.platform === 'tiktok' ? <TikTokPlaceholder /> : (
-                      <div className="w-full aspect-video bg-gradient-to-br from-[#1a1830] to-[#0f0e17] flex items-center justify-center rounded-t-xl">
+                      <div className="w-full aspect-video bg-gradient-to-br from-gwc-panel to-gwc-base flex items-center justify-center rounded-t-xl">
                         <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center">
                           <svg className="w-5 h-5 text-red-400 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
@@ -287,28 +287,28 @@ export default function VideosPage() {
                 {/* Info */}
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${LEVEL_COLORS[video.level] ?? 'bg-white/10 text-[#9b98b0] border-white/10'}`}>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${LEVEL_COLORS[video.level] ?? 'bg-white/10 text-gwc-muted border-white/10'}`}>
                       {video.level}
                     </span>
-                    <span className="text-xs text-[#9b98b0]">
+                    <span className="text-xs text-gwc-muted">
                       {video.platform === 'tiktok' ? '📱' : '▶️'}
                     </span>
                     <ProgressBadge video={video} />
                   </div>
-                  <h3 className="text-sm font-semibold text-[#e8e6f0] leading-snug group-hover:text-[#9b8cf5] transition-colors line-clamp-2">
+                  <h3 className="text-sm font-semibold text-gwc-text leading-snug group-hover:text-gwc-accent-soft transition-colors line-clamp-2">
                     {video.title}
                   </h3>
                   {video.description && (
-                    <p className="text-xs text-[#9b98b0] mt-1 line-clamp-1">{video.description}</p>
+                    <p className="text-xs text-gwc-muted mt-1 line-clamp-1">{video.description}</p>
                   )}
 
                   {/* Sentence count + progress bar */}
                   <div className="mt-3">
                     <div className="flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5 text-[#7c6df2] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className="w-3.5 h-3.5 text-gwc-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
-                      <span className="text-xs text-[#9b98b0]">{video.sentence_count} sentences to learn</span>
+                      <span className="text-xs text-gwc-muted">{video.sentence_count} sentences to learn</span>
                     </div>
                     <ProgressBar added={video.added_count} total={video.sentence_count} />
                   </div>

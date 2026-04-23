@@ -33,7 +33,7 @@ function formatDate(isoString: string): string {
 function blockColor(level: number, i: number): string {
   if (i > level) return 'bg-white/8'
   if (i <= 2)  return 'bg-[#f472b6]'   // Novice    — pink
-  if (i <= 5)  return 'bg-[#7c6df2]'   // Apprentice — purple
+  if (i <= 5)  return 'bg-gwc-accent'   // Apprentice — purple
   if (i <= 7)  return 'bg-[#60a5fa]'   // Journeyman — blue
   if (i <= 9)  return 'bg-[#34d399]'   // Expert     — teal
   if (i === 10) return 'bg-[#fb923c]'  // Master     — orange
@@ -57,40 +57,40 @@ export function SrsProgressCard({ data }: { data: SrsReviewData }) {
     : null
 
   return (
-    <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-      <p className="text-[0.7rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Your Progress</p>
+    <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5">
+      <p className="text-[0.7rem] font-bold tracking-widest uppercase text-gwc-muted mb-4">Your Progress</p>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-x-6 gap-y-3 mb-5">
         <div>
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-0.5">Current Stage</p>
-          <p className="text-[#e8e6f0] text-sm font-semibold">{SRS_LABELS[lvl]}</p>
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-0.5">Current Stage</p>
+          <p className="text-gwc-text text-sm font-semibold">{SRS_LABELS[lvl]}</p>
         </div>
         <div>
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-0.5">Next Review</p>
-          <p className={`text-sm font-semibold ${data.next_review_at && new Date(data.next_review_at) <= new Date() ? 'text-[#f472b6]' : 'text-[#e8e6f0]'}`}>
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-0.5">Next Review</p>
+          <p className={`text-sm font-semibold ${data.next_review_at && new Date(data.next_review_at) <= new Date() ? 'text-[#f472b6]' : 'text-gwc-text'}`}>
             {data.next_review_at ? formatNextReview(data.next_review_at) : '—'}
           </p>
         </div>
         <div>
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-0.5">First Studied</p>
-          <p className="text-[#e8e6f0] text-sm font-semibold">{formatDate(data.created_at)}</p>
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-0.5">First Studied</p>
+          <p className="text-gwc-text text-sm font-semibold">{formatDate(data.created_at)}</p>
         </div>
         <div>
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-0.5">Times Reviewed</p>
-          <p className="text-[#e8e6f0] text-sm font-semibold">{data.total_reviews}</p>
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-0.5">Times Reviewed</p>
+          <p className="text-gwc-text text-sm font-semibold">{data.total_reviews}</p>
         </div>
         {accuracy !== null && (
           <div>
-            <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-0.5">Accuracy</p>
+            <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-0.5">Accuracy</p>
             <p className={`text-sm font-semibold ${accuracy >= 80 ? 'text-[#34d399]' : accuracy >= 50 ? 'text-[#fb923c]' : 'text-[#f472b6]'}`}>
               {accuracy}%
             </p>
           </div>
         )}
         <div>
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-0.5">Interval</p>
-          <p className="text-[#e8e6f0] text-sm font-semibold">{intervalLabel(lvl)}</p>
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-0.5">Interval</p>
+          <p className="text-gwc-text text-sm font-semibold">{intervalLabel(lvl)}</p>
         </div>
       </div>
 
@@ -105,7 +105,7 @@ export function SrsProgressCard({ data }: { data: SrsReviewData }) {
         ))}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-[0.6rem] text-[#9b98b0]">Novice</span>
+        <span className="text-[0.6rem] text-gwc-muted">Novice</span>
         <span className="text-[0.6rem] text-[#fbbf24]">Mastered</span>
       </div>
     </div>

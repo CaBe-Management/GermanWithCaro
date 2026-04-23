@@ -20,7 +20,7 @@ const SRS_LABELS: { label: string; color: string; bgColor: string }[] = [
   { label: 'Journeyman',  color: 'text-purple-400',  bgColor: 'bg-purple-500'  },
   { label: 'Expert',      color: 'text-orange-400',  bgColor: 'bg-orange-500'  },
   { label: 'Expert',      color: 'text-orange-400',  bgColor: 'bg-orange-500'  },
-  { label: 'Master',      color: 'text-[#9b8cf5]',   bgColor: 'bg-[#7c6df2]'   },
+  { label: 'Master',      color: 'text-gwc-accent-soft',   bgColor: 'bg-gwc-accent'   },
   { label: '⭐ Mastered', color: 'text-yellow-400',  bgColor: 'bg-yellow-500'  },
 ]
 
@@ -31,7 +31,7 @@ const SRS_STAGE_META: Record<SrsStageKey, { color: string; bg: string }> = {
   Apprentice: { color: 'text-blue-400',    bg: 'bg-blue-500'    },
   Journeyman: { color: 'text-purple-400',  bg: 'bg-purple-500'  },
   Expert:     { color: 'text-orange-400',  bg: 'bg-orange-500'  },
-  Master:     { color: 'text-[#9b8cf5]',   bg: 'bg-[#7c6df2]'  },
+  Master:     { color: 'text-gwc-accent-soft',   bg: 'bg-gwc-accent'  },
 }
 
 function classifyStage(srsLevel: number): SrsStageKey {
@@ -161,26 +161,26 @@ export default function Dashboard() {
   const totalInSRS = Object.values(srsBreakdown).reduce((a, b) => a + b, 0)
 
   return (
-    <div className="min-h-screen bg-[#0f0e17]">
+    <div className="min-h-screen bg-gwc-base">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-[#e8e6f0]">
+            <h1 className="text-xl font-bold text-gwc-text">
               {loading ? '…' : `Hey, ${username ?? 'there'} 👋`}
             </h1>
-            <p className="text-sm text-[#9b98b0] mt-0.5">
+            <p className="text-sm text-gwc-muted mt-0.5">
               {loading ? '' : userProgress?.streak_current
                 ? `🔥 ${userProgress.streak_current} day streak`
                 : 'Start learning today!'}
             </p>
           </div>
           {level !== null && (
-            <div className="bg-[#7c6df2]/20 border border-[#7c6df2]/30 rounded-xl px-3 py-2 text-center">
-              <p className="text-xs text-[#9b98b0]">Level</p>
-              <p className="text-2xl font-bold text-[#9b8cf5]">{level}</p>
+            <div className="bg-gwc-accent/20 border border-gwc-accent/30 rounded-xl px-3 py-2 text-center">
+              <p className="text-xs text-gwc-muted">Level</p>
+              <p className="text-2xl font-bold text-gwc-accent-soft">{level}</p>
             </div>
           )}
         </div>
@@ -194,20 +194,20 @@ export default function Dashboard() {
             className={`p-5 rounded-2xl border flex flex-col gap-3 transition-all hover:scale-[1.01] ${
               reviewDue > 0
                 ? 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50'
-                : 'bg-[#1a1830] border-white/8 hover:border-white/15'
+                : 'bg-gwc-panel border-white/8 hover:border-white/15'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-2xl">📚</span>
               {!loading && (
-                <span className={`text-2xl font-bold ${reviewDue > 0 ? 'text-orange-400' : 'text-[#9b98b0]'}`}>
+                <span className={`text-2xl font-bold ${reviewDue > 0 ? 'text-orange-400' : 'text-gwc-muted'}`}>
                   {reviewDue}
                 </span>
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#e8e6f0]">Reviews due</p>
-              <p className="text-xs text-[#9b98b0] mt-0.5">
+              <p className="text-sm font-semibold text-gwc-text">Reviews due</p>
+              <p className="text-xs text-gwc-muted mt-0.5">
                 {reviewDue > 0 ? 'Time to review!' : 'All caught up ✓'}
               </p>
             </div>
@@ -216,17 +216,17 @@ export default function Dashboard() {
           {/* Videos */}
           <Link
             href="/videos"
-            className="p-5 rounded-2xl border bg-[#1a1830] border-white/8 hover:border-[#7c6df2]/40 flex flex-col gap-3 transition-all hover:scale-[1.01]"
+            className="p-5 rounded-2xl border bg-gwc-panel border-white/8 hover:border-gwc-accent/40 flex flex-col gap-3 transition-all hover:scale-[1.01]"
           >
             <div className="flex items-center justify-between">
               <span className="text-2xl">🎬</span>
               {!loading && (
-                <span className="text-2xl font-bold text-[#9b8cf5]">{totalSentences}</span>
+                <span className="text-2xl font-bold text-gwc-accent-soft">{totalSentences}</span>
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#e8e6f0]">Sentences in SRS</p>
-              <p className="text-xs text-[#9b98b0] mt-0.5">Browse videos to add more</p>
+              <p className="text-sm font-semibold text-gwc-text">Sentences in SRS</p>
+              <p className="text-xs text-gwc-muted mt-0.5">Browse videos to add more</p>
             </div>
           </Link>
 
@@ -234,14 +234,14 @@ export default function Dashboard() {
 
         {/* ── XP bar ── */}
         {xpInfo && (
-          <div className="bg-[#1a1830] rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-[#e8e6f0]">Level {xpInfo.level} → {xpInfo.level + 1}</span>
-              <span className="text-xs text-[#9b98b0]">{xpInfo.xpInLevel} / {xpInfo.xpNeeded} XP</span>
+              <span className="text-sm font-semibold text-gwc-text">Level {xpInfo.level} → {xpInfo.level + 1}</span>
+              <span className="text-xs text-gwc-muted">{xpInfo.xpInLevel} / {xpInfo.xpNeeded} XP</span>
             </div>
             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#7c6df2] rounded-full transition-all duration-700"
+                className="h-full bg-gwc-accent rounded-full transition-all duration-700"
                 style={{ width: `${xpInfo.pct}%` }}
               />
             </div>
@@ -250,9 +250,9 @@ export default function Dashboard() {
 
         {/* ── Weekly streak ── */}
         {userProgress && (
-          <div className="bg-[#1a1830] rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#e8e6f0]">This Week</h2>
+              <h2 className="text-sm font-semibold text-gwc-text">This Week</h2>
               <span className="text-sm text-orange-400 font-bold">🔥 {userProgress.streak_current ?? 0} days</span>
             </div>
             <div className="flex gap-2">
@@ -261,9 +261,9 @@ export default function Dashboard() {
                   <div className={`w-full aspect-square max-w-[32px] rounded-md transition-colors ${
                     i === todayDow
                       ? studiedDow.has(i) ? 'bg-orange-500' : 'bg-orange-500/20 border border-orange-500/40'
-                      : studiedDow.has(i) ? 'bg-[#7c6df2]' : 'bg-white/5'
+                      : studiedDow.has(i) ? 'bg-gwc-accent' : 'bg-white/5'
                   }`} />
-                  <span className="text-[10px] text-[#9b98b0]">{label}</span>
+                  <span className="text-[10px] text-gwc-muted">{label}</span>
                 </div>
               ))}
             </div>
@@ -272,10 +272,10 @@ export default function Dashboard() {
 
         {/* ── SRS Breakdown ── */}
         {totalInSRS > 0 && (
-          <div className="bg-[#1a1830] rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#e8e6f0]">SRS Progress</h2>
-              <span className="text-xs text-[#9b98b0]">{totalInSRS} sentences</span>
+              <h2 className="text-sm font-semibold text-gwc-text">SRS Progress</h2>
+              <span className="text-xs text-gwc-muted">{totalInSRS} sentences</span>
             </div>
             <div className="space-y-2">
               {SRS_STAGE_ORDER.map(stage => {
@@ -291,7 +291,7 @@ export default function Dashboard() {
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs text-[#9b98b0] w-6 text-right shrink-0">{count}</span>
+                    <span className="text-xs text-gwc-muted w-6 text-right shrink-0">{count}</span>
                   </div>
                 )
               })}
@@ -301,10 +301,10 @@ export default function Dashboard() {
 
         {/* ── Recent Videos ── */}
         {recentVideos.length > 0 && (
-          <div className="bg-[#1a1830] rounded-2xl border border-white/8 p-5">
+          <div className="bg-gwc-panel rounded-2xl border border-white/8 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#e8e6f0]">Recent Videos</h2>
-              <Link href="/videos" className="text-xs text-[#7c6df2] hover:underline">View all →</Link>
+              <h2 className="text-sm font-semibold text-gwc-text">Recent Videos</h2>
+              <Link href="/videos" className="text-xs text-gwc-accent hover:underline">View all →</Link>
             </div>
             <div className="space-y-2">
               {recentVideos.map(v => (
@@ -315,10 +315,10 @@ export default function Dashboard() {
                 >
                   <span className="text-xl">🎬</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#e8e6f0] font-medium truncate">{v.title}</p>
-                    <p className="text-xs text-[#9b98b0]">{v.sentence_count} sentences · {v.level}</p>
+                    <p className="text-sm text-gwc-text font-medium truncate">{v.title}</p>
+                    <p className="text-xs text-gwc-muted">{v.sentence_count} sentences · {v.level}</p>
                   </div>
-                  <svg className="w-4 h-4 text-[#4a4760] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-4 h-4 text-gwc-dim shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
@@ -329,17 +329,17 @@ export default function Dashboard() {
 
         {/* ── Admin shortcut (Caroline only) ── */}
         {userEmail === ADMIN_EMAIL && (
-          <div className="bg-[#1a1830] rounded-2xl border border-[#7c6df2]/20 p-4 flex items-center justify-between">
+          <div className="bg-gwc-panel rounded-2xl border border-gwc-accent/20 p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-xl">⚙️</span>
               <div>
-                <p className="text-sm font-semibold text-[#e8e6f0]">Video Management</p>
-                <p className="text-xs text-[#9b98b0]">Add videos and sentences</p>
+                <p className="text-sm font-semibold text-gwc-text">Video Management</p>
+                <p className="text-xs text-gwc-muted">Add videos and sentences</p>
               </div>
             </div>
             <Link
               href="/admin/videos"
-              className="px-3 py-1.5 bg-[#7c6df2]/20 text-[#9b8cf5] rounded-lg text-xs font-semibold hover:bg-[#7c6df2]/30 transition-colors"
+              className="px-3 py-1.5 bg-gwc-accent/20 text-gwc-accent-soft rounded-lg text-xs font-semibold hover:bg-gwc-accent/30 transition-colors"
             >
               Open →
             </Link>

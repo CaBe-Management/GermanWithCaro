@@ -33,7 +33,7 @@ const CASE_LABEL: Record<string, string> = {
   GENITIV:   'Genitive',
 }
 const CASE_COLOR: Record<string, string> = {
-  NOMINATIV: 'bg-[#7c6df2]/15 border-[#7c6df2]/30 text-[#9b8cf5]',
+  NOMINATIV: 'bg-gwc-accent/15 border-gwc-accent/30 text-gwc-accent-soft',
   AKKUSATIV: 'bg-[#3bd395]/10 border-[#3bd395]/30 text-[#3bd395]',
   DATIV:     'bg-[#ffa550]/10 border-[#ffa550]/30 text-[#ffa550]',
   GENITIV:   'bg-[#ffc850]/10 border-[#ffc850]/30 text-[#ffc850]',
@@ -64,29 +64,29 @@ export function VocabInfoBody({
       {/* ── Header ───────────────────────────────────────────────────── */}
       <div>
         {vocab.article && (
-          <p className="text-[#7c6df2] text-xs font-bold uppercase tracking-widest mb-1">
+          <p className="text-gwc-accent text-xs font-bold uppercase tracking-widest mb-1">
             {vocab.article} · Noun
           </p>
         )}
-        <p className="text-2xl font-extrabold text-[#e8e6f0]">
+        <p className="text-2xl font-extrabold text-gwc-text">
           {vocab.article
-            ? <><span className="text-[#9b98b0] font-normal">{vocab.article} </span>{vocab.word}</>
+            ? <><span className="text-gwc-muted font-normal">{vocab.article} </span>{vocab.word}</>
             : vocab.word
           }
         </p>
         {vocab.plural && (
-          <p className="text-[#9b98b0] text-xs mt-0.5">
+          <p className="text-gwc-muted text-xs mt-0.5">
             Plural: <span className="text-[#c8c5d8]">die {vocab.plural}</span>
           </p>
         )}
-        <p className="text-sm text-[#9b98b0] mt-1">🇬🇧 {vocab.translation_en}</p>
+        <p className="text-sm text-gwc-muted mt-1">🇬🇧 {vocab.translation_en}</p>
 
         <div className="flex items-center gap-2 flex-wrap mt-2">
-          <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-[#7c6df2]/15 text-[#9b8cf5] px-2.5 py-1 rounded-full">
+          <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-gwc-accent/15 text-gwc-accent-soft px-2.5 py-1 rounded-full">
             {vocab.level}
           </span>
           {vocab.type && (
-            <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-white/5 text-[#9b98b0] px-2.5 py-1 rounded-full capitalize">
+            <span className="text-[0.65rem] font-bold tracking-widest uppercase bg-white/5 text-gwc-muted px-2.5 py-1 rounded-full capitalize">
               {vocab.type.charAt(0) + vocab.type.slice(1).toLowerCase()}
             </span>
           )}
@@ -96,7 +96,7 @@ export function VocabInfoBody({
             </span>
           )}
           {grammaticalCase && (
-            <span className={`text-[0.65rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border ${CASE_COLOR[grammaticalCase] ?? 'bg-white/5 border-white/10 text-[#9b98b0]'}`}>
+            <span className={`text-[0.65rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border ${CASE_COLOR[grammaticalCase] ?? 'bg-white/5 border-white/10 text-gwc-muted'}`}>
               {CASE_LABEL[grammaticalCase] ?? grammaticalCase}
             </span>
           )}
@@ -104,48 +104,48 @@ export function VocabInfoBody({
       </div>
 
       {/* ── Explanation + Usage Notes ─────────────────────────────────── */}
-      <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-        <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-2">
+      <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5">
+        <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-2">
           Meaning & Explanation
         </p>
         <p className="text-sm text-[#c8c5d8] leading-relaxed">{vocab.explanation_en}</p>
         {vocab.usage_notes && (
-          <p className="text-xs text-[#9b98b0] leading-relaxed mt-3 pt-3 border-t border-white/5">
-            💡 <strong className="text-[#e8e6f0]">Usage:</strong> {vocab.usage_notes}
+          <p className="text-xs text-gwc-muted leading-relaxed mt-3 pt-3 border-t border-white/5">
+            💡 <strong className="text-gwc-text">Usage:</strong> {vocab.usage_notes}
           </p>
         )}
       </div>
 
       {/* ── Fun Fact ──────────────────────────────────────────────────── */}
       {vocab.fun_fact && (
-        <div className="bg-gradient-to-br from-[#7c6df2]/10 to-[#7c6df2]/5 border border-[#7c6df2]/20 rounded-2xl p-5">
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#7c6df2] mb-2">Fun Fact</p>
+        <div className="bg-gradient-to-br from-gwc-accent/10 to-gwc-accent/5 border border-gwc-accent/20 rounded-2xl p-5">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-accent mb-2">Fun Fact</p>
           <p className="text-sm text-[#c8c5d8] leading-relaxed">{vocab.fun_fact}</p>
         </div>
       )}
 
       {/* ── Declension table (Nouns) ──────────────────────────────────── */}
       {isNoun && declRows.length > 0 && (
-        <div className="bg-[#1a1830] border border-white/5 rounded-2xl overflow-hidden">
+        <div className="bg-gwc-panel border border-white/5 rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-white/5">
-            <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0]">Declension</p>
+            <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted">Declension</p>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/5">
-                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] py-2 px-5">Case</th>
-                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] py-2 px-5">Singular</th>
-                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] py-2 px-5">Plural</th>
+                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted py-2 px-5">Case</th>
+                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted py-2 px-5">Singular</th>
+                <th className="text-left text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted py-2 px-5">Plural</th>
               </tr>
             </thead>
             <tbody>
               {declRows.map(({ key, sg, pl }) => (
-                <tr key={key} className={`border-t border-white/5 ${grammaticalCase === key ? 'bg-[#7c6df2]/8' : ''}`}>
-                  <td className={`py-2.5 px-5 text-xs font-bold ${grammaticalCase === key ? 'text-[#9b8cf5]' : 'text-[#c084fc]'}`}>
+                <tr key={key} className={`border-t border-white/5 ${grammaticalCase === key ? 'bg-gwc-accent/8' : ''}`}>
+                  <td className={`py-2.5 px-5 text-xs font-bold ${grammaticalCase === key ? 'text-gwc-accent-soft' : 'text-[#c084fc]'}`}>
                     {CASE_LABEL[key]}
                   </td>
-                  <td className="py-2.5 px-5 text-[#e8e6f0] font-medium">{sg ?? '—'}</td>
-                  <td className="py-2.5 px-5 text-[#e8e6f0]">{pl ?? '—'}</td>
+                  <td className="py-2.5 px-5 text-gwc-text font-medium">{sg ?? '—'}</td>
+                  <td className="py-2.5 px-5 text-gwc-text">{pl ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -155,23 +155,23 @@ export function VocabInfoBody({
 
       {/* ── Adjective forms (Comparative / Superlative) ───────────────── */}
       {isAdj && (vocab.comparative || vocab.superlative) && (
-        <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5">
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0] mb-4">Forms</p>
+        <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted mb-4">Forms</p>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
-              <p className="text-[0.65rem] text-[#9b98b0] uppercase tracking-wider mb-1">Positive</p>
-              <p className="text-[#e8e6f0] font-semibold text-sm">{vocab.word}</p>
+              <p className="text-[0.65rem] text-gwc-muted uppercase tracking-wider mb-1">Positive</p>
+              <p className="text-gwc-text font-semibold text-sm">{vocab.word}</p>
             </div>
             {vocab.comparative && (
               <div>
-                <p className="text-[0.65rem] text-[#9b98b0] uppercase tracking-wider mb-1">Comparative</p>
-                <p className="text-[#e8e6f0] font-semibold text-sm">{vocab.comparative}</p>
+                <p className="text-[0.65rem] text-gwc-muted uppercase tracking-wider mb-1">Comparative</p>
+                <p className="text-gwc-text font-semibold text-sm">{vocab.comparative}</p>
               </div>
             )}
             {vocab.superlative && (
               <div>
-                <p className="text-[0.65rem] text-[#9b98b0] uppercase tracking-wider mb-1">Superlative</p>
-                <p className="text-[#e8e6f0] font-semibold text-sm">{vocab.superlative}</p>
+                <p className="text-[0.65rem] text-gwc-muted uppercase tracking-wider mb-1">Superlative</p>
+                <p className="text-gwc-text font-semibold text-sm">{vocab.superlative}</p>
               </div>
             )}
           </div>
@@ -180,11 +180,11 @@ export function VocabInfoBody({
 
       {/* ── Synonyms + Related words ──────────────────────────────────── */}
       {(vocab.synonyms || vocab.related_words) && (
-        <div className="bg-[#1a1830] border border-white/5 rounded-2xl p-5 space-y-3">
-          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-[#9b98b0]">Related Words</p>
+        <div className="bg-gwc-panel border border-white/5 rounded-2xl p-5 space-y-3">
+          <p className="text-[0.65rem] font-bold tracking-widest uppercase text-gwc-muted">Related Words</p>
           {vocab.synonyms && (
             <div>
-              <p className="text-xs text-[#9b98b0] mb-1.5">Synonyms</p>
+              <p className="text-xs text-gwc-muted mb-1.5">Synonyms</p>
               <div className="flex flex-wrap gap-2">
                 {vocab.synonyms.split(',').map(s => (
                   <span key={s} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">
@@ -196,7 +196,7 @@ export function VocabInfoBody({
           )}
           {vocab.related_words && (
             <div>
-              <p className="text-xs text-[#9b98b0] mb-1.5">Related forms</p>
+              <p className="text-xs text-gwc-muted mb-1.5">Related forms</p>
               <div className="flex flex-wrap gap-2">
                 {vocab.related_words.split(',').map(r => (
                   <span key={r} className="bg-white/5 border border-white/8 text-[#c8c5d8] text-xs px-3 py-1.5 rounded-lg">
@@ -213,7 +213,7 @@ export function VocabInfoBody({
       {showLink && (
         <Link
           href={`/vocab/${vocab.slug}`}
-          className="block text-center text-xs text-[#7c6df2] hover:text-[#9b8cf5] transition-colors pt-1"
+          className="block text-center text-xs text-gwc-accent hover:text-gwc-accent-soft transition-colors pt-1"
         >
           Open full word page for „{vocab.word}" →
         </Link>

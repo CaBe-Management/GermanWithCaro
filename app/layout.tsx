@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-[#0f0e17] text-[#e8e6f0]">
+      <body className="bg-gwc-base text-gwc-text">
         <AuthGuard>
           <main className="min-h-screen">{children}</main>
         </AuthGuard>

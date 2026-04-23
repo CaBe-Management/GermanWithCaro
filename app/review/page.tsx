@@ -43,7 +43,7 @@ function HighlightText({ text, highlight }: { text: string; highlight: string | 
     <>
       {parts.map((part, i, arr) =>
         i < arr.length - 1
-          ? <span key={i}>{part}<mark className="bg-transparent text-[#9b8cf5] font-bold not-italic">{highlight}</mark></span>
+          ? <span key={i}>{part}<mark className="bg-transparent text-gwc-accent-soft font-bold not-italic">{highlight}</mark></span>
           : part
       )}
     </>
@@ -55,15 +55,15 @@ function HighlightText({ text, highlight }: { text: string; highlight: string | 
 function CompletionScreen({ total, correct }: { total: number; correct: number }) {
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0
   return (
-    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-gwc-base flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
         <div className="text-6xl mb-6">{pct >= 70 ? '🎉' : '📚'}</div>
-        <h2 className="text-3xl font-bold text-[#e8e6f0] mb-2">All done!</h2>
-        <p className="text-[#9b98b0] mb-2">{correct}/{total} correct — {pct}%</p>
-        <p className="text-[#9b98b0] text-sm mb-8">Your SRS queue has been updated.</p>
+        <h2 className="text-3xl font-bold text-gwc-text mb-2">All done!</h2>
+        <p className="text-gwc-muted mb-2">{correct}/{total} correct — {pct}%</p>
+        <p className="text-gwc-muted text-sm mb-8">Your SRS queue has been updated.</p>
         <div className="flex gap-3 justify-center">
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">Dashboard</Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">Browse Videos</Link>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors">Dashboard</Link>
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-gwc-text font-bold hover:bg-white/15 transition-colors">Browse Videos</Link>
         </div>
       </div>
     </div>
@@ -74,14 +74,14 @@ function CompletionScreen({ total, correct }: { total: number; correct: number }
 
 function EmptyState() {
   return (
-    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-gwc-base flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
         <div className="text-6xl mb-6">✅</div>
-        <h2 className="text-2xl font-bold text-[#e8e6f0] mb-2">No reviews due!</h2>
-        <p className="text-[#9b98b0] mb-8">All caught up. Browse videos to add more sentences.</p>
+        <h2 className="text-2xl font-bold text-gwc-text mb-2">No reviews due!</h2>
+        <p className="text-gwc-muted mb-8">All caught up. Browse videos to add more sentences.</p>
         <div className="flex gap-3 justify-center">
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold">Dashboard</Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">Videos</Link>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold">Dashboard</Link>
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-gwc-text font-bold hover:bg-white/15 transition-colors">Videos</Link>
         </div>
       </div>
     </div>
@@ -157,11 +157,11 @@ function FlipCard({
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0e17] flex flex-col">
+    <div className="min-h-screen bg-gwc-base flex flex-col">
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/5">
-        <Link href="/dashboard" className="text-[#9b98b0] hover:text-[#e8e6f0] transition-colors text-sm">
+        <Link href="/dashboard" className="text-gwc-muted hover:text-gwc-text transition-colors text-sm">
           ← Dashboard {/* Navigation link */}
         </Link>
         <div className="flex items-center gap-3">
@@ -169,50 +169,50 @@ function FlipCard({
             {srsLabel}
           </span>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-[#9b98b0]">□ <span className="font-bold text-[#e8e6f0]">{total - (cardNumber - 1)}</span></span>
-            <span className="text-[#4ade80]">✓ <span className="font-bold">{correct}</span></span>
-            <span className="text-[#f87171]">✗ <span className={`font-bold ${mistakes > 0 ? '' : 'text-[#9b98b0]'}`}>{mistakes}</span></span>
+            <span className="text-gwc-muted">□ <span className="font-bold text-gwc-text">{total - (cardNumber - 1)}</span></span>
+            <span className="text-gwc-success">✓ <span className="font-bold">{correct}</span></span>
+            <span className="text-gwc-error">✗ <span className={`font-bold ${mistakes > 0 ? '' : 'text-gwc-muted'}`}>{mistakes}</span></span>
           </div>
         </div>
       </div>
 
       {/* Progress bar */}
       <div className="h-0.5 bg-white/5">
-        <div className="h-full bg-[#7c6df2] transition-all duration-500" style={{ width: `${progress * 100}%` }} />
+        <div className="h-full bg-gwc-accent transition-all duration-500" style={{ width: `${progress * 100}%` }} />
       </div>
 
       {/* Card */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
         <div className="max-w-xl w-full">
           <div
-            className={`bg-[#1a1830] rounded-2xl border p-8 sm:p-12 text-center cursor-pointer select-none transition-all duration-200 ${
+            className={`bg-gwc-panel rounded-2xl border p-8 sm:p-12 text-center cursor-pointer select-none transition-all duration-200 ${
               answered
-                ? wasCorrect ? 'border-[#4ade80]/40' : 'border-[#f87171]/40'
-                : flipped   ? 'border-[#7c6df2]/40'  : 'border-white/8 hover:border-[#7c6df2]/30'
+                ? wasCorrect ? 'border-gwc-success/40' : 'border-gwc-error/40'
+                : flipped   ? 'border-gwc-accent/40'  : 'border-white/8 hover:border-gwc-accent/30'
             }`}
             onClick={() => !flipped && setFlipped(true)}
           >
             {/* Front */}
             {!flipped && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-6 font-medium">🇩🇪 German (to reveal)</p>
-                <p className="text-2xl sm:text-3xl font-light text-[#e8e6f0] leading-relaxed">
+                <p className="text-xs uppercase tracking-widest text-gwc-muted mb-6 font-medium">🇩🇪 German (to reveal)</p>
+                <p className="text-2xl sm:text-3xl font-light text-gwc-text leading-relaxed">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
-                <p className="text-xs text-[#4a4760] mt-8">Click or press <kbd className="px-1.5 py-0.5 rounded bg-white/8 text-[#6b6880] font-mono text-xs">Space</kbd> to reveal</p>
+                <p className="text-xs text-gwc-dim mt-8">Click or press <kbd className="px-1.5 py-0.5 rounded bg-white/8 text-[#6b6880] font-mono text-xs">Space</kbd> to reveal</p>
               </div>
             )}
 
             {/* Back */}
             {flipped && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-4 font-medium">🇩🇪 German</p>
-                <p className="text-xl sm:text-2xl font-light text-[#e8e6f0] leading-relaxed mb-6">
+                <p className="text-xs uppercase tracking-widest text-gwc-muted mb-4 font-medium">🇩🇪 German</p>
+                <p className="text-xl sm:text-2xl font-light text-gwc-text leading-relaxed mb-6">
                   <HighlightText text={card.sentence.sentence_de} highlight={card.sentence.highlight_de} />
                 </p>
                 <div className="h-px bg-white/8 mb-6" />
-                <p className="text-xs uppercase tracking-widest text-[#9b98b0] mb-4 font-medium">🇬🇧 English</p>
-                <p className="text-xl sm:text-2xl text-[#9b98b0] leading-relaxed italic">
+                <p className="text-xs uppercase tracking-widest text-gwc-muted mb-4 font-medium">🇬🇧 English</p>
+                <p className="text-xl sm:text-2xl text-gwc-muted leading-relaxed italic">
                   <HighlightText text={card.sentence.sentence_en} highlight={card.sentence.highlight_en} />
                 </p>
                 <div className="mt-6">
@@ -220,7 +220,7 @@ function FlipCard({
                     href={`/videos/${card.sentence.video_id}`}
                     target="_blank"
                     onClick={e => e.stopPropagation()}
-                    className="inline-flex items-center gap-1.5 text-xs text-[#6b6880] hover:text-[#9b8cf5] transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs text-[#6b6880] hover:text-gwc-accent-soft transition-colors"
                   >
                     ▶ Go to video page
                   </Link>
@@ -230,7 +230,7 @@ function FlipCard({
           </div>
 
           {answered && (
-            <p className={`mt-4 text-center text-sm font-semibold ${wasCorrect ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+            <p className={`mt-4 text-center text-sm font-semibold ${wasCorrect ? 'text-gwc-success' : 'text-gwc-error'}`}>
               {wasCorrect ? '✓ Nice!' : '✗ Keep going!'}
             </p>
           )}
@@ -238,11 +238,11 @@ function FlipCard({
       </div>
 
       {/* Bottom controls */}
-      <div className="bg-[#0f0e17] border-t border-white/5 px-5 py-4">
+      <div className="bg-gwc-base border-t border-white/5 px-5 py-4">
         {!flipped ? (
           <button
             onClick={() => setFlipped(true)}
-            className="w-full max-w-xl mx-auto flex justify-center py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors"
+            className="w-full max-w-xl mx-auto flex justify-center py-3.5 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors"
           >
             Reveal Translation
           </button>
@@ -251,14 +251,14 @@ function FlipCard({
             <button
               onClick={() => handleMark(false)}
               disabled={saving}
-              className="flex-1 py-3.5 rounded-xl border-2 border-[#f87171]/40 text-[#f87171] font-bold hover:bg-[#f87171]/10 transition-colors disabled:opacity-50"
+              className="flex-1 py-3.5 rounded-xl border-2 border-gwc-error/40 text-gwc-error font-bold hover:bg-gwc-error/10 transition-colors disabled:opacity-50"
             >
               ✗ Didn't know <span className="text-xs opacity-60">[1]</span>
             </button>
             <button
               onClick={() => handleMark(true)}
               disabled={saving}
-              className="flex-1 py-3.5 rounded-xl border-2 border-[#4ade80]/40 text-[#4ade80] font-bold hover:bg-[#4ade80]/10 transition-colors disabled:opacity-50"
+              className="flex-1 py-3.5 rounded-xl border-2 border-gwc-success/40 text-gwc-success font-bold hover:bg-gwc-success/10 transition-colors disabled:opacity-50"
             >
               ✓ Knew it <span className="text-xs opacity-60">[2]</span>
             </button>
@@ -268,8 +268,8 @@ function FlipCard({
             onClick={onNext}
             className={`w-full max-w-xl mx-auto flex justify-center gap-2 py-3.5 rounded-xl border-2 font-bold transition-colors ${
               wasCorrect
-                ? 'border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10'
-                : 'border-[#f87171]/40 text-[#f87171] hover:bg-[#f87171]/10'
+                ? 'border-gwc-success/40 text-gwc-success hover:bg-gwc-success/10'
+                : 'border-gwc-error/40 text-gwc-error hover:bg-gwc-error/10'
             }`}
           >
             Next → <span className="text-xs opacity-60">[Space]</span>
@@ -387,10 +387,10 @@ function ReviewPageInner() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
+      <div className="min-h-screen bg-gwc-base flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#9b98b0]">Loading reviews...</p>
+          <div className="w-10 h-10 border-2 border-gwc-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gwc-muted">Loading reviews...</p>
         </div>
       </div>
     )
@@ -398,28 +398,28 @@ function ReviewPageInner() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-gwc-base flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <p className="text-4xl mb-4">⚠️</p>
-          <p className="text-[#e8e6f0] font-bold mb-2">Could not load reviews</p>
-          <p className="text-[#9b98b0] text-sm mb-6">{error}</p>
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#6b5de0]">Back</Link>
+          <p className="text-gwc-text font-bold mb-2">Could not load reviews</p>
+          <p className="text-gwc-muted text-sm mb-6">{error}</p>
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-deep">Back</Link>
         </div>
       </div>
     )
   }
 
   if (isSubscribed === false) return (
-    <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-gwc-base flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
         <div className="text-5xl mb-5">🔒</div>
-        <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Pro feature</h2>
-        <p className="text-[#9b98b0] mb-8">SRS reviews are part of the Pro plan. Upgrade to start reviewing your saved sentences.</p>
+        <h2 className="text-2xl font-bold text-gwc-text mb-3">Pro feature</h2>
+        <p className="text-gwc-muted mb-8">SRS reviews are part of the Pro plan. Upgrade to start reviewing your saved sentences.</p>
         <div className="flex gap-3 justify-center">
-          <Link href="/upgrade" className="px-6 py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors">
+          <Link href="/upgrade" className="px-6 py-3 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors">
             Upgrade → €4.99/mo
           </Link>
-          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-[#e8e6f0] font-bold hover:bg-white/15 transition-colors">
+          <Link href="/videos" className="px-6 py-3 rounded-xl bg-white/10 text-gwc-text font-bold hover:bg-white/15 transition-colors">
             Browse videos
           </Link>
         </div>
@@ -447,8 +447,8 @@ function ReviewPageInner() {
 export default function ReviewPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gwc-base flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-gwc-accent border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <ReviewPageInner />

@@ -47,7 +47,7 @@ export default function AudioButton({ filename, size = 'md' }: AudioButtonProps)
     return (
       <button
         onClick={toggle}
-        className={`shrink-0 p-1 transition-colors ${playing ? 'text-[#7c6df2]' : 'text-[#9b98b0] hover:text-[#7c6df2]'}`}
+        className={`shrink-0 p-1 transition-colors ${playing ? 'text-gwc-accent' : 'text-gwc-muted hover:text-gwc-accent'}`}
       >
         {playing ? '⏸' : '🔊'}
       </button>
@@ -60,8 +60,8 @@ export default function AudioButton({ filename, size = 'md' }: AudioButtonProps)
         onClick={toggle}
         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
           playing
-            ? 'bg-[#7c6df2]/30 border border-[#7c6df2]/50 text-[#9b8cf5]'
-            : 'bg-[#7c6df2]/10 border border-[#7c6df2]/25 text-[#7c6df2] hover:bg-[#7c6df2]/20'
+            ? 'bg-gwc-accent/30 border border-gwc-accent/50 text-gwc-accent-soft'
+            : 'bg-gwc-accent/10 border border-gwc-accent/25 text-gwc-accent hover:bg-gwc-accent/20'
         }`}
       >
         {playing ? '⏸ Stop' : '🔊 Listen'}
@@ -75,8 +75,8 @@ export default function AudioButton({ filename, size = 'md' }: AudioButtonProps)
       onClick={toggle}
       className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors font-bold ${
         playing
-          ? 'bg-[#7c6df2] text-white'
-          : 'bg-white/10 text-[#9b98b0] hover:bg-[#7c6df2]/30 hover:text-[#9b8cf5]'
+          ? 'bg-gwc-accent text-white'
+          : 'bg-white/10 text-gwc-muted hover:bg-gwc-accent/30 hover:text-gwc-accent-soft'
       }`}
     >
       {playing ? '⏸' : '▶'}

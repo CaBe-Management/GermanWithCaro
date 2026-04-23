@@ -75,7 +75,7 @@ function FlipCardDemo() {
   }
 
   return (
-    <div className="bg-[#0f0e17] rounded-2xl border border-white/8 p-6 max-w-sm mx-auto">
+    <div className="bg-gwc-base rounded-2xl border border-white/8 p-6 max-w-sm mx-auto">
       {/* Progress */}
       <div className="flex items-center gap-3 mb-5">
         <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -84,27 +84,27 @@ function FlipCardDemo() {
             style={{ width: `${((cardIndex) / DEMO_SENTENCES.length) * 100}%` }}
           />
         </div>
-        <span className="text-xs text-[#9b98b0]">Card {cardIndex + 1} / {DEMO_SENTENCES.length}</span>
+        <span className="text-xs text-gwc-muted">Card {cardIndex + 1} / {DEMO_SENTENCES.length}</span>
       </div>
 
       {/* Card */}
       <div
         className={`relative min-h-[140px] rounded-xl border cursor-pointer select-none transition-all duration-300 mb-4 flex flex-col items-center justify-center text-center p-6 ${
           flipped
-            ? 'bg-[#7c6df2]/10 border-[#7c6df2]/40'
-            : 'bg-[#1a1830] border-white/8 hover:border-white/15'
+            ? 'bg-gwc-accent/10 border-gwc-accent/40'
+            : 'bg-gwc-panel border-white/8 hover:border-white/15'
         } ${answered === 'knew' ? 'border-emerald-500/60 bg-emerald-500/5' : answered === 'didnt' ? 'border-red-500/40 bg-red-500/5' : ''}`}
         onClick={() => !answered && setFlipped(f => !f)}
       >
         {!flipped ? (
           <>
-            <p className="text-xl font-bold text-[#e8e6f0] mb-2">{sentence.de}</p>
-            <p className="text-xs text-[#9b98b0]">tap to reveal translation</p>
+            <p className="text-xl font-bold text-gwc-text mb-2">{sentence.de}</p>
+            <p className="text-xs text-gwc-muted">tap to reveal translation</p>
           </>
         ) : (
           <>
-            <p className="text-sm text-[#9b98b0] mb-1">🇩🇪 {sentence.de}</p>
-            <p className="text-lg font-semibold text-[#e8e6f0]">🇬🇧 {sentence.en}</p>
+            <p className="text-sm text-gwc-muted mb-1">🇩🇪 {sentence.de}</p>
+            <p className="text-lg font-semibold text-gwc-text">🇬🇧 {sentence.en}</p>
           </>
         )}
       </div>
@@ -126,7 +126,7 @@ function FlipCardDemo() {
           </button>
         </div>
       ) : !flipped ? (
-        <p className="text-center text-xs text-[#4a4760]">← tap the card to flip it</p>
+        <p className="text-center text-xs text-gwc-dim">← tap the card to flip it</p>
       ) : (
         <div className={`text-center text-sm font-semibold py-2 rounded-xl ${
           answered === 'knew' ? 'text-emerald-400' : 'text-red-400'
@@ -157,22 +157,22 @@ function BrowseDemo() {
   const addedCount = sentences.filter(s => s.added).length
 
   return (
-    <div className="bg-[#0f0e17] rounded-2xl border border-white/8 p-4 max-w-sm mx-auto">
+    <div className="bg-gwc-base rounded-2xl border border-white/8 p-4 max-w-sm mx-auto">
       {/* Mock video header */}
       <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/5">
-        <div className="w-12 h-12 rounded-lg bg-[#7c6df2]/20 flex items-center justify-center shrink-0">
+        <div className="w-12 h-12 rounded-lg bg-gwc-accent/20 flex items-center justify-center shrink-0">
           <span className="text-xl">📱</span>
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#e8e6f0] leading-tight">I speak SLOW German everyday 🇩🇪</p>
-          <p className="text-xs text-[#9b98b0] mt-0.5">{addedCount}/{sentences.length} sentences saved</p>
+          <p className="text-sm font-semibold text-gwc-text leading-tight">I speak SLOW German everyday 🇩🇪</p>
+          <p className="text-xs text-gwc-muted mt-0.5">{addedCount}/{sentences.length} sentences saved</p>
         </div>
       </div>
 
       {/* Progress bar */}
       <div className="h-1 bg-white/5 rounded-full mb-4 overflow-hidden">
         <div
-          className="h-full bg-[#7c6df2] rounded-full transition-all duration-300"
+          className="h-full bg-gwc-accent rounded-full transition-all duration-300"
           style={{ width: `${(addedCount / sentences.length) * 100}%` }}
         />
       </div>
@@ -180,18 +180,18 @@ function BrowseDemo() {
       {/* Sentences */}
       <div className="space-y-2">
         {sentences.map((s, i) => (
-          <div key={i} className={`rounded-xl border p-3 transition-all ${s.added ? 'border-[#7c6df2]/40 bg-[#7c6df2]/5' : 'border-white/8 bg-[#1a1830]'}`}>
+          <div key={i} className={`rounded-xl border p-3 transition-all ${s.added ? 'border-gwc-accent/40 bg-gwc-accent/5' : 'border-white/8 bg-gwc-panel'}`}>
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#e8e6f0] leading-snug">{s.de}</p>
-                <p className="text-xs text-[#9b98b0] mt-0.5">{s.en}</p>
+                <p className="text-sm font-medium text-gwc-text leading-snug">{s.de}</p>
+                <p className="text-xs text-gwc-muted mt-0.5">{s.en}</p>
               </div>
               <button
                 onClick={() => toggle(i)}
                 className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   s.added
-                    ? 'bg-[#7c6df2]/20 text-[#9b8cf5]'
-                    : 'bg-white/5 text-[#9b98b0] hover:bg-[#7c6df2]/20 hover:text-[#9b8cf5]'
+                    ? 'bg-gwc-accent/20 text-gwc-accent-soft'
+                    : 'bg-white/5 text-gwc-muted hover:bg-gwc-accent/20 hover:text-gwc-accent-soft'
                 }`}
               >
                 {s.added ? '✓ Added' : '+ Add'}
@@ -240,17 +240,17 @@ function FAQ() {
       {FAQS.map((faq, i) => (
         <div
           key={i}
-          className="bg-[#252340]/60 backdrop-blur-sm rounded-xl border border-white/5 overflow-hidden hover:border-white/10 transition-colors"
+          className="bg-gwc-raised/60 backdrop-blur-sm rounded-xl border border-white/5 overflow-hidden hover:border-white/10 transition-colors"
         >
           <button
             onClick={() => setOpen(open === i ? null : i)}
             className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
           >
-            <span className="text-[#e8e6f0] font-medium text-sm">{faq.q}</span>
+            <span className="text-gwc-text font-medium text-sm">{faq.q}</span>
             <span className={`text-accent-purple text-xl shrink-0 transition-transform duration-200 ${open === i ? 'rotate-45' : ''}`}>+</span>
           </button>
           {open === i && (
-            <div className="px-5 pb-4 text-[#9b98b0] text-sm leading-relaxed border-t border-white/5 pt-3">
+            <div className="px-5 pb-4 text-gwc-muted text-sm leading-relaxed border-t border-white/5 pt-3">
               {faq.a}
             </div>
           )}
@@ -272,32 +272,32 @@ function LandingContent() {
   const caroRef   = useFadeIn()
 
   return (
-    <div className="min-h-screen bg-[#0f0e17] text-[#e8e6f0]" style={{ scrollBehavior: 'smooth' }}>
+    <div className="min-h-screen bg-gwc-base text-gwc-text" style={{ scrollBehavior: 'smooth' }}>
 
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0f0e17]/85 backdrop-blur-md border-b border-white/5">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gwc-base/85 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-bold text-base shrink-0">
             <span>🇩🇪</span>
             <span className="hidden sm:inline">German With Caro</span>
             <span className="sm:hidden">GWC</span>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm text-[#9b98b0]">
-            <a href="#how" className="hover:text-[#e8e6f0] transition-colors">How it works</a>
-            <a href="#for-who" className="hover:text-[#e8e6f0] transition-colors">Who it's for</a>
-            <a href="#caro" className="hover:text-[#e8e6f0] transition-colors">About</a>
-            <a href="#faq" className="hover:text-[#e8e6f0] transition-colors">FAQ</a>
+          <div className="hidden md:flex items-center gap-6 text-sm text-gwc-muted">
+            <a href="#how" className="hover:text-gwc-text transition-colors">How it works</a>
+            <a href="#for-who" className="hover:text-gwc-text transition-colors">Who it's for</a>
+            <a href="#caro" className="hover:text-gwc-text transition-colors">About</a>
+            <a href="#faq" className="hover:text-gwc-text transition-colors">FAQ</a>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="px-4 py-2 rounded-xl bg-white/8 text-[#e8e6f0] text-sm font-bold hover:bg-white/12 transition-colors"
+              className="px-4 py-2 rounded-xl bg-white/8 text-gwc-text text-sm font-bold hover:bg-white/12 transition-colors"
             >
               Log in
             </Link>
             <Link
               href="/videos"
-              className="px-4 py-2 rounded-xl bg-[#7c6df2] text-white text-sm font-bold hover:bg-[#6b5de0] transition-colors shadow-lg shadow-[#7c6df2]/25"
+              className="px-4 py-2 rounded-xl bg-gwc-accent text-white text-sm font-bold hover:bg-gwc-accent-deep transition-colors shadow-lg shadow-gwc-accent/25"
             >
               Browse videos →
             </Link>
@@ -308,64 +308,64 @@ function LandingContent() {
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
       <section className="relative pt-32 pb-20 px-5 overflow-hidden">
         <FloatingWords />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#7c6df2]/8 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gwc-accent/8 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="max-w-5xl mx-auto relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
             {/* Left: text */}
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#7c6df2]/12 border border-[#7c6df2]/25 text-[#9b8cf5] text-xs font-bold mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#9b8cf5] animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gwc-accent/12 border border-gwc-accent/25 text-gwc-accent-soft text-xs font-bold mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-gwc-accent-soft animate-pulse" />
                 Real sentences · Real retention
               </div>
 
-              <h1 className="text-4xl sm:text-5xl font-bold text-[#e8e6f0] leading-[1.1] mb-5">
+              <h1 className="text-4xl sm:text-5xl font-bold text-gwc-text leading-[1.1] mb-5">
                 Learn German from<br />
-                <span className="bg-gradient-to-r from-[#7c6df2] to-[#c084fc] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-gwc-accent to-[#c084fc] bg-clip-text text-transparent">
                   videos that actually stick.
                 </span>
               </h1>
 
-              <p className="text-lg text-[#9b98b0] leading-relaxed mb-4">
+              <p className="text-lg text-gwc-muted leading-relaxed mb-4">
                 Pick sentences from my TikTok videos. Add the ones you want to learn. Review them with spaced repetition until they're part of you.
               </p>
-              <p className="text-base text-[#9b98b0] leading-relaxed mb-8">
+              <p className="text-base text-gwc-muted leading-relaxed mb-8">
                 No random word lists. No gamified streaks. Just real German, from real context, drilled until it sticks.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
                   href="/videos"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#7c6df2] text-white font-bold text-base hover:bg-[#6b5de0] transition-all shadow-xl shadow-[#7c6df2]/30 hover:-translate-y-0.5"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gwc-accent text-white font-bold text-base hover:bg-gwc-accent-deep transition-all shadow-xl shadow-gwc-accent/30 hover:-translate-y-0.5"
                 >
                   Browse videos →
                 </Link>
                 <a
                   href="#how"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 text-[#9b98b0] font-semibold hover:bg-white/5 hover:text-[#e8e6f0] transition-all"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 text-gwc-muted font-semibold hover:bg-white/5 hover:text-gwc-text transition-all"
                 >
                   See how it works ↓
                 </a>
               </div>
 
-              <p className="text-xs text-[#9b98b0] mt-4 opacity-70">
+              <p className="text-xs text-gwc-muted mt-4 opacity-70">
                 Free to browse · No credit card needed
               </p>
             </div>
 
             {/* Right: interactive demo */}
             <div className="flex flex-col items-center gap-4">
-              <div className="flex gap-1 p-1 bg-[#1a1830] rounded-xl border border-white/5">
+              <div className="flex gap-1 p-1 bg-gwc-panel rounded-xl border border-white/5">
                 <button
                   onClick={() => setActiveDemo('browse')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'browse' ? 'bg-[#7c6df2] text-white shadow-lg shadow-[#7c6df2]/25' : 'text-[#9b98b0] hover:text-[#e8e6f0]'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'browse' ? 'bg-gwc-accent text-white shadow-lg shadow-gwc-accent/25' : 'text-gwc-muted hover:text-gwc-text'}`}
                 >
                   Browse
                 </button>
                 <button
                   onClick={() => setActiveDemo('review')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'review' ? 'bg-[#7c6df2] text-white shadow-lg shadow-[#7c6df2]/25' : 'text-[#9b98b0] hover:text-[#e8e6f0]'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeDemo === 'review' ? 'bg-gwc-accent text-white shadow-lg shadow-gwc-accent/25' : 'text-gwc-muted hover:text-gwc-text'}`}
                 >
                   Review
                 </button>
@@ -374,7 +374,7 @@ function LandingContent() {
               <div className="w-full animate-float-bob">
                 {activeDemo === 'browse' ? <BrowseDemo /> : <FlipCardDemo />}
               </div>
-              <p className="text-xs text-[#4a4760]">↑ Live demo — try it out</p>
+              <p className="text-xs text-gwc-dim">↑ Live demo — try it out</p>
             </div>
           </div>
         </div>
@@ -384,8 +384,8 @@ function LandingContent() {
       <section id="how" className="py-20 px-5" ref={howRef}>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">How it works</h2>
-            <p className="text-[#9b98b0]">Three steps. That's it.</p>
+            <h2 className="text-3xl font-bold text-gwc-text mb-3">How it works</h2>
+            <p className="text-gwc-muted">Three steps. That's it.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -395,8 +395,8 @@ function LandingContent() {
                 icon: '🎬',
                 title: 'Watch a video',
                 desc: 'Browse the video library. Each video has real German sentences from the content — tagged by level so you can start where it makes sense.',
-                color: 'border-[#7c6df2]/30 hover:border-[#7c6df2]/60',
-                num: 'text-[#7c6df2]',
+                color: 'border-gwc-accent/30 hover:border-gwc-accent/60',
+                num: 'text-gwc-accent',
               },
               {
                 step: '02',
@@ -415,11 +415,11 @@ function LandingContent() {
                 num: 'text-blue-400',
               },
             ].map(({ step, icon, title, desc, color, num }) => (
-              <div key={step} className={`bg-[#1a1830] rounded-2xl p-6 border ${color} transition-colors`}>
+              <div key={step} className={`bg-gwc-panel rounded-2xl p-6 border ${color} transition-colors`}>
                 <div className={`text-xs font-bold font-mono mb-3 ${num}`}>{step}</div>
                 <div className="text-2xl mb-3">{icon}</div>
-                <h3 className="text-[#e8e6f0] font-bold mb-2">{title}</h3>
-                <p className="text-[#9b98b0] text-sm leading-relaxed">{desc}</p>
+                <h3 className="text-gwc-text font-bold mb-2">{title}</h3>
+                <p className="text-gwc-muted text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -427,12 +427,12 @@ function LandingContent() {
       </section>
 
       {/* ── Why SRS ────────────────────────────────────────────────────────── */}
-      <section className="py-16 px-5 bg-[#1a1830]/40" ref={demoRef}>
+      <section className="py-16 px-5 bg-gwc-panel/40" ref={demoRef}>
         <div className="max-w-3xl mx-auto">
-          <div className="bg-[#1a1830] rounded-2xl border border-white/5 overflow-hidden">
+          <div className="bg-gwc-panel rounded-2xl border border-white/5 overflow-hidden">
             <div className="p-6 border-b border-white/5">
-              <h3 className="text-[#e8e6f0] font-bold text-lg">Why spaced repetition?</h3>
-              <p className="text-[#9b98b0] text-sm mt-1">The science behind remembering things long-term</p>
+              <h3 className="text-gwc-text font-bold text-lg">Why spaced repetition?</h3>
+              <p className="text-gwc-muted text-sm mt-1">The science behind remembering things long-term</p>
             </div>
             <div className="p-6 grid sm:grid-cols-3 gap-5">
               {[
@@ -452,10 +452,10 @@ function LandingContent() {
                   desc: 'Every time you successfully recall something, the memory gets stronger. Flip cards force retrieval. Scrolling doesn\'t.',
                 },
               ].map(({ icon, title, desc }) => (
-                <div key={title} className="bg-[#0f0e17] rounded-xl p-4 border border-white/5">
+                <div key={title} className="bg-gwc-base rounded-xl p-4 border border-white/5">
                   <div className="text-2xl mb-2">{icon}</div>
-                  <p className="text-[#e8e6f0] font-semibold text-sm mb-1">{title}</p>
-                  <p className="text-[#9b98b0] text-xs leading-relaxed">{desc}</p>
+                  <p className="text-gwc-text font-semibold text-sm mb-1">{title}</p>
+                  <p className="text-gwc-muted text-xs leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
@@ -467,7 +467,7 @@ function LandingContent() {
       <section id="for-who" className="py-20 px-5" ref={forWhoRef}>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">This is for you if…</h2>
+            <h2 className="text-3xl font-bold text-gwc-text mb-3">This is for you if…</h2>
           </div>
 
           <div className="space-y-4">
@@ -477,7 +477,7 @@ function LandingContent() {
                 title: 'You already follow me on TikTok, Instagram or YouTube Shorts',
                 desc: "You watch the videos. You understand the concept. But it doesn't stick the way you want it to. This is where you take what you've seen and actually make it yours — sentence by sentence.",
                 tag: 'GWC Community',
-                tagColor: 'bg-[#7c6df2]/15 text-[#9b8cf5] border-[#7c6df2]/25',
+                tagColor: 'bg-gwc-accent/15 text-gwc-accent-soft border-gwc-accent/25',
               },
               {
                 emoji: '🎯',
@@ -496,15 +496,15 @@ function LandingContent() {
             ].map(({ emoji, title, desc, tag, tagColor }) => (
               <div
                 key={title}
-                className="flex gap-5 bg-[#1a1830] rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-colors"
+                className="flex gap-5 bg-gwc-panel rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-colors"
               >
                 <div className="text-3xl shrink-0 mt-0.5">{emoji}</div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap mb-2">
-                    <h3 className="text-[#e8e6f0] font-bold">{title}</h3>
+                    <h3 className="text-gwc-text font-bold">{title}</h3>
                     <span className={`px-2 py-0.5 rounded text-xs font-bold border ${tagColor}`}>{tag}</span>
                   </div>
-                  <p className="text-[#9b98b0] text-sm leading-relaxed">{desc}</p>
+                  <p className="text-gwc-muted text-sm leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -513,21 +513,21 @@ function LandingContent() {
       </section>
 
       {/* ── About Caro ─────────────────────────────────────────────────────── */}
-      <section id="caro" className="py-20 px-5 bg-[#1a1830]/40" ref={caroRef}>
+      <section id="caro" className="py-20 px-5 bg-gwc-panel/40" ref={caroRef}>
         <div className="max-w-2xl mx-auto">
-          <div className="bg-[#1a1830] rounded-2xl border border-white/5 p-8 flex flex-col sm:flex-row gap-8 items-center sm:items-start">
+          <div className="bg-gwc-panel rounded-2xl border border-white/5 p-8 flex flex-col sm:flex-row gap-8 items-center sm:items-start">
             <img
               src="/caro.jpg"
               alt="Caro"
-              className="w-32 h-32 rounded-full object-cover shrink-0 border-2 border-[#7c6df2]/40 shadow-lg shadow-[#7c6df2]/10"
+              className="w-32 h-32 rounded-full object-cover shrink-0 border-2 border-gwc-accent/40 shadow-lg shadow-gwc-accent/10"
             />
             <div>
-              <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-2">The person behind it</p>
-              <h2 className="text-2xl font-bold text-[#e8e6f0] mb-3">Hi, I'm Caro 👋</h2>
-              <p className="text-[#9b98b0] leading-relaxed mb-3">
+              <p className="text-xs font-bold text-gwc-accent uppercase tracking-widest mb-2">The person behind it</p>
+              <h2 className="text-2xl font-bold text-gwc-text mb-3">Hi, I'm Caro 👋</h2>
+              <p className="text-gwc-muted leading-relaxed mb-3">
                 I'm not German — I got fluent by living and working in Germany. I know what it's like to learn this language as an outsider, what actually works, and what's just a waste of time. I make German content on TikTok, Instagram and YouTube Shorts, and people kept asking where they could actually practise the sentences from my videos. I couldn't find anything good, so I built it myself.
               </p>
-              <p className="text-[#9b98b0] leading-relaxed mb-4">
+              <p className="text-gwc-muted leading-relaxed mb-4">
                 Every video, every sentence, every translation in here is made by me. This is the study companion to go with the content you're already watching.
               </p>
               <div className="flex gap-3 flex-wrap">
@@ -535,7 +535,7 @@ function LandingContent() {
                   href="https://www.tiktok.com/@germanwithcaro"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 transition-colors text-sm font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gwc-muted hover:text-gwc-text hover:bg-white/10 transition-colors text-sm font-medium"
                 >
                   📱 TikTok
                 </a>
@@ -543,7 +543,7 @@ function LandingContent() {
                   href="https://www.instagram.com/germanwithcaroo"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 transition-colors text-sm font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gwc-muted hover:text-gwc-text hover:bg-white/10 transition-colors text-sm font-medium"
                 >
                   📸 Instagram
                 </a>
@@ -551,7 +551,7 @@ function LandingContent() {
                   href="https://www.youtube.com/@germanwithcaro"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#9b98b0] hover:text-[#e8e6f0] hover:bg-white/10 transition-colors text-sm font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gwc-muted hover:text-gwc-text hover:bg-white/10 transition-colors text-sm font-medium"
                 >
                   ▶️ YouTube Shorts
                 </a>
@@ -565,7 +565,7 @@ function LandingContent() {
       <section id="faq" className="py-20 px-5" ref={faqRef}>
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">Questions</h2>
+            <h2 className="text-3xl font-bold text-gwc-text mb-3">Questions</h2>
           </div>
           <FAQ />
         </div>
@@ -575,39 +575,39 @@ function LandingContent() {
       <section id="pricing" className="py-20 px-5">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-12">
-            <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-3">Pricing</p>
-            <h2 className="text-3xl font-bold text-[#e8e6f0] mb-3">Simple.</h2>
-            <p className="text-[#9b98b0]">Browse videos for free. Pay when you want to review.</p>
+            <p className="text-xs font-bold text-gwc-accent uppercase tracking-widest mb-3">Pricing</p>
+            <h2 className="text-3xl font-bold text-gwc-text mb-3">Simple.</h2>
+            <p className="text-gwc-muted">Browse videos for free. Pay when you want to review.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Free */}
-            <div className="bg-[#1a1830] border border-white/6 rounded-2xl p-7">
-              <p className="text-xs font-bold text-[#9b98b0] uppercase tracking-widest mb-4">Free</p>
-              <p className="text-4xl font-bold text-[#e8e6f0] mb-1">€0</p>
+            <div className="bg-gwc-panel border border-white/6 rounded-2xl p-7">
+              <p className="text-xs font-bold text-gwc-muted uppercase tracking-widest mb-4">Free</p>
+              <p className="text-4xl font-bold text-gwc-text mb-1">€0</p>
               <p className="text-sm text-[#6b6880] mb-6">forever</p>
               <ul className="space-y-3">
                 {['Browse all videos', 'See sentences + translations', 'Filter by level'].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm text-[#9b98b0]">
-                    <span className="text-[#7c6df2] font-bold">✓</span>{f}
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-gwc-muted">
+                    <span className="text-gwc-accent font-bold">✓</span>{f}
                   </li>
                 ))}
               </ul>
             </div>
             {/* Pro */}
-            <div className="bg-[#1a1830] border border-[#7c6df2]/40 rounded-2xl p-7 relative">
-              <p className="text-xs font-bold text-[#7c6df2] uppercase tracking-widest mb-4">Pro</p>
-              <p className="text-4xl font-bold text-[#e8e6f0] mb-1">€4.99</p>
+            <div className="bg-gwc-panel border border-gwc-accent/40 rounded-2xl p-7 relative">
+              <p className="text-xs font-bold text-gwc-accent uppercase tracking-widest mb-4">Pro</p>
+              <p className="text-4xl font-bold text-gwc-text mb-1">€4.99</p>
               <p className="text-sm text-[#6b6880] mb-6">per month · cancel any time</p>
               <ul className="space-y-3 mb-7">
                 {['Everything in Free', 'Save sentences to your deck', 'Daily SRS review', 'Track your progress'].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm text-[#9b98b0]">
-                    <span className="text-[#7c6df2] font-bold">✓</span>{f}
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-gwc-muted">
+                    <span className="text-gwc-accent font-bold">✓</span>{f}
                   </li>
                 ))}
               </ul>
               <Link
                 href="/login"
-                className="block text-center py-3 rounded-xl bg-[#7c6df2] text-white font-bold hover:bg-[#9b8cf5] transition-colors"
+                className="block text-center py-3 rounded-xl bg-gwc-accent text-white font-bold hover:bg-gwc-accent-soft transition-colors"
               >
                 Get started →
               </Link>
@@ -619,26 +619,26 @@ function LandingContent() {
       {/* ── Final CTA ──────────────────────────────────────────────────────── */}
       <section className="py-20 px-5 text-center">
         <div className="max-w-md mx-auto">
-          <h2 className="text-3xl font-bold text-[#e8e6f0] mb-4">
+          <h2 className="text-3xl font-bold text-gwc-text mb-4">
             Ready to make it stick?
           </h2>
-          <p className="text-[#9b98b0] mb-8">
+          <p className="text-gwc-muted mb-8">
             Pick a video. Add the sentences you want to learn. Come back tomorrow for your review. That's the whole thing.
           </p>
           <Link
             href="/videos"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-[#7c6df2] text-white font-bold text-lg hover:bg-[#6b5de0] transition-all shadow-xl shadow-[#7c6df2]/30 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gwc-accent text-white font-bold text-lg hover:bg-gwc-accent-deep transition-all shadow-xl shadow-gwc-accent/30 hover:-translate-y-0.5"
           >
             Browse videos →
           </Link>
-          <p className="text-xs text-[#9b98b0] mt-4 opacity-60">Free to use · No credit card</p>
+          <p className="text-xs text-gwc-muted mt-4 opacity-60">Free to use · No credit card</p>
         </div>
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/5 py-8 px-5">
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[#9b98b0] text-sm">
+          <p className="text-gwc-muted text-sm">
             © {new Date().getFullYear()} German With Caro
           </p>
           <div className="flex items-center gap-5">
@@ -648,7 +648,7 @@ function LandingContent() {
               { href: '/cookies',   label: 'Cookies' },
               { href: '/terms',     label: 'Terms' },
             ].map(({ href, label }) => (
-              <Link key={href} href={href} className="text-[#9b98b0] hover:text-[#e8e6f0] text-sm transition-colors">
+              <Link key={href} href={href} className="text-gwc-muted hover:text-gwc-text text-sm transition-colors">
                 {label}
               </Link>
             ))}

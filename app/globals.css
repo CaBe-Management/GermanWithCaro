@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
+/* RGB channels (no #) so Tailwind opacity modifiers work: bg-gwc-accent/20     */
+
+:root {
+  /* Dark theme (current) */
+  --gwc-base:         15 14 23;      /* #0f0e17 — page background */
+  --gwc-panel:        26 24 48;      /* #1a1830 — card / panel */
+  --gwc-raised:       37 35 64;      /* #252340 — elevated surface */
+  --gwc-text:         232 230 240;   /* #e8e6f0 — primary text */
+  --gwc-muted:        155 152 176;   /* #9b98b0 — muted text */
+  --gwc-dim:          74 71 96;      /* #4a4760 — placeholder / dimmed */
+  --gwc-accent:       124 109 242;   /* #7c6df2 — brand purple */
+  --gwc-accent-soft:  155 140 245;   /* #9b8cf5 — lighter purple */
+  --gwc-accent-deep:  107 93 224;    /* #6b5de0 — darker purple */
+  --gwc-success:      74 222 128;    /* #4ade80 */
+  --gwc-error:        248 113 113;   /* #f87171 */
+}
+
+[data-theme="plum"] {
+  /* Plum theme */
+  --gwc-base:         250 246 242;   /* #faf6f2 — warm cream */
+  --gwc-panel:        255 255 255;   /* #ffffff — white card */
+  --gwc-raised:       241 233 228;   /* #f1e9e4 — slightly deeper cream */
+  --gwc-text:         43 27 58;      /* #2b1b3a — deep plum ink */
+  --gwc-muted:        138 118 137;   /* #8a7689 — muted plum */
+  --gwc-dim:          188 168 187;   /* #bca8bb — dimmed plum */
+  --gwc-accent:       107 43 94;     /* #6b2b5e — plum accent */
+  --gwc-accent-soft:  155 92 143;    /* #9b5c8f — lighter plum */
+  --gwc-accent-deep:  74 26 64;      /* #4a1a40 — deeper plum */
+  --gwc-success:      94 123 86;     /* #5e7b56 — sage green */
+  --gwc-error:        168 60 60;     /* #a83c3c — muted red */
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -13,8 +46,8 @@ html {
 }
 
 body {
-  background-color: #0f0e17;
-  color: #e8e6f0;
+  background-color: rgb(var(--gwc-base));
+  color: rgb(var(--gwc-text));
 }
 
 /* ─── Landing Page Animations ──────────────────────────────────────────────── */

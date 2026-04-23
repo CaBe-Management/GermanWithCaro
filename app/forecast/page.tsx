@@ -60,21 +60,21 @@ function ForecastBar({ label, count, max, isToday }: {
   return (
     <div className="flex items-center gap-3">
       {/* Day label */}
-      <div className={`text-sm w-28 shrink-0 ${isToday ? 'text-[#9b8cf5] font-bold' : 'text-[#9b98b0]'}`}>
+      <div className={`text-sm w-28 shrink-0 ${isToday ? 'text-gwc-accent-soft font-bold' : 'text-gwc-muted'}`}>
         {label}
       </div>
       {/* Bar */}
       <div className="flex-1 h-6 bg-white/5 rounded-lg overflow-hidden relative">
         <div
           className={`h-full rounded-lg transition-all duration-700 ${
-            isToday ? 'bg-[#7c6df2]' : 'bg-[#7c6df2]/40'
+            isToday ? 'bg-gwc-accent' : 'bg-gwc-accent/40'
           }`}
           style={{ width: count === 0 ? '0%' : `${pct}%` }}
         />
       </div>
       {/* Count */}
       <div className={`text-sm font-bold w-10 text-right shrink-0 ${
-        count > 0 ? (isToday ? 'text-[#9b8cf5]' : 'text-[#e8e6f0]') : 'text-[#9b98b0]'
+        count > 0 ? (isToday ? 'text-gwc-accent-soft' : 'text-gwc-text') : 'text-gwc-muted'
       }`}>
         {count}
       </div>
@@ -92,7 +92,7 @@ function ActivityGrid({ data }: { data: DayActivity[] }) {
       {/* Day-of-week header */}
       <div className="flex gap-1 mb-1 pl-0">
         {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
-          <div key={d} className="flex-1 text-center text-[10px] text-[#9b98b0]">{d}</div>
+          <div key={d} className="flex-1 text-center text-[10px] text-gwc-muted">{d}</div>
         ))}
       </div>
       {/* 3 rows of 7 days = 21 days */}
@@ -106,7 +106,7 @@ function ActivityGrid({ data }: { data: DayActivity[] }) {
                 <div
                   key={day.dateStr}
                   className={`flex-1 aspect-square rounded-md transition-all ${
-                    isToday ? 'ring-1 ring-[#7c6df2]' : ''
+                    isToday ? 'ring-1 ring-gwc-accent' : ''
                   }`}
                   style={{
                     backgroundColor: day.count > 0
@@ -122,7 +122,7 @@ function ActivityGrid({ data }: { data: DayActivity[] }) {
       </div>
       {/* Legend */}
       <div className="flex items-center gap-2 mt-3 justify-end">
-        <span className="text-[10px] text-[#9b98b0]">Less</span>
+        <span className="text-[10px] text-gwc-muted">Less</span>
         {[0.1, 0.3, 0.5, 0.75, 1].map(op => (
           <div
             key={op}
@@ -130,7 +130,7 @@ function ActivityGrid({ data }: { data: DayActivity[] }) {
             style={{ backgroundColor: `rgba(124, 109, 242, ${op})` }}
           />
         ))}
-        <span className="text-[10px] text-[#9b98b0]">More</span>
+        <span className="text-[10px] text-gwc-muted">More</span>
       </div>
     </div>
   )
@@ -235,21 +235,21 @@ export default function ForecastPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0e17] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#7c6df2] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gwc-base flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gwc-accent border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0e17]">
+    <div className="min-h-screen bg-gwc-base">
       <Navbar />
       <div className="max-w-2xl mx-auto px-5 py-10 space-y-6">
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div>
-          <h1 className="text-2xl font-bold text-[#e8e6f0] mb-1">Forecast</h1>
-          <p className="text-[#9b98b0] text-sm">Upcoming reviews and activity</p>
+          <h1 className="text-2xl font-bold text-gwc-text mb-1">Forecast</h1>
+          <p className="text-gwc-muted text-sm">Upcoming reviews and activity</p>
         </div>
 
         {/* ── Due now badge ────────────────────────────────────────────────── */}
@@ -267,14 +267,14 @@ export default function ForecastPage() {
         )}
 
         {/* ── Upcoming 7 days ───────────────────────────────────────────────── */}
-        <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-bold text-[#e8e6f0]">Next 7 days</h2>
-            <span className="text-sm text-[#9b98b0]">{totalUpcoming} reviews scheduled</span>
+            <h2 className="text-base font-bold text-gwc-text">Next 7 days</h2>
+            <span className="text-sm text-gwc-muted">{totalUpcoming} reviews scheduled</span>
           </div>
 
           {forecast.length === 0 ? (
-            <p className="text-[#9b98b0] text-sm text-center py-6">
+            <p className="text-gwc-muted text-sm text-center py-6">
               No reviews scheduled. Time to learn new words!
             </p>
           ) : (
@@ -293,10 +293,10 @@ export default function ForecastPage() {
         </div>
 
         {/* ── Activity grid (21 days) ───────────────────────────────────────── */}
-        <div className="bg-[#1a1830] rounded-2xl p-6 border border-white/5">
+        <div className="bg-gwc-panel rounded-2xl p-6 border border-white/5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-bold text-[#e8e6f0]">Activity</h2>
-            <span className="text-sm text-[#9b98b0]">Last 21 days</span>
+            <h2 className="text-base font-bold text-gwc-text">Activity</h2>
+            <span className="text-sm text-gwc-muted">Last 21 days</span>
           </div>
           <ActivityGrid data={activity} />
         </div>
@@ -305,13 +305,13 @@ export default function ForecastPage() {
         <div className="flex gap-3">
           <Link
             href="/review"
-            className="flex-1 py-3 rounded-xl bg-[#7c6df2] text-white font-bold text-center hover:bg-[#6b5de0] transition-colors"
+            className="flex-1 py-3 rounded-xl bg-gwc-accent text-white font-bold text-center hover:bg-gwc-accent-deep transition-colors"
           >
             Start reviews
           </Link>
           <Link
             href="/profile"
-            className="flex-1 py-3 rounded-xl bg-white/5 text-[#e8e6f0] font-bold text-center hover:bg-white/10 transition-colors border border-white/5"
+            className="flex-1 py-3 rounded-xl bg-white/5 text-gwc-text font-bold text-center hover:bg-white/10 transition-colors border border-white/5"
           >
             Profile
           </Link>
