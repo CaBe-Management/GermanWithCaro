@@ -18,8 +18,18 @@ async function uploadThumbnailToStorage(
   videoId: string
 ): Promise<string | null> {
   try {
-    const imgRes = await fetch(cdnUrl)
-    if (!imgRes.ok) return null
+    // TikTok CDN needs browser-like headers to allow server-side fetch
+    const imgRes = await fetch(cdnUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.tiktok.com/',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+      },
+    })
+    if (!imgRes.ok) {
+      console.error('[tiktok-meta] Image fetch failed:', imgRes.status, cdnUrl)
+      return null
+    }
 
     const blob = await imgRes.blob()
     const arrayBuffer = await blob.arrayBuffer()
@@ -72,20 +82,27 @@ export async function GET(request: NextRequest) {
     }
     const data = await res.json()
 
-    let thumbnailUrl: string | null = data.thumbnail_url ?? null
+    const cdnThumbnail: string | null = data.thumbnail_url ?? null
+    let thumbnailUrl: string | null = cdnThumbnail
 
-    // Upload to Supabase Storage for a permanent URL
-    if (thumbnailUrl) {
+    // Try uploading to Supabase Storage for a permanent URL
+    // Falls back to TikTok CDN URL if Storage fails (e.g. bucket not set up yet)
+    if (cdnThumbnail) {
       const videoId = extractTikTokId(url)
       if (videoId) {
-        const storageUrl = await uploadThumbnailToStorage(thumbnailUrl, videoId)
-        if (storageUrl) thumbnailUrl = storageUrl
+        const storageUrl = await uploadThumbnailToStorage(cdnThumbnail, videoId)
+        if (storageUrl) {
+          thumbnailUrl = storageUrl
+          console.log('[tiktok-meta] Uploaded to Storage:', storageUrl)
+        } else {
+          console.warn('[tiktok-meta] Storage upload failed, using CDN URL as fallback')
+        }
       }
     }
 
     return NextResponse.json({
       title: data.title ?? null,
-      thumbnail_url: thumbnailUrl,
+      thumbnail_url: thumbnailUrl, // Always returns something if oEmbed has it
     })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch TikTok metadata' }, { status: 500 })
