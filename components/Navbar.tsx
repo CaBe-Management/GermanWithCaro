@@ -187,6 +187,16 @@ export default function Navbar() {
                       </svg>
                       Forecast
                     </Link>
+                    <Link
+                      href="/subscription"
+                      onClick={() => profileDropdown.setOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gwc-text hover:bg-gwc-text/5 transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-gwc-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Subscription
+                    </Link>
                   </div>
                   <div className="border-t border-gwc-text/6 py-1">
                     <button
@@ -237,6 +247,16 @@ export default function Navbar() {
                     {userLevel !== null && (
                       <span className="ml-auto font-mono text-[10px] bg-gwc-accent/12 text-gwc-accent px-1.5 py-0.5 rounded tracking-wider">Lv {userLevel}</span>
                     )}
+                  </Link>
+                  <Link
+                    href="/subscription"
+                    onClick={() => mobileMenu.setOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-gwc-text/5 ${isActive('/subscription') ? 'text-gwc-accent' : 'text-gwc-text'}`}
+                  >
+                    <svg className="w-4 h-4 text-gwc-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <span className="font-medium">Subscription</span>
                   </Link>
                   <Link
                     href="/forecast"
