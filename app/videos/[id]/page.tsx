@@ -74,6 +74,10 @@ export default function VideoDetailPage() {
   // SRS state per sentence: sentenceId → { inQueue: boolean, srsLevel: number } | 'loading'
   const [srsState, setSrsState] = useState<Record<string, { inQueue: boolean; srsLevel: number } | 'loading'>>({})
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+  const [hoveredSrsId, setHoveredSrsId] = useState<string | null>(null)
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+  const [dontAskAgain, setDontAskAgain] = useState(false)
 
   useEffect(() => {
     loadPage()
@@ -144,6 +148,46 @@ export default function VideoDetailPage() {
       setLearned(true)
     }
     setTogglingLearned(false)
+  }
+
+  function handleRemoveClick(sentenceId: string) {
+    if (!isAuthed || removingId) return
+    const skipConfirm = typeof window !== 'undefined'
+      && localStorage.getItem('gwc_srs_remove_skip_confirm') === 'true'
+    if (skipConfirm) {
+      doRemoveFromSRS(sentenceId)
+    } else {
+      setDontAskAgain(false)
+      setConfirmRemoveId(sentenceId)
+    }
+  }
+
+  async function doRemoveFromSRS(sentenceId: string) {
+    setConfirmRemoveId(null)
+    setRemovingId(sentenceId)
+    setSrsState(prev => ({ ...prev, [sentenceId]: 'loading' }))
+
+    const sessionId = getOrCreateSessionId()
+    const { error } = await supabase
+      .from('gwc_video_reviews')
+      .delete()
+      .eq('session_id', sessionId)
+      .eq('sentence_id', sentenceId)
+
+    if (!error) {
+      setSrsState(prev => ({ ...prev, [sentenceId]: { inQueue: false, srsLevel: 0 } }))
+    } else {
+      setSrsState(prev => ({ ...prev, [sentenceId]: { inQueue: true, srsLevel: 0 } }))
+    }
+    setRemovingId(null)
+    setHoveredSrsId(null)
+  }
+
+  function confirmRemove() {
+    if (dontAskAgain && typeof window !== 'undefined') {
+      localStorage.setItem('gwc_srs_remove_skip_confirm', 'true')
+    }
+    if (confirmRemoveId) doRemoveFromSRS(confirmRemoveId)
   }
 
   async function addToSRS(sentenceId: string) {
@@ -367,25 +411,42 @@ export default function VideoDetailPage() {
                         {/* SRS Button */}
                         {isAuthed && (
                           <button
-                            onClick={() => !inQueue && addToSRS(s.id)}
-                            disabled={isLoading || inQueue}
+                            onClick={() => {
+                              if (isLoading) return
+                              if (inQueue) handleRemoveClick(s.id)
+                              else addToSRS(s.id)
+                            }}
+                            onMouseEnter={() => inQueue && setHoveredSrsId(s.id)}
+                            onMouseLeave={() => setHoveredSrsId(null)}
+                            disabled={isLoading}
                             className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                               isLoading
                                 ? 'border border-gwc-text/8 text-gwc-muted cursor-wait'
                                 : inQueue
-                                ? 'bg-gwc-accent/12 text-gwc-accent cursor-default'
+                                ? hoveredSrsId === s.id
+                                  ? 'bg-red-500/10 text-red-400 border border-red-400/20 cursor-pointer'
+                                  : 'bg-gwc-accent/12 text-gwc-accent cursor-pointer'
                                 : 'border border-gwc-text/10 text-gwc-muted hover:border-gwc-accent/40 hover:text-gwc-accent cursor-pointer'
                             }`}
                           >
                             {isLoading ? (
                               <span className="w-3 h-3 border border-[#9b98b0] border-t-transparent rounded-full animate-spin inline-block" />
                             ) : inQueue ? (
-                              <>
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Added
-                              </>
+                              hoveredSrsId === s.id ? (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                  Remove
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Added
+                                </>
+                              )
                             ) : (
                               <>
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -421,6 +482,58 @@ export default function VideoDetailPage() {
 
         </div>
       </div>
+
+      {/* Remove from SRS confirmation modal */}
+      {confirmRemoveId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setConfirmRemoveId(null)}
+        >
+          <div
+            className="bg-gwc-panel border border-gwc-text/12 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <span className="text-2xl leading-none mt-0.5">⚠️</span>
+              <div>
+                <h3 className="font-semibold text-gwc-text text-sm leading-snug">
+                  Fortschritt löschen?
+                </h3>
+                <p className="text-gwc-muted text-sm mt-1 leading-relaxed">
+                  Dieser Satz wird aus der Review-Queue entfernt und dein gesamter Fortschritt (Wiederholungen, Streak) geht verloren.
+                </p>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2.5 mb-5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={dontAskAgain}
+                onChange={e => setDontAskAgain(e.target.checked)}
+                className="w-4 h-4 rounded border border-gwc-text/20 bg-gwc-text/5 accent-gwc-accent cursor-pointer"
+              />
+              <span className="text-xs text-gwc-muted group-hover:text-gwc-text transition-colors">
+                Nicht mehr fragen
+              </span>
+            </label>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmRemoveId(null)}
+                className="flex-1 py-2 rounded-lg border border-gwc-text/10 text-gwc-muted text-sm font-medium hover:bg-gwc-text/5 transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={confirmRemove}
+                className="flex-1 py-2 rounded-lg bg-red-500/15 text-red-400 border border-red-400/20 text-sm font-medium hover:bg-red-500/25 transition-colors"
+              >
+                Ja, löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
